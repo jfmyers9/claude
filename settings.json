@@ -1,0 +1,15 @@
+{
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "model": "opus",
+  "enabledPlugins": {
+    "ralph-loop@claude-plugins-official": true
+  },
+  "permissions": {
+    "deny": [
+      "Task(test-runner)"
+    ]
+  }
+}
