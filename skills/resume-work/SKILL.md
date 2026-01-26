@@ -18,25 +18,41 @@ This skill analyzes the current branch and associated PR to provide a comprehens
    - Get base branch (usually main/master)
    - Verify the branch exists and has commits
 
-2. **Get PR information** (if available):
+2. **Ensure branch is up to date with origin**:
+   - Check for local uncommitted changes: `git status --porcelain`
+   - If there are uncommitted changes:
+     - Show the user the uncommitted changes
+     - Display message: "⚠️  Cannot sync branch - you have local uncommitted changes. Please commit or stash your changes before resuming."
+     - Stop here and do not proceed with the rest of the skill
+   - Fetch latest from origin: `git fetch origin`
+   - Check if remote branch exists: `git rev-parse --verify origin/[branch-name]`
+   - If remote branch exists:
+     - Check if local is behind remote: `git rev-list HEAD..origin/[branch-name] --count`
+     - If behind, pull changes: `git pull --ff-only origin [branch-name]`
+     - If pull fails (exit code != 0), display error and stop:
+       - "⚠️  Failed to pull changes from origin. Please resolve any conflicts manually before resuming."
+       - Stop here and do not proceed
+   - If remote branch doesn't exist, note that this is a local-only branch
+
+3. **Get PR information** (if available):
    - Run `gh pr view --json number,title,body,state,author,createdAt,updatedAt,additions,deletions,changedFiles,reviewDecision,comments,reviews`
    - If no PR exists, note that but continue with branch analysis
 
-3. **Analyze commits**:
+4. **Analyze commits**:
    - Get commit history since base branch: `git log main..HEAD --oneline --no-decorate`
    - Get detailed last commit: `git log -1 --format=fuller`
    - Count total commits: `git rev-list --count main..HEAD`
 
-4. **Analyze changes**:
+5. **Analyze changes**:
    - Get changed files summary: `git diff main...HEAD --stat`
    - Get diff summary: `git diff main...HEAD --shortstat`
    - Identify types of changes (new files, modified files, deleted files)
 
-5. **Check branch status**:
+6. **Check branch status**:
    - Run `git status` to see uncommitted changes
    - Check if branch is ahead/behind remote: `git rev-list --left-right --count @{upstream}...HEAD` (if remote exists)
 
-6. **Present summary** in this format:
+7. **Present summary** in this format:
 
 ```markdown
 ## 📋 Branch Summary: [branch-name]
@@ -78,6 +94,9 @@ No PR created yet for this branch.
 
 ## Tips
 
+- The skill automatically ensures the branch is synced with origin before proceeding
+- If uncommitted changes are detected, the user must commit or stash them first
+- If pull fails, the user must manually resolve conflicts before resuming
 - If the branch has uncommitted changes, mention them prominently
 - If the branch is behind main, suggest syncing
 - If PR has requested changes, highlight them
