@@ -25,7 +25,9 @@ Or add to your dotfiles install script.
 ├── settings.json      # Model, plugins, permissions
 ├── skills/
 │   ├── ship/          # /ship - git sync && git propose
-│   └── commit/        # /commit - conventional commits
+│   ├── commit/        # /commit - conventional commits
+│   ├── resume-work/   # /resume-work - branch and PR summary
+│   └── refine/        # /refine - simplify code and improve comments
 └── rules/
     └── style.md       # Coding preferences
 ```
@@ -34,6 +36,8 @@ Or add to your dotfiles install script.
 
 - `/ship` - Runs git-town workflow: sync branch with master and create PR
 - `/commit [message]` - Create a conventional commit (auto-generates message if not provided)
+- `/resume-work [branch]` - Summarize current branch and PR state to help resume work
+- `/refine [pattern]` - Simplify code and improve comments in uncommitted changes before committing
 
 ## What's NOT included
 
