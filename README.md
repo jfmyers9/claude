@@ -27,7 +27,8 @@ Or add to your dotfiles install script.
 │   ├── ship/          # /ship - git sync && git propose
 │   ├── commit/        # /commit - conventional commits
 │   ├── resume-work/   # /resume-work - branch and PR summary
-│   └── refine/        # /refine - simplify code and improve comments
+│   ├── refine/        # /refine - simplify code and improve comments
+│   └── explore/       # /explore - deep exploration and context gathering
 └── rules/
     └── style.md       # Coding preferences
 ```
@@ -38,6 +39,7 @@ Or add to your dotfiles install script.
 - `/commit [message]` - Create a conventional commit (auto-generates message if not provided)
 - `/resume-work [branch]` - Summarize current branch and PR state to help resume work
 - `/refine [pattern]` - Simplify code and improve comments in uncommitted changes before committing
+- `/explore <description>` - Deeply explore a prompt, gather comprehensive context, and suggest 2-3 potential approaches
 
 ## What's NOT included
 
