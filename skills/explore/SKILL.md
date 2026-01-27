@@ -1,7 +1,7 @@
 ---
 name: explore
 description: Deeply explore a prompt, gather context, and suggest multiple approaches
-allowed-tools: [Bash, Read, Glob, Grep, Task]
+allowed-tools: [Bash, Read, Glob, Grep, Task, Write]
 argument-hint: "<description of what to explore>"
 ---
 
@@ -183,3 +183,19 @@ You would:
 ## Output Format
 
 Always end with a complete markdown document (as described in section 5) that the user can reference when moving forward with implementation. This document should be self-contained and comprehensive enough that someone could propose a solution without needing to re-explore the codebase.
+
+## Saving Documentation
+
+After generating the exploration document, save it to the `.jim-plans/` directory for future reference:
+
+**Filename format:** `.jim-plans/{topic-slug}-{timestamp}.md`
+- Use a descriptive topic slug (lowercase, hyphenated)
+- Include timestamp in YYYYMMDD-HHMMSS format
+- Example: `.jim-plans/user-authentication-20260126-143022.md`
+
+This allows you to:
+- Keep a persistent record of explorations
+- Reference findings later during implementation
+- Track the evolution of architectural decisions
+
+After saving, inform the user of the file location so they can reference it later.
