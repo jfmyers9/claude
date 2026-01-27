@@ -1,34 +1,40 @@
 ---
 name: explore
 description: Deeply explore a prompt, gather context, and suggest multiple approaches
-allowed-tools: [Bash, Read, Glob, Grep, Task, Write]
+allowed-tools: [Task]
 argument-hint: "<description of what to explore>"
 ---
 
 # Explore Skill
 
-You are in explore mode. Your goal is to take the user's initial prompt and thoroughly investigate it, gathering comprehensive context to build an expanded, detailed prompt that can guide future implementation work.
-
-## Core Principles
-
-1. **Be thorough**: Don't make assumptions. Follow code paths to completion.
-2. **No premature conclusions**: Gather all relevant information before proposing approaches.
-3. **Multiple perspectives**: Consider different ways to solve the problem.
-4. **Context-rich output**: Provide enough detail that someone else could propose solutions without needing to re-explore.
+You are in explore mode. Your goal is to orchestrate a deep exploration of the user's prompt by delegating the investigation work to a specialized agent. This keeps the main context clean while producing comprehensive, persistent documentation.
 
 ## Process
 
-### 1. Understand the Request
+**Your job as the orchestrator:**
 
-Start by analyzing the user's prompt in `$ARGUMENTS`:
+1. Take the user's exploration request from `$ARGUMENTS`
+2. Spawn a general-purpose agent to do the actual exploration work
+3. Wait for the agent to return a brief summary and file path
+4. Report the results to the user
+
+## Agent Instructions
+
+When spawning the exploration agent via the Task tool, provide these comprehensive instructions:
+
+```
+Thoroughly explore the following topic: [insert $ARGUMENTS here]
+
+Your goal is to investigate the codebase, gather comprehensive context, and produce a detailed exploration document that can guide future implementation work.
+
+## Exploration Process
+
+### 1. Understand the Request
 - What is the core problem or feature being described?
-- What are the explicit requirements?
-- What are the implicit requirements or concerns?
+- What are the explicit and implicit requirements?
 - What context is needed to fully understand this request?
 
 ### 2. Explore the Codebase
-
-Use available tools to investigate thoroughly:
 
 **Find relevant files:**
 - Use Glob to find files by pattern (e.g., `**/*auth*.ts`, `**/*test*`)
@@ -53,29 +59,10 @@ Use available tools to investigate thoroughly:
 - Find related GitHub issues or PRs (if mentioned)
 - Check configuration files (package.json, tsconfig.json, etc.)
 
-### 3. Identify Constraints and Context
+### 3. Generate Comprehensive Documentation
 
-Document:
-- **Technical constraints**: Language version, framework limitations, dependencies
-- **Existing patterns**: How similar problems are solved in this codebase
-- **Related functionality**: What already exists that's relevant
-- **Potential impact**: What will this change affect?
-- **Testing approach**: How is similar code tested?
+Create a markdown document with this structure:
 
-### 4. Analyze the Solution Space
-
-Consider multiple dimensions:
-- **Complexity**: Simple vs. comprehensive solutions
-- **Performance**: Speed, memory, scalability implications
-- **Maintainability**: How easy to understand, modify, extend
-- **Risk**: What could break? What are the unknowns?
-- **Reversibility**: How easy to undo or change later?
-
-### 5. Generate Output
-
-Create a comprehensive markdown document with:
-
-```markdown
 # Exploration: [Topic]
 
 ## Original Request
@@ -116,12 +103,10 @@ Create a comprehensive markdown document with:
 **Overview:** [Brief description]
 
 **Pros:**
-- [Advantage 1]
-- [Advantage 2]
+- [Advantages]
 
 **Cons:**
-- [Disadvantage 1]
-- [Disadvantage 2]
+- [Disadvantages]
 
 **Implementation complexity:** [Low/Medium/High]
 
@@ -129,73 +114,77 @@ Create a comprehensive markdown document with:
 - [file:line - what to change]
 
 **Risks:**
-- [Risk 1]
+- [Potential issues]
 
 ### Approach 2: [Name/Description]
-
-[Same structure as Approach 1]
+[Same structure]
 
 ### Approach 3: [Name/Description] (if applicable)
-
-[Same structure as Approach 1]
+[Same structure]
 
 ## Recommendation
 
-[Optional: If one approach is clearly better, explain why. Otherwise, explain the tradeoffs.]
+[If one approach is clearly better, explain why. Otherwise, explain the tradeoffs.]
 
 ## Next Steps
 
 [Suggested next actions, such as:
 - Clarify requirement X with user
 - Prototype approach Y to test feasibility
-- Review approach Z with team
 - Proceed with implementation of approach N]
 
 ## Additional Notes
 
 [Any other relevant observations, warnings, or context]
+
+### 4. Save the Document
+
+Write the complete exploration document to `.jim-plans/` with this filename format:
+
+`.jim-plans/{topic-slug}-{timestamp}.md`
+
+Where:
+- `{topic-slug}` is a descriptive, lowercase, hyphenated slug of the topic
+- `{timestamp}` is in YYYYMMDD-HHMMSS format
+
+Example: `.jim-plans/user-authentication-20260126-143022.md`
+
+### 5. Return Minimal Summary
+
+IMPORTANT: Do NOT return the full exploration document. Instead, return ONLY:
+
+1. The file path where the document was saved
+2. A 2-3 sentence executive summary of the key findings
+3. Your recommended approach (if you have one)
+
+This keeps the main context clean while providing the user with a reference to the comprehensive documentation.
+
+## Guidelines
+
+- **Be thorough**: Don't make assumptions. Follow code paths to completion.
+- **Be exhaustive**: Better to over-investigate than miss important context.
+- **Stay objective**: Present tradeoffs fairly, don't bias toward one approach unless clearly superior.
+- **Don't implement**: This is for exploration only. Don't make code changes.
 ```
 
 ## Example Usage
 
-User runs: `/explore add user authentication`
+When the user runs: `/explore add user authentication`
 
-You would:
-1. Search for existing auth code (`**/auth*`, `**/login*`, `**/session*`)
-2. Read authentication-related files
-3. Check how users/sessions are currently managed
-4. Look at middleware, routes, and API endpoints
-5. Identify auth libraries in use (passport, jwt, etc.)
-6. Find related tests
-7. Output a comprehensive document with 2-3 approaches like:
-   - Approach 1: Extend existing auth system
-   - Approach 2: Add separate OAuth provider
-   - Approach 3: Use third-party auth service (Auth0, etc.)
+You should:
+1. Spawn a general-purpose agent with the above instructions
+2. Wait for it to complete the exploration and return the summary
+3. Display to the user:
+   - The file path (e.g., `.jim-plans/user-authentication-20260126-143022.md`)
+   - The brief summary from the agent
+   - A note that they can reference the file for complete details
 
-## Important Notes
+## Why This Approach
 
-- **Don't implement**: This skill is for exploration only. Don't make code changes.
-- **Be exhaustive**: Better to over-investigate than miss important context.
-- **Follow conventions**: Use the codebase's existing patterns in your analysis.
-- **Stay objective**: Present tradeoffs fairly, don't bias toward one approach unless clearly superior.
-- **Ask if stuck**: If you can't find something or hit a dead end, note it in "Open Questions".
+This architecture keeps the main conversation context clean by:
+- Delegating heavy exploration to an isolated agent context
+- Only bringing back essential findings (file path + summary)
+- Persisting comprehensive details in a document that can be referenced when needed
+- Allowing the user to discuss or implement findings without context pollution
 
-## Output Format
-
-Always end with a complete markdown document (as described in section 5) that the user can reference when moving forward with implementation. This document should be self-contained and comprehensive enough that someone could propose a solution without needing to re-explore the codebase.
-
-## Saving Documentation
-
-After generating the exploration document, save it to the `.jim-plans/` directory for future reference:
-
-**Filename format:** `.jim-plans/{topic-slug}-{timestamp}.md`
-- Use a descriptive topic slug (lowercase, hyphenated)
-- Include timestamp in YYYYMMDD-HHMMSS format
-- Example: `.jim-plans/user-authentication-20260126-143022.md`
-
-This allows you to:
-- Keep a persistent record of explorations
-- Reference findings later during implementation
-- Track the evolution of architectural decisions
-
-After saving, inform the user of the file location so they can reference it later.
+If the user wants to discuss specific sections later, you can read just those portions of the exploration document.
