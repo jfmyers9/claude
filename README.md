@@ -28,11 +28,12 @@ Or add to your dotfiles install script.
 │   ├── commit/        # /commit - conventional commits
 │   ├── resume-work/   # /resume-work - branch and PR summary
 │   ├── refine/        # /refine - simplify code and improve comments
-│   ├── explore/       # /explore - deep exploration and context gathering
-│   ├── implement/     # /implement - execute plans from exploration docs
-│   ├── save-state/    # /save-state - save work state for later
-│   ├── load-state/    # /load-state - load saved work state
-│   └── list-states/   # /list-states - list all saved states
+│   ├── explore/           # /explore - deep exploration and context gathering
+│   ├── continue-explore/  # /continue-explore - continue exploration with feedback
+│   ├── implement/         # /implement - execute plans from exploration docs
+│   ├── save-state/        # /save-state - save work state for later
+│   ├── load-state/        # /load-state - load saved work state
+│   └── list-states/       # /list-states - list all saved states
 └── rules/
     └── style.md       # Coding preferences
 ```
@@ -44,6 +45,7 @@ Or add to your dotfiles install script.
 - `/resume-work [branch]` - Summarize current branch and PR state to help resume work
 - `/refine [pattern]` - Simplify code and improve comments in uncommitted changes before committing
 - `/explore <description>` - Deeply explore a prompt, gather comprehensive context, and suggest 2-3 potential approaches
+- `/continue-explore [file] <feedback>` - Continue an existing exploration with user feedback
 - `/implement [doc]` - Execute plans from exploration documents (uses most recent if no doc specified)
 
 ### State Management
