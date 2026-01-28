@@ -28,7 +28,7 @@ Don't make assumptions — follow code paths to completion.
 
 ## Document Structure
 
-Write to `.jim-plans/{topic-slug}-{YYYYMMDD-HHMMSS}.md`:
+Write to `.jim-plans/{YYYYMMDD-HHMMSS}-{topic-slug}.md`:
 
 - **Original Request**: The prompt being explored
 - **Context Gathered**: Relevant files (with line refs), current
