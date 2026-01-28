@@ -28,7 +28,8 @@ Or add to your dotfiles install script.
 │   ├── commit/        # /commit - conventional commits
 │   ├── resume-work/   # /resume-work - branch and PR summary
 │   ├── refine/        # /refine - simplify code and improve comments
-│   └── explore/       # /explore - deep exploration and context gathering
+│   ├── explore/       # /explore - deep exploration and context gathering
+│   └── implement/     # /implement - execute plans from exploration docs
 └── rules/
     └── style.md       # Coding preferences
 ```
@@ -40,6 +41,7 @@ Or add to your dotfiles install script.
 - `/resume-work [branch]` - Summarize current branch and PR state to help resume work
 - `/refine [pattern]` - Simplify code and improve comments in uncommitted changes before committing
 - `/explore <description>` - Deeply explore a prompt, gather comprehensive context, and suggest 2-3 potential approaches
+- `/implement [doc]` - Execute plans from exploration documents (uses most recent if no doc specified)
 
 ## What's NOT included
 
