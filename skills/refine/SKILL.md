@@ -82,21 +82,9 @@ This skill reviews uncommitted code changes and refines them by simplifying impl
 - Warning about performance implications or limitations
 
 **When to simplify code:**
-```python
-# Before (over-engineered):
-def get_value(key):
-    return self._cache.get(key, None) if self._cache else None
-
-# After (simplified):
-def get_value(key):
-    return self._cache.get(key) if self._cache else None
-
-# Before (clever):
-result = (lambda x: x * 2 if x > 0 else 0)(value)
-
-# After (clear):
-result = value * 2 if value > 0 else 0
-```
+- Remove redundant defaults (`.get(key, None)` → `.get(key)`)
+- Replace inline lambdas with direct expressions
+- Flatten unnecessary nesting
 
 ## Tips
 

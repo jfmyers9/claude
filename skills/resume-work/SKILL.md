@@ -52,45 +52,14 @@ This skill analyzes the current branch and associated PR to provide a comprehens
    - Run `git status` to see uncommitted changes
    - Check if branch is ahead/behind remote: `git rev-list --left-right --count @{upstream}...HEAD` (if remote exists)
 
-7. **Present summary** in this format:
-
-```markdown
-## 📋 Branch Summary: [branch-name]
-
-**Base branch**: [main/master]
-**Created**: [from first commit date]
-**Last updated**: [from last commit date]
-
-### PR Status
-[If PR exists:]
-- **#[number]**: [title]
-- **State**: [OPEN/MERGED/CLOSED]
-- **Author**: [author]
-- **Review Status**: [APPROVED/CHANGES_REQUESTED/PENDING]
-- **Changes**: +[additions] -[deletions] across [N] files
-
-[If PR has description, include it]
-
-[If no PR:]
-No PR created yet for this branch.
-
-### Commits ([N] total)
-[List commits with short hashes and messages]
-
-### Changed Files ([N] files)
-[Show git diff --stat output]
-
-### Current State
-- Uncommitted changes: [yes/no - list if yes]
-- Branch sync: [up to date / ahead / behind / diverged]
-
-### Recent PR Activity
-[If PR exists and has comments/reviews, show last 2-3]
-
----
-
-**Ready to resume work!** The branch is [summary of state - e.g., "ready for review", "has pending changes", "needs rebasing", etc.]
-```
+7. **Present summary** including:
+   - Branch name, base branch, created/updated dates
+   - PR status (number, title, state, review status, changes) or note if none
+   - Commit list with short hashes
+   - Changed files summary
+   - Current state (uncommitted changes, sync status)
+   - Recent PR activity if applicable
+   - Actionable next step recommendation
 
 ## Tips
 

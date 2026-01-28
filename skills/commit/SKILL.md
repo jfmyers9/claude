@@ -54,30 +54,6 @@ Types:
 
 ## Execute
 
-After determining the message, stage appropriate files and create the
-commit following this process:
-
-1. Stage the appropriate files using `git add <specific-files>`
-2. Wrap the commit message body at 72 characters using `fmt -w 72`
-3. Create the commit with the wrapped message
-4. Show the user the final commit
-
-### Message Wrapping Example
-
-When creating commits, use git's multiple `-m` flag feature:
-
-```bash
-# 1. Generate the commit message parts
-subject="<type>: <description>"
-body="<long body text that needs wrapping>"
-
-# 2. Wrap body at 72 characters
-wrapped_body=$(echo "$body" | fmt -w 72)
-
-# 3. Create commit with wrapped message
-git commit -m "$subject" -m "$wrapped_body"
-```
-
-The `-m` flag can be used multiple times: first for subject,
-second for body. This automatically adds the blank line between
-them.
+1. Stage appropriate files with `git add <specific-files>`
+2. Create commit using `git commit -m "$subject" -m "$(echo "$body" | fmt -w 72)"`
+3. Show the user the final commit
