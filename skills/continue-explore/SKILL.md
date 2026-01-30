@@ -15,7 +15,7 @@ iterative refinement rather than starting fresh each time.
 Parse `$ARGUMENTS` to determine file path and feedback:
 
 1. **Most recent + feedback**: If argument doesn't match an existing file in
-   `.jim-plans/`, treat entire argument as feedback and use most recent doc
+   `.jim/plans/`, treat entire argument as feedback and use most recent doc
 2. **File + feedback**: If first word/phrase matches a file (partial match OK),
    use that file and remaining text as feedback
 3. **No arguments**: Use most recent doc and prompt user for feedback
@@ -23,12 +23,12 @@ Parse `$ARGUMENTS` to determine file path and feedback:
 ## Finding the Document
 
 **If file path provided**:
-- Look in `.jim-plans/` for files matching the path (partial match OK)
+- Look in `.jim/plans/` for files matching the path (partial match OK)
 - If multiple matches, list them and ask user to specify
 - If no matches, suggest `/explore` to create new exploration
 
 **If no file path**:
-- Find most recent `.jim-plans/*.md` file by timestamp in filename
+- Find most recent `.jim/plans/*.md` file by timestamp in filename
 - If no files exist, suggest `/explore` to create new exploration
 
 ## Agent Prompt

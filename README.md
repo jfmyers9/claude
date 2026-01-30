@@ -50,7 +50,7 @@ Or add to your dotfiles install script.
 
 ### State Management
 
-- `/save-state [label]` - Save current work state to `.jim-state/` for resuming later (defaults to "current")
+- `/save-state [label]` - Save current work state to `.jim/states/` for resuming later (defaults to "current")
 - `/load-state [label]` - Load a saved work state to resume where you left off
 - `/list-states` - List all saved states with names, dates, and summaries
 

@@ -1,13 +1,13 @@
 ---
 name: save-state
-description: Saves current work state to .jim-state/ for resuming later. Captures branch, changes, and user-provided context.
+description: Saves current work state to .jim/states/ for resuming later. Captures branch, changes, and user-provided context.
 allowed-tools: Bash, Read, Write, Glob
 argument-hint: [optional: label (defaults to "current")]
 ---
 
 # Save State Skill
 
-This skill saves your current work state to a file in `.jim-state/` so you can
+This skill saves your current work state to a file in `.jim/states/` so you can
 resume later. Use this at the end of a work session or before switching context.
 
 ## Instructions
@@ -33,11 +33,11 @@ resume later. Use this at the end of a work session or before switching context.
      - **Blockers** (optional): Anything blocking progress?
    - Wait for user response before proceeding
 
-4. **Ensure .jim-state/ directory exists**:
+4. **Ensure .jim/states/ directory exists**:
    - Create if needed: `mkdir -p .jim-state`
 
 5. **Write state file**:
-   - Path: `.jim-state/{label}.md`
+   - Path: `.jim/states/{label}.md`
    - Format:
 
 ```markdown
@@ -74,7 +74,7 @@ Branch: {branch}
 ```
 
 6. **Confirm save**:
-   - Tell user the state was saved to `.jim-state/{label}.md`
+   - Tell user the state was saved to `.jim/states/{label}.md`
    - Remind them to use `/load-state {label}` to resume
 
 ## Tips
@@ -87,7 +87,7 @@ Branch: {branch}
 
 ## Notes
 
-- This skill creates files in `.jim-state/` which is git-ignored
+- This skill creates files in `.jim/states/` which is git-ignored
 - State files are markdown and can be read/edited manually
 - Use `/list-states` to see all saved states
 - Use `/load-state` to resume from a saved state

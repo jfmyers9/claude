@@ -1,13 +1,13 @@
 ---
 name: load-state
-description: Loads and presents a saved work state from .jim-state/ to help resume work.
+description: Loads and presents a saved work state from .jim/states/ to help resume work.
 allowed-tools: Bash, Read, Glob
 argument-hint: [optional: label (defaults to "current")]
 ---
 
 # Load State Skill
 
-This skill loads a previously saved work state from `.jim-state/` and presents
+This skill loads a previously saved work state from `.jim/states/` and presents
 it to help you resume work. Use this at the start of a session to get context
 on where you left off.
 
@@ -18,14 +18,14 @@ on where you left off.
    - Otherwise, use "current" as the default label
 
 2. **Check if state file exists**:
-   - Look for `.jim-state/{label}.md`
+   - Look for `.jim/states/{label}.md`
    - If not found, inform user and suggest:
      - Run `/list-states` to see available states
      - Run `/save-state` to create a new state
    - Exit if file not found
 
 3. **Read state file**:
-   - Read the full contents of `.jim-state/{label}.md`
+   - Read the full contents of `.jim/states/{label}.md`
 
 4. **Get current context**:
    - Get current branch: `git branch --show-current`
@@ -76,5 +76,5 @@ Continue with: "Add JWT validation middleware"
 ## Notes
 
 - This skill only reads information; it does not modify any files
-- State files are stored in `.jim-state/` which is git-ignored
+- State files are stored in `.jim/states/` which is git-ignored
 - Use `/list-states` to see all available saved states

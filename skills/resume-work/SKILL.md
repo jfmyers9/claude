@@ -61,6 +61,33 @@ This skill analyzes the current branch and associated PR to provide a comprehens
    - Recent PR activity if applicable
    - Actionable next step recommendation
 
+8. **Persist session context** for other skills:
+   - Get current branch name: `git branch --show-current`
+   - Sanitize branch name for filename (replace `/` with `-`)
+   - Ensure `.jim/states/` directory exists: `mkdir -p .jim-state`
+   - **Overwrite** (not append) `.jim/states/session-{sanitized-branch-name}.md`:
+     ```markdown
+     # Session Context
+
+     Updated: {ISO timestamp, e.g., 2026-01-30T19:25:32Z}
+     Branch: {branch-name}
+     Base: {base-branch}
+
+     ## PR Status
+     {PR number, title, state, or "No PR"}
+
+     ## Recent Commits
+     {commit list from step 4}
+
+     ## Changed Files
+     {file summary from step 5}
+
+     ## Current State
+     {uncommitted changes, sync status from step 6}
+     ```
+   - This context is automatically used by `/explore` and other skills
+   - File is completely rewritten each time (fresh state)
+
 ## Tips
 
 - The skill automatically ensures the branch is synced with origin before proceeding

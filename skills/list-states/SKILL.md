@@ -1,24 +1,24 @@
 ---
 name: list-states
-description: Lists all saved work states in .jim-state/ with names, dates, and summaries.
+description: Lists all saved work states in .jim/states/ with names, dates, and summaries.
 disable-model-invocation: true
 allowed-tools: Bash, Read, Glob
 ---
 
 # List States Skill
 
-This skill lists all saved work states from `.jim-state/` to help you find a
+This skill lists all saved work states from `.jim/states/` to help you find a
 state to load or see what contexts you've saved.
 
 ## Instructions
 
-1. **Check if .jim-state/ exists**:
+1. **Check if .jim/states/ exists**:
    - If directory doesn't exist or is empty, inform user:
      - "No saved states found. Use `/save-state` to save your first state."
    - Exit if no states
 
 2. **List all state files**:
-   - Find all `.md` files in `.jim-state/`: `ls -lt .jim-state/*.md 2>/dev/null`
+   - Find all `.md` files in `.jim/states/`: `ls -lt .jim/states/*.md 2>/dev/null`
    - Sort by modification time (most recent first)
 
 3. **For each state file**:
@@ -48,11 +48,11 @@ state to load or see what contexts you've saved.
 
 - States are sorted by modification time (most recent first)
 - The "current" state is typically your main work context
-- Old states can be deleted manually from `.jim-state/`
+- Old states can be deleted manually from `.jim/states/`
 
 ## Notes
 
 - This skill only reads information; it does not modify any files
-- State files are plain markdown stored in `.jim-state/`
+- State files are plain markdown stored in `.jim/states/`
 - Use `/load-state {label}` to load a specific state
 - Use `/save-state {label}` to create or update a state
