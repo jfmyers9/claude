@@ -23,9 +23,24 @@ Otherwise: find most recent `.jim/plans/*.md` file by timestamp in filename
 
 Verify the document has "Recommendation" and "Next Steps" sections.
 
+## Detect Phases
+
+Parse the "Next Steps" section for phase markers:
+- Look for patterns like `**Phase N: Name**` or `### Phase N: Name`
+- If phase markers found, extract phases with their tasks
+- If no phase markers, treat all tasks as a single phase
+- Store phase information for tracking file
+
 ## Create Task List
 
-Parse the "Next Steps" section. For each actionable step:
+If phases detected:
+- Create tasks only from Phase 1
+- Store remaining phases for future execution
+
+If no phases (single-phase plan):
+- Create tasks from all steps in "Next Steps" section
+
+For each task:
 - TaskCreate with clear subject, description, and activeForm
 - Steps should be concrete and verifiable
 
@@ -38,24 +53,67 @@ For each task in order:
 4. TaskUpdate to completed
 5. If step fails: stop, report the error, leave task in_progress
 
-## Write State File
+## Write State Files
 
-After executing steps (whether all succeed or some fail), write an implementation
-state file to track what was done.
-
-### Generate Filename
-
-1. Extract the slug from the source exploration document filename:
-   - Example: `20260129-015102-ship-command-bail-on-failure.md` -> `ship-command-bail-on-failure`
-   - Remove the timestamp prefix and `.md` extension
-2. Generate current timestamp in `YYYYMMDD-HHMMSS` format
-3. Create filename: `{timestamp}-implemented-{slug}.md`
+After executing steps (whether all succeed or some fail), write state files
+to track what was done.
 
 ### Ensure Directory Exists
 
-Run: `mkdir -p .jim-state`
+Run: `mkdir -p .jim/states`
 
-### Write State File
+### 1. Write Active Tracking File (if multi-phase)
+
+If phases were detected, create/update active tracking file at
+`.jim/states/active-{slug}.md`:
+
+```markdown
+# Active Implementation: {topic from exploration doc title}
+
+Source: {absolute path to exploration document}
+Started: {ISO timestamp}
+Branch: {current git branch}
+Status: in_progress
+
+## Phases
+
+- [x] Phase 1: {name} (completed {ISO timestamp})
+- [ ] Phase 2: {name}
+- [ ] Phase 3: {name}
+
+## Current State
+
+Current Phase: 1
+Status: completed
+Next Phase: 2
+
+## Implementation History
+
+### Phase 1 (completed {ISO timestamp})
+
+{summary of what was done in Phase 1}
+
+Files changed:
+- {absolute/path/to/file1.ext} - {brief description}
+- {absolute/path/to/file2.ext} - {brief description}
+
+Tasks completed:
+1. {task subject} - {outcome}
+2. {task subject} - {outcome}
+
+Tasks failed/skipped: {list or "None"}
+
+Notes: {any additional context}
+```
+
+### 2. Write Implementation State File
+
+Extract the slug from the source exploration document filename:
+- Example: `20260129-015102-ship-command-bail-on-failure.md` -> `ship-command-bail-on-failure`
+- Remove the timestamp prefix and `.md` extension
+
+Generate current timestamp in `YYYYMMDD-HHMMSS` format
+Create filename: `{timestamp}-implemented-{slug}.md`
 
 Write to `.jim/states/{filename}` with this format:
 
@@ -108,9 +166,12 @@ Branch: {current git branch}
 
 Return:
 - Summary of what was implemented
+- Which phase was completed (if multi-phase)
 - List of files created/modified
 - Any issues encountered
 - Path to the implementation state file in `.jim/states/`
+- If multi-phase: path to active tracking file and suggestion to use `/next-phase`
+- If single-phase: note that implementation is complete
 - Note that user should review changes and use /commit when ready
 ```
 

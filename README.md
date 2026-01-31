@@ -31,6 +31,7 @@ Or add to your dotfiles install script.
 │   ├── explore/           # /explore - deep exploration and context gathering
 │   ├── continue-explore/  # /continue-explore - continue exploration with feedback
 │   ├── implement/         # /implement - execute plans from exploration docs
+│   ├── next-phase/        # /next-phase - continue to next phase of implementation
 │   ├── save-state/        # /save-state - save work state for later
 │   ├── load-state/        # /load-state - load saved work state
 │   └── list-states/       # /list-states - list all saved states
@@ -47,12 +48,68 @@ Or add to your dotfiles install script.
 - `/explore <description>` - Deeply explore a prompt, gather comprehensive context, and suggest 2-3 potential approaches
 - `/continue-explore [file] <feedback>` - Continue an existing exploration with user feedback
 - `/implement [doc]` - Execute plans from exploration documents (uses most recent if no doc specified)
+- `/next-phase [slug]` - Continue to the next phase of a multi-phase implementation
 
 ### State Management
 
 - `/save-state [label]` - Save current work state to `.jim/states/` for resuming later (defaults to "current")
 - `/load-state [label]` - Load a saved work state to resume where you left off
 - `/list-states` - List all saved states with names, dates, and summaries
+
+### Multi-Phase Implementation Workflow
+
+The `/implement` and `/next-phase` skills support multi-phase
+implementations for complex features:
+
+**Basic Workflow:**
+```bash
+/explore "add authentication feature"
+/implement                    # Executes Phase 1
+# Review changes, test, commit
+/next-phase                   # Executes Phase 2
+# Review changes, test, commit
+/next-phase                   # Executes Phase 3
+```
+
+**How It Works:**
+
+1. **Phase Detection**: When `/implement` runs, it looks for phase
+   markers in the exploration document's "Next Steps" section:
+   - `**Phase N: Name**` (bold inline)
+   - `### Phase N: Name` (heading)
+
+2. **Active Tracking**: For multi-phase plans, `/implement` creates
+   an active tracking file at `.jim/states/active-{slug}.md` that:
+   - Lists all phases with completion status
+   - Tracks current progress
+   - Records implementation history
+
+3. **Progressive Execution**: Each run of `/next-phase` executes the
+   next incomplete phase and updates the tracking file.
+
+4. **Flexibility**:
+   - Single-phase plans work as before (backward compatible)
+   - Can pause between phases for review/testing/commits
+   - Can resume anytime with `/next-phase`
+   - Tracking file is human-readable markdown
+
+**Example Phase Structure in Exploration:**
+
+```markdown
+## Next Steps
+
+**Phase 1: Foundation**
+1. Create directory structure
+2. Add configuration files
+
+**Phase 2: Implementation**
+3. Build core feature
+4. Add error handling
+
+**Phase 3: Testing**
+5. Write unit tests
+6. Update documentation
+```
 
 ## What's NOT included
 

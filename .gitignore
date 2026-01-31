@@ -16,3 +16,6 @@ statsig/
 telemetry/
 todos/
 stats-cache.json
+
+# Local documentation and state
+.jim/
