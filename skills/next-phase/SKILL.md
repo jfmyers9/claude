@@ -146,6 +146,7 @@ Return:
 - Path to the implementation state file
 - If more phases remain: suggest using `/next-phase` to continue
 - If all complete: note that implementation is finished
+- Reminder: "To review implementation: /review-implementation" (include state file path)
 - Note that user should review changes and use /commit when ready
 ```
 

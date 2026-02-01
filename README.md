@@ -28,10 +28,12 @@ Or add to your dotfiles install script.
 │   ├── commit/        # /commit - conventional commits
 │   ├── resume-work/   # /resume-work - branch and PR summary
 │   ├── refine/        # /refine - simplify code and improve comments
+│   ├── review/        # /review - senior engineer code review (branch-based)
 │   ├── explore/           # /explore - deep exploration and context gathering
 │   ├── continue-explore/  # /continue-explore - continue exploration with feedback
 │   ├── implement/         # /implement - execute plans from exploration docs
 │   ├── next-phase/        # /next-phase - continue to next phase of implementation
+│   ├── review-implementation/  # /review-implementation - review recent implementation
 │   ├── save-state/        # /save-state - save work state for later
 │   ├── load-state/        # /load-state - load saved work state
 │   └── list-states/       # /list-states - list all saved states
@@ -45,10 +47,36 @@ Or add to your dotfiles install script.
 - `/commit [message]` - Create a conventional commit (auto-generates message if not provided)
 - `/resume-work [branch]` - Summarize current branch and PR state to help resume work
 - `/refine [pattern]` - Simplify code and improve comments in uncommitted changes before committing
+- `/review` - Senior engineer code review of current branch changes (branch-based)
 - `/explore <description>` - Deeply explore a prompt, gather comprehensive context, and suggest 2-3 potential approaches
 - `/continue-explore [file] <feedback>` - Continue an existing exploration with user feedback
 - `/implement [doc]` - Execute plans from exploration documents (uses most recent if no doc specified)
 - `/next-phase [slug]` - Continue to the next phase of a multi-phase implementation
+- `/review-implementation [state-file|slug]` - Review code from recent implementation with clean context
+
+### Code Review
+
+Two review skills serve different purposes:
+
+**Use `/review`:**
+- Manual review of current branch before shipping
+- Pre-PR review of all branch changes since diverging from main
+- Branch-centric: reviews everything on the current feature branch
+- Exits if on main/master (must be on a feature branch)
+- Saves to: `.jim/notes/review-{timestamp}-{branch}.md`
+
+**Use `/review-implementation`:**
+- After running `/implement` or `/next-phase`
+- Reviews specific phase implementation with clean context window
+- State-based: reads implementation state file to understand what was planned
+- Assesses code quality AND adherence to plan
+- Provides "Ready to Commit" verdict
+- Saves to: `.jim/notes/review-impl-{timestamp}-{slug}.md`
+- Can auto-find most recent implementation or accept state file path/slug
+
+**Typical Usage:**
+- Use `/review-implementation` after each phase of implementation
+- Use `/review` before creating a PR (reviews entire branch)
 
 ### State Management
 
@@ -65,9 +93,13 @@ implementations for complex features:
 ```bash
 /explore "add authentication feature"
 /implement                    # Executes Phase 1
-# Review changes, test, commit
+/review-implementation        # Review Phase 1 changes
+# Address any issues, test
+/commit
 /next-phase                   # Executes Phase 2
-# Review changes, test, commit
+/review-implementation        # Review Phase 2 changes
+# Address any issues, test
+/commit
 /next-phase                   # Executes Phase 3
 ```
 
@@ -109,6 +141,42 @@ implementations for complex features:
 **Phase 3: Testing**
 5. Write unit tests
 6. Update documentation
+```
+
+**Complete Workflow Example:**
+
+```bash
+# 1. Explore the feature
+/explore "add user authentication with JWT tokens"
+
+# 2. Implement Phase 1 (Foundation)
+/implement
+# Creates: .jim/states/active-user-authentication.md
+#          .jim/states/20260201-123456-implemented-phase1-user-authentication.md
+
+# 3. Review the implementation
+/review-implementation
+# Creates: .jim/notes/review-impl-20260201-123500-user-authentication.md
+# Shows: Code quality assessment, adherence to plan, ready to commit verdict
+
+# 4. Address any issues from review, then commit
+/commit
+
+# 5. Continue to Phase 2
+/next-phase
+# Updates: .jim/states/active-user-authentication.md
+# Creates: .jim/states/20260201-124000-implemented-phase2-user-authentication.md
+
+# 6. Review Phase 2
+/review-implementation
+# Automatically finds most recent implementation state file
+
+# 7. Commit Phase 2
+/commit
+
+# 8. Continue until all phases complete
+/next-phase
+# If last phase: reports "All phases completed!"
 ```
 
 ## What's NOT included

@@ -172,6 +172,7 @@ Return:
 - Path to the implementation state file in `.jim/states/`
 - If multi-phase: path to active tracking file and suggestion to use `/next-phase`
 - If single-phase: note that implementation is complete
+- Reminder: "To review implementation: /review-implementation" (include state file path)
 - Note that user should review changes and use /commit when ready
 ```
 
