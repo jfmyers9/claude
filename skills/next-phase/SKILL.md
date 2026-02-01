@@ -17,9 +17,17 @@ Spawn a general-purpose agent via Task with this prompt:
 ```
 Continue to the next phase of a multi-phase implementation.
 
+## Parse Arguments
+
+Parse $ARGUMENTS for:
+- `--review` flag: if present, run code review after phase implementation
+- Slug: tracking file slug (remaining arguments)
+
+Store the review flag state for later use.
+
 ## Find Active Tracking File
 
-If argument provided:
+If argument provided (excluding flags):
 - Look for `.jim/states/active-{argument}.md`
 - If not found, report error and suggest running `/implement` first
 
@@ -127,6 +135,32 @@ Create filename: `{timestamp}-implemented-phase{N}-{slug}.md`
 Write to `.jim/states/{filename}` with standard implementation state format
 (see /implement skill for format details).
 
+## Optional Post-Implementation Review
+
+If --review flag was present in arguments:
+
+1. Collect the path to the implementation state file created above
+2. Spawn a review agent via Task with this prompt:
+
+```
+Review the implementation that was just completed.
+
+Read the implementation state file at:
+{absolute path to implementation state file}
+
+Run the review-implementation skill on this state file:
+/review-implementation {path to state file}
+
+Return a concise summary of the review findings, including:
+- Overall code quality assessment
+- High priority issues (if any)
+- Whether the code is ready to commit
+```
+
+3. Wait for review to complete
+4. Include review summary in return value
+5. Note the path to the review document in return value
+
 ## Guidelines
 
 - **Follow the plan**: Execute the next phase as specified
@@ -146,7 +180,12 @@ Return:
 - Path to the implementation state file
 - If more phases remain: suggest using `/next-phase` to continue
 - If all complete: note that implementation is finished
-- Reminder: "To review implementation: /review-implementation" (include state file path)
+- If --review flag was used:
+  - Review summary with key findings
+  - Path to review document
+  - Ready to commit verdict
+- If --review flag was NOT used:
+  - Reminder: "To review implementation: /review-implementation" (include state file path)
 - Note that user should review changes and use /commit when ready
 ```
 

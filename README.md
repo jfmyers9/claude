@@ -50,8 +50,8 @@ Or add to your dotfiles install script.
 - `/review` - Senior engineer code review of current branch changes (branch-based)
 - `/explore <description>` - Deeply explore a prompt, gather comprehensive context, and suggest 2-3 potential approaches
 - `/continue-explore [file] <feedback>` - Continue an existing exploration with user feedback
-- `/implement [doc]` - Execute plans from exploration documents (uses most recent if no doc specified)
-- `/next-phase [slug]` - Continue to the next phase of a multi-phase implementation
+- `/implement [--review] [doc]` - Execute plans from exploration documents (uses most recent if no doc specified). Use `--review` to automatically run code review after implementation.
+- `/next-phase [--review] [slug]` - Continue to the next phase of a multi-phase implementation. Use `--review` to automatically run code review after phase completion.
 - `/review-implementation [state-file|slug]` - Review code from recent implementation with clean context
 
 ### Code Review
@@ -103,6 +103,17 @@ implementations for complex features:
 /next-phase                   # Executes Phase 3
 ```
 
+**Workflow with Auto-Review:**
+```bash
+/explore "add authentication feature"
+/implement --review           # Executes Phase 1 and runs review automatically
+# Address any issues, test
+/commit
+/next-phase --review          # Executes Phase 2 and runs review automatically
+# Address any issues, test
+/commit
+```
+
 **How It Works:**
 
 1. **Phase Detection**: When `/implement` runs, it looks for phase
@@ -143,6 +154,28 @@ implementations for complex features:
 6. Update documentation
 ```
 
+**Auto-Review Flag:**
+
+Both `/implement` and `/next-phase` support an optional `--review` flag that
+automatically runs code review after implementation completes:
+
+- When `--review` is present, the skill spawns a review agent in a clean
+  context window after implementation
+- The review agent runs `/review-implementation` on the just-created state file
+- Review findings are included in the command output
+- Review document is still saved to `.jim/notes/`
+- Saves time by combining implementation and review in one command
+
+**When to use `--review`:**
+- For rapid iteration when you trust the implementation quality
+- When you want immediate feedback without switching contexts
+- For small to medium changes where review is quick
+
+**When to run review separately:**
+- For large implementations where review needs careful attention
+- When you want to test changes before reviewing
+- When you need to address implementation issues first
+
 **Complete Workflow Example:**
 
 ```bash
@@ -162,19 +195,18 @@ implementations for complex features:
 # 4. Address any issues from review, then commit
 /commit
 
-# 5. Continue to Phase 2
-/next-phase
+# 5. Continue to Phase 2 with auto-review
+/next-phase --review
 # Updates: .jim/states/active-user-authentication.md
 # Creates: .jim/states/20260201-124000-implemented-phase2-user-authentication.md
+# Runs: /review-implementation automatically
+# Creates: .jim/notes/review-impl-20260201-124010-user-authentication.md
+# Output includes review summary inline
 
-# 6. Review Phase 2
-/review-implementation
-# Automatically finds most recent implementation state file
-
-# 7. Commit Phase 2
+# 6. Address any issues, then commit Phase 2
 /commit
 
-# 8. Continue until all phases complete
+# 7. Continue until all phases complete
 /next-phase
 # If last phase: reports "All phases completed!"
 ```

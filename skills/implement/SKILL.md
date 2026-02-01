@@ -16,9 +16,17 @@ Spawn a general-purpose agent via Task with this prompt:
 ```
 Implement the plan from an exploration document.
 
+## Parse Arguments
+
+Parse $ARGUMENTS for:
+- `--review` flag: if present, run code review after implementation
+- File/slug: exploration document path or slug (remaining arguments)
+
+Store the review flag state for later use.
+
 ## Find the Document
 
-If argument provided: read that file from `.jim/plans/`
+If argument provided (excluding flags): read that file from `.jim/plans/`
 Otherwise: find most recent `.jim/plans/*.md` file by timestamp in filename
 
 Verify the document has "Recommendation" and "Next Steps" sections.
@@ -154,6 +162,32 @@ Branch: {current git branch}
 {any additional context, issues, or follow-up needed}
 ```
 
+## Optional Post-Implementation Review
+
+If --review flag was present in arguments:
+
+1. Collect the path to the implementation state file created above
+2. Spawn a review agent via Task with this prompt:
+
+```
+Review the implementation that was just completed.
+
+Read the implementation state file at:
+{absolute path to implementation state file}
+
+Run the review-implementation skill on this state file:
+/review-implementation {path to state file}
+
+Return a concise summary of the review findings, including:
+- Overall code quality assessment
+- High priority issues (if any)
+- Whether the code is ready to commit
+```
+
+3. Wait for review to complete
+4. Include review summary in return value
+5. Note the path to the review document in return value
+
 ## Guidelines
 
 - **Follow the plan**: Implement the recommended approach, not alternatives
@@ -172,7 +206,12 @@ Return:
 - Path to the implementation state file in `.jim/states/`
 - If multi-phase: path to active tracking file and suggestion to use `/next-phase`
 - If single-phase: note that implementation is complete
-- Reminder: "To review implementation: /review-implementation" (include state file path)
+- If --review flag was used:
+  - Review summary with key findings
+  - Path to review document
+  - Ready to commit verdict
+- If --review flag was NOT used:
+  - Reminder: "To review implementation: /review-implementation" (include state file path)
 - Note that user should review changes and use /commit when ready
 ```
 
