@@ -37,7 +37,9 @@ Or add to your dotfiles install script.
 │   ├── address-review/    # /address-review - address feedback from code reviews
 │   ├── save-state/        # /save-state - save work state for later
 │   ├── load-state/        # /load-state - load saved work state
-│   └── list-states/       # /list-states - list all saved states
+│   ├── list-states/       # /list-states - list all saved states
+│   ├── archive/           # /archive - archive old .jim files
+│   └── list-archive/      # /list-archive - list archived content
 └── rules/
     └── style.md       # Coding preferences
 ```
@@ -133,6 +135,25 @@ intervention. Always review the changes with `git diff` before committing.
 - `/save-state [label]` - Save current work state to `.jim/states/` for resuming later (defaults to "current")
 - `/load-state [label]` - Load a saved work state to resume where you left off
 - `/list-states` - List all saved states with names, dates, and summaries
+
+### Archive Management
+
+The `.jim/archive/` directory stores old files that you want to keep but not have
+Claude access during normal operations. Archived files are ignored by default.
+
+- `/archive <file-path or pattern>` - Move old files from `.jim/` to `.jim/archive/`
+- `/list-archive [subdirectory]` - List archived content (optionally filter by plans, states, notes, or scratch)
+
+**When to archive:**
+- Old exploration documents that are no longer active
+- Completed implementation state files from past projects
+- Review notes from merged features
+- Any `.jim/` content you want to preserve but not clutter your workspace
+
+**Accessing archived content:**
+- Use `/list-archive` to see what's archived
+- Ask Claude to "access the archive" or "check archived content" to read archived files
+- Manually move files back from `.jim/archive/` if needed
 
 ### Multi-Phase Implementation Workflow
 
