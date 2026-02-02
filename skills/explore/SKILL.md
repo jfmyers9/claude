@@ -1,7 +1,7 @@
 ---
 name: explore
 description: Deeply explore prompts, gather context, and suggest approaches
-allowed-tools: [Bash, Read, Task]
+allowed-tools: Bash, Read, Task
 argument-hint: "<description of what to explore>"
 ---
 

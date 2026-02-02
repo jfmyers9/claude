@@ -1,7 +1,7 @@
 ---
 name: implement
 description: Execute plans from exploration documents
-allowed-tools: [Task]
+allowed-tools: Task
 argument-hint: "[exploration-doc.md or leave blank for latest]"
 ---
 
@@ -79,7 +79,7 @@ If phases were detected, create/update active tracking file at
 # Active Implementation: {topic from exploration doc title}
 
 Source: {absolute path to exploration document}
-Started: {ISO timestamp}
+Started: {ISO timestamp, e.g., 2026-01-30T22:30:00Z}
 Branch: {current git branch}
 Status: in_progress
 

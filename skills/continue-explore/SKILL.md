@@ -1,7 +1,7 @@
 ---
 name: continue-explore
 description: Continue an existing exploration with user feedback
-allowed-tools: [Task]
+allowed-tools: Task
 argument-hint: "[file-path] <feedback> or just <feedback> for most recent"
 ---
 

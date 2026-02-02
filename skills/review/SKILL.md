@@ -1,7 +1,7 @@
 ---
 name: review
 description: Senior engineer code review with mentoring feedback
-allowed-tools: [Bash, Read, Write, Glob, Grep]
+allowed-tools: Bash, Read, Write, Glob, Grep
 argument-hint: "[optional: file-pattern]"
 ---
 
@@ -85,7 +85,7 @@ developer. It provides thoughtful, constructive feedback that explains the
    ```markdown
    # Code Review: [branch-name]
 
-   Reviewed: [ISO timestamp]
+   Reviewed: [ISO timestamp, e.g., 2026-01-30T22:30:00Z]
    Reviewer: Senior Engineer (AI)
    Branch: [branch-name]
    Files Changed: N files, +X -Y lines

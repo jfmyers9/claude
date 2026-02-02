@@ -34,7 +34,7 @@ resume later. Use this at the end of a work session or before switching context.
    - Wait for user response before proceeding
 
 4. **Ensure .jim/states/ directory exists**:
-   - Create if needed: `mkdir -p .jim-state`
+   - Create if needed: `mkdir -p .jim/states`
 
 5. **Write state file**:
    - Path: `.jim/states/{label}.md`

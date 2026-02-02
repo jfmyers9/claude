@@ -1,7 +1,7 @@
 ---
 name: next-phase
 description: Continue to the next phase of a multi-phase implementation
-allowed-tools: [Task]
+allowed-tools: Task
 argument-hint: "[slug or leave blank for latest active implementation]"
 ---
 
@@ -103,7 +103,7 @@ After executing phase (whether all tasks succeed or some fail):
 
 3. Add to "Implementation History" section:
    ```markdown
-   ### Phase N (completed {ISO timestamp})
+   ### Phase N (completed {ISO timestamp, e.g., 2026-01-30T22:30:00Z})
 
    {summary of what was done in this phase}
 

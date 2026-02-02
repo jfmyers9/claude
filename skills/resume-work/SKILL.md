@@ -64,7 +64,7 @@ This skill analyzes the current branch and associated PR to provide a comprehens
 8. **Persist session context** for other skills:
    - Get current branch name: `git branch --show-current`
    - Sanitize branch name for filename (replace `/` with `-`)
-   - Ensure `.jim/states/` directory exists: `mkdir -p .jim-state`
+   - Ensure `.jim/states/` directory exists: `mkdir -p .jim/states`
    - **Overwrite** (not append) `.jim/states/session-{sanitized-branch-name}.md`:
      ```markdown
      # Session Context

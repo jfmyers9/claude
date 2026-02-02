@@ -1,7 +1,7 @@
 ---
 name: review-implementation
 description: Review code from recent implementation with clean context
-allowed-tools: [Task]
+allowed-tools: Task
 argument-hint: "[state-file or slug]"
 ---
 
@@ -118,7 +118,7 @@ Create a comprehensive review following this structure:
 ```markdown
 # Implementation Review: {topic from state file}
 
-Reviewed: {ISO timestamp}
+Reviewed: {ISO timestamp, e.g., 2026-01-30T22:30:00Z}
 Reviewer: Senior Engineer (AI)
 Implementation: {path to state file}
 Files Reviewed: {count}
@@ -292,7 +292,6 @@ Next Steps:
 - {If issues found: Address high priority items first}
 - {If ready: Run /commit when ready}
 - {If more phases: Run /next-phase to continue}
-```
 ```
 
 ## Tips
