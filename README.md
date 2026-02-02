@@ -34,6 +34,7 @@ Or add to your dotfiles install script.
 │   ├── implement/         # /implement - execute plans from exploration docs
 │   ├── next-phase/        # /next-phase - continue to next phase of implementation
 │   ├── review-implementation/  # /review-implementation - review recent implementation
+│   ├── address-review/    # /address-review - address feedback from code reviews
 │   ├── save-state/        # /save-state - save work state for later
 │   ├── load-state/        # /load-state - load saved work state
 │   └── list-states/       # /list-states - list all saved states
@@ -53,6 +54,7 @@ Or add to your dotfiles install script.
 - `/implement [--review] [doc]` - Execute plans from exploration documents (uses most recent if no doc specified). Use `--review` to automatically run code review after implementation.
 - `/next-phase [--review] [slug]` - Continue to the next phase of a multi-phase implementation. Use `--review` to automatically run code review after phase completion.
 - `/review-implementation [state-file|slug]` - Review code from recent implementation with clean context
+- `/address-review [--priority=high|medium|low] [review-doc|slug]` - Address feedback from code reviews with automated fixes. Defaults to high priority issues only.
 
 ### Code Review
 
@@ -77,6 +79,54 @@ Two review skills serve different purposes:
 **Typical Usage:**
 - Use `/review-implementation` after each phase of implementation
 - Use `/review` before creating a PR (reviews entire branch)
+
+### Review and Fix Cycle
+
+After a code review identifies issues, you can use `/address-review` to
+automatically apply fixes for clear, actionable feedback:
+
+**Workflow:**
+```bash
+/implement --review              # Implement + auto-review
+/address-review                  # Apply automated fixes for high priority issues
+/review-implementation           # Verify fixes addressed the concerns (optional)
+/commit                          # Commit when clean
+```
+
+**How it works:**
+1. Reads the review document (most recent, by slug, or by path)
+2. Extracts recommendations from the "Recommendations" table and
+   "Areas for Improvement" sections
+3. Filters by priority level (default: high priority only)
+4. Applies safe, automated fixes using the Edit tool
+5. Generates a summary of what was fixed and what requires manual
+   intervention
+6. Saves fix summary to `.jim/notes/fixes-{timestamp}-{slug}.md`
+
+**Priority Filtering:**
+```bash
+/address-review --priority=high     # Only high priority (default)
+/address-review --priority=medium   # High and medium priority
+/address-review --priority=low      # All priorities
+```
+
+**When to use automated fixes:**
+- Simple refactoring (renaming, extracting constants)
+- Code style improvements
+- Comment additions/removals
+- Import additions
+- Clear, unambiguous suggestions from review
+
+**When to fix manually:**
+- Architecture changes
+- Complex logic modifications
+- Security vulnerability fixes
+- Performance optimizations
+- Anything requiring judgment or design decisions
+
+**Note:** `/address-review` is conservative and only applies fixes it's
+confident about. Complex issues are flagged in the summary for manual
+intervention. Always review the changes with `git diff` before committing.
 
 ### State Management
 
@@ -111,6 +161,49 @@ implementations for complex features:
 /commit
 /next-phase --review          # Executes Phase 2 and runs review automatically
 # Address any issues, test
+/commit
+```
+
+**Workflow with Automated Fixes:**
+```bash
+/explore "add authentication feature"
+/implement --review           # Executes Phase 1 and runs review automatically
+/address-review               # Apply automated fixes for high priority issues
+git diff                      # Review the automated fixes
+/commit
+/next-phase --review          # Executes Phase 2 and runs review automatically
+/address-review               # Apply automated fixes
+/commit
+```
+
+**Workflow Variations:**
+
+*Fix all phases at the end:*
+```bash
+/implement
+/next-phase
+/next-phase
+# All phases complete
+/review-implementation        # Review everything
+/address-review               # Fix all high priority issues at once
+/commit
+```
+
+*Selective priority fixing:*
+```bash
+/implement --review
+/address-review --priority=high    # Auto-fix critical issues
+# Manually address medium priority issues
+git diff                           # Review all changes
+/commit
+```
+
+*Skip automation (manual fixes only):*
+```bash
+/implement --review
+# Review identifies issues
+# Address all issues manually
+/review-implementation        # Verify fixes (optional)
 /commit
 ```
 
