@@ -7,8 +7,5 @@
     "deny": [
       "Task(test-runner)"
     ]
-  },
-  "enabledPlugins": {
-    "ralph-loop@claude-plugins-official": true
   }
 }
