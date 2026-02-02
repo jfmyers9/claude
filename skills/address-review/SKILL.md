@@ -2,7 +2,7 @@
 name: address-review
 description: Address feedback from code review with automated fixes
 allowed-tools: Task
-argument-hint: "[review-doc or slug] [--priority=high|medium|low]"
+argument-hint: "[review-doc or slug] [--priority=high|medium|low|all]"
 ---
 
 # Address Review Skill
@@ -22,10 +22,11 @@ Address feedback from a code review document.
 ## Parse Arguments
 
 Parse $ARGUMENTS for:
-- `--priority=LEVEL` flag: Filter issues by priority (high|medium|low)
+- `--priority=LEVEL` flag: Filter issues by priority (high|medium|low|all)
   - Default: high (only address high priority issues)
   - medium: address high and medium priority issues
-  - low: address all issues (high, medium, and low)
+  - low: address high, medium, and low priority issues
+  - all: address all issues regardless of priority
 - Review doc path or slug: remaining arguments after flags
 
 ## Find Review Document
@@ -109,7 +110,8 @@ Based on --priority flag (default: high):
 
 - `--priority=high`: Only High priority items
 - `--priority=medium`: High and Medium priority items
-- `--priority=low`: All items (High, Medium, Low)
+- `--priority=low`: High, Medium, and Low priority items
+- `--priority=all`: All items regardless of priority level
 
 Create filtered list of issues to address.
 
@@ -125,7 +127,7 @@ The review contains:
   - 0 Medium priority issues
   - 3 Low priority issues
 
-To address low priority issues, run: /address-review --priority=low
+To address all issues, run: /address-review --priority=all
 ```
 
 Exit gracefully if no issues to address.
