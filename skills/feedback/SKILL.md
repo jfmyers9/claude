@@ -146,28 +146,103 @@ Based on feedback type, analyze what needs to be done:
 
 ## Apply Fixes
 
-<!-- Phase 2 Enhancement: Add step-by-step fix workflow similar to
-     address-review skill (TaskUpdate to in_progress, verify issue exists,
-     syntax verification, TaskUpdate to completed, error handling) -->
+Based on feedback type, create a task list and apply fixes systematically.
 
-For bugs and quality concerns with clear solutions:
+### Create Task List for Fixes
 
-1. Read the relevant file(s) completely
-2. Apply targeted fixes using Edit tool
-3. Verify syntax after each edit
-4. Track what was changed
+Before applying fixes, create tasks:
 
-For change requests:
-- If small: Apply the change directly
-- If medium: Apply what's clear, note what needs clarification
-- If large: Don't apply, recommend /explore for planning
+1. **Categorize fixes** by complexity:
+   - **Simple fixes (automate):**
+     - Variable/function renaming
+     - Missing null checks
+     - Off-by-one errors
+     - Simple logic corrections
+     - Adding missing imports
+     - Fixing typos in strings/comments
+     - Adding error handling for obvious cases
+     - Simple refactoring (extract variable, inline)
 
-**Guidelines for applying fixes:**
+   - **Medium fixes (apply with care):**
+     - Multi-line code changes
+     - Adding new functions/methods
+     - Modifying control flow
+     - Adding input validation
+     - Changes spanning multiple files
+
+   - **Complex fixes (defer to /explore):**
+     - Architecture changes
+     - New feature development
+     - Breaking API changes
+     - Changes requiring design decisions
+     - Performance optimizations needing profiling
+
+2. **Create tasks** using TaskCreate:
+   - Subject: Brief description of fix
+   - Description: File path, issue, and proposed solution
+   - activeForm: "Fixing {issue description}"
+   - Group tasks by file when possible
+
+### Apply Fixes Workflow
+
+For each fix task:
+
+1. **TaskUpdate to in_progress**
+
+2. **Read entire file for context**
+   - Understand file structure and patterns
+   - Locate the issue by description or code pattern
+   - Verify issue still exists (might already be addressed)
+
+3. **For bugs:**
+   - Identify the root cause
+   - Determine minimal fix that addresses symptom
+   - Verify fix won't break other functionality
+   - Apply fix using Edit tool
+
+4. **For quality concerns:**
+   - Identify the specific quality issue
+   - Apply improvement while preserving behavior
+   - Maintain existing code style and patterns
+
+5. **For change requests:**
+   - Apply changes within scope
+   - If change requires understanding of larger system, note it
+   - If change is beyond current context, defer
+
+6. **Verify after each edit:**
+   - Check file can be parsed (basic syntax check)
+   - For TypeScript/JavaScript: verify no obvious type errors
+   - For Python: check indentation is correct
+   - If syntax broken: revert change, mark task as failed
+
+7. **TaskUpdate based on result:**
+   - If fix succeeded: mark completed
+   - If fix failed: mark failed with reason, continue to next task
+   - Never leave tasks hanging in in_progress
+
+8. **Error handling:**
+   - If file not found: skip, note in summary
+   - If Edit fails (old_string not found): try more specific context
+   - If still fails: skip, note as "couldn't locate code pattern"
+   - If ambiguous feedback: skip, ask for clarification
+
+### Track Results
+
+Maintain counts for summary:
+- Fixes applied successfully
+- Fixes skipped (too complex, ambiguous)
+- Fixes failed (couldn't apply)
+- Files modified
+
+### Scope Guidelines
+
 - Only fix what the feedback specifically mentions
 - Don't "improve" unrelated code
 - Preserve existing behavior unless fixing a bug
 - Keep changes minimal and focused
 - If unsure, ask for clarification rather than guess
+- For large changes: recommend /explore for planning
 
 ## Create Feedback Document
 
@@ -273,6 +348,12 @@ Next Steps:
 1. Verify the changes work as expected
 2. If issues remain: /feedback "description of remaining issue"
 3. When satisfied: /commit
+
+---
+Did this fix address your concern?
+- If yes, you can proceed to /commit
+- If partially, run /feedback with remaining issues
+- If no, please describe what's still wrong
 ```
 
 ## Guidelines

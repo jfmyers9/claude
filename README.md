@@ -35,6 +35,7 @@ Or add to your dotfiles install script.
 │   ├── next-phase/        # /next-phase - continue to next phase of implementation
 │   ├── review-implementation/  # /review-implementation - review recent implementation
 │   ├── address-review/    # /address-review - address feedback from code reviews
+│   ├── feedback/          # /feedback - provide user feedback on implementations
 │   ├── save-state/        # /save-state - save work state for later
 │   ├── load-state/        # /load-state - load saved work state
 │   ├── list-states/       # /list-states - list all saved states
@@ -57,6 +58,7 @@ Or add to your dotfiles install script.
 - `/next-phase [--review] [slug]` - Continue to the next phase of a multi-phase implementation. Use `--review` to automatically run code review after phase completion.
 - `/review-implementation [state-file|slug]` - Review code from recent implementation with clean context
 - `/address-review [--priority=high|medium|low] [review-doc|slug]` - Address feedback from code reviews with automated fixes. Defaults to high priority issues only.
+- `/feedback <feedback> [--type=bug|quality|change]` - Provide user feedback on recent implementation and apply fixes directly
 
 ### Code Review
 
@@ -129,6 +131,99 @@ automatically apply fixes for clear, actionable feedback:
 **Note:** `/address-review` is conservative and only applies fixes it's
 confident about. Complex issues are flagged in the summary for manual
 intervention. Always review the changes with `git diff` before committing.
+
+### User Feedback Workflow
+
+While `/review-implementation` and `/address-review` handle AI-generated
+feedback, the `/feedback` skill handles user-provided feedback on
+implementations.
+
+**Use `/feedback` when:**
+- Something isn't working as expected (bugs)
+- You have code quality concerns (naming, readability, patterns)
+- You want to add or change something in the implementation
+
+**How it works:**
+1. Finds the most recent implementation context (state files or git diff)
+2. Categorizes feedback (bug, quality, or change request)
+3. Applies fixes directly to the code
+4. Creates a feedback document in `.jim/notes/`
+5. Prompts for verification that the fix addressed your concern
+
+**Basic Usage:**
+```bash
+/feedback "The API call fails when username is empty"
+/feedback "The function names are inconsistent" --type=quality
+/feedback "Add rate limiting to the endpoint" --type=change
+```
+
+**Feedback Types:**
+- `bug` - Runtime issues, errors, unexpected behavior
+- `quality` - Code style, naming, readability concerns
+- `change` - Feature additions or modifications
+
+If `--type` is not specified, the skill infers the type from your feedback.
+
+**Feedback vs. Other Skills:**
+
+| Scenario | Use |
+|----------|-----|
+| AI identifies issues during review | `/address-review` |
+| You find a bug while testing | `/feedback` |
+| You want to refine the plan before implementation | `/continue-explore` |
+| You want to change already-implemented code | `/feedback` |
+| You want a fresh review of the code | `/review-implementation` |
+
+**Example Workflows:**
+
+*Bug fix workflow:*
+```bash
+/implement                            # Implement feature
+# Test the implementation
+/feedback "Login fails with special characters in password"
+# Claude identifies the issue, applies fix
+git diff                              # Review the fix
+/commit
+```
+
+*Quality improvement workflow:*
+```bash
+/implement --review                   # Implement + AI review
+/address-review                       # Fix AI-identified issues
+# Manual testing
+/feedback "The helper functions should be in a separate file"
+git diff                              # Review changes
+/commit
+```
+
+*Iterative feedback workflow:*
+```bash
+/implement
+/feedback "Add input validation for email field"
+# Claude applies changes
+/feedback "Also validate the phone number format"
+# Claude applies additional changes
+git diff                              # Review all changes
+/commit
+```
+
+*Combined AI and user feedback:*
+```bash
+/implement --review                   # Implement + AI review
+/address-review --priority=high       # Fix critical AI issues
+/feedback "The error messages should be more user-friendly"
+git diff                              # Review all changes
+/commit
+```
+
+**Feedback Documents:**
+
+Each feedback session creates a document at `.jim/notes/feedback-{timestamp}.md`
+containing:
+- Original feedback and categorization
+- Analysis of the issue
+- Actions taken and files modified
+- Verification steps
 
 ### State Management
 
