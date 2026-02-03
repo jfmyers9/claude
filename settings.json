@@ -7,5 +7,6 @@
     "deny": [
       "Task(test-runner)"
     ]
-  }
+  },
+  "model": "opus"
 }
