@@ -18,12 +18,14 @@ resume later. Use this at the end of a work session or before switching context.
    - Sanitize the label: replace spaces with hyphens, lowercase, remove special
      characters
 
-2. **Gather automatic context**:
+2. **Gather automatic context** (run all four commands in parallel --
+   they are completely independent):
    - Get current branch: `git branch --show-current`
    - Get uncommitted changes: `git status --porcelain`
-   - Get recent commits on branch: `git log main..HEAD --oneline -10` (or fewer
-     if not many)
-   - Get recently modified files: `git diff --name-only HEAD~5..HEAD 2>/dev/null`
+   - Get recent commits on branch: `git log main..HEAD --oneline -10`
+     (or fewer if not many)
+   - Get recently modified files:
+     `git diff --name-only HEAD~5..HEAD 2>/dev/null`
      (ignore errors if not enough commits)
 
 3. **Prompt user for context**:

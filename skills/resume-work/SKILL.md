@@ -34,25 +34,22 @@ This skill analyzes the current branch and associated PR to provide a comprehens
        - Stop here and do not proceed
    - If remote branch doesn't exist, note that this is a local-only branch
 
-3. **Get PR information** (if available):
-   - Run `gh pr view --json number,title,body,state,author,createdAt,updatedAt,additions,deletions,changedFiles,reviewDecision,comments,reviews`
-   - If no PR exists, note that but continue with branch analysis
+3. **Gather all branch context in parallel** (these are all independent
+   reads and should run simultaneously):
+   - PR info: `gh pr view --json number,title,body,state,author,createdAt,updatedAt,additions,deletions,changedFiles,reviewDecision,comments,reviews`
+     (if no PR exists, note that but continue)
+   - Commit history: `git log main..HEAD --oneline --no-decorate`
+   - Detailed last commit: `git log -1 --format=fuller`
+   - Commit count: `git rev-list --count main..HEAD`
+   - Changed files summary: `git diff main...HEAD --stat`
+   - Diff summary: `git diff main...HEAD --shortstat`
+   - Working tree status: `git status`
+   - Ahead/behind remote: `git rev-list --left-right --count @{upstream}...HEAD` (if remote exists)
 
-4. **Analyze commits**:
-   - Get commit history since base branch: `git log main..HEAD --oneline --no-decorate`
-   - Get detailed last commit: `git log -1 --format=fuller`
-   - Count total commits: `git rev-list --count main..HEAD`
+   After all results are gathered, identify types of changes (new files,
+   modified files, deleted files) from the collected output.
 
-5. **Analyze changes**:
-   - Get changed files summary: `git diff main...HEAD --stat`
-   - Get diff summary: `git diff main...HEAD --shortstat`
-   - Identify types of changes (new files, modified files, deleted files)
-
-6. **Check branch status**:
-   - Run `git status` to see uncommitted changes
-   - Check if branch is ahead/behind remote: `git rev-list --left-right --count @{upstream}...HEAD` (if remote exists)
-
-7. **Present summary** including:
+4. **Present summary** including:
    - Branch name, base branch, created/updated dates
    - PR status (number, title, state, review status, changes) or note if none
    - Commit list with short hashes
@@ -61,7 +58,7 @@ This skill analyzes the current branch and associated PR to provide a comprehens
    - Recent PR activity if applicable
    - Actionable next step recommendation
 
-8. **Persist session context** for other skills:
+5. **Persist session context** for other skills:
    - Get current branch name: `git branch --show-current`
    - Sanitize branch name for filename (replace `/` with `-`)
    - Ensure `.jim/states/` directory exists: `mkdir -p .jim/states`
@@ -77,13 +74,13 @@ This skill analyzes the current branch and associated PR to provide a comprehens
      {PR number, title, state, or "No PR"}
 
      ## Recent Commits
-     {commit list from step 4}
+     {commit list from step 3}
 
      ## Changed Files
-     {file summary from step 5}
+     {file summary from step 3}
 
      ## Current State
-     {uncommitted changes, sync status from step 6}
+     {uncommitted changes, sync status from step 3}
      ```
    - This context is automatically used by `/explore` and other skills
    - File is completely rewritten each time (fresh state)

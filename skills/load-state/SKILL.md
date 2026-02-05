@@ -24,13 +24,14 @@ on where you left off.
      - Run `/save-state` to create a new state
    - Exit if file not found
 
-3. **Read state file**:
+3. **Read state and gather git context in parallel** (these are
+   independent and should run simultaneously):
    - Read the full contents of `.jim/states/{label}.md`
-
-4. **Get current context**:
    - Get current branch: `git branch --show-current`
    - Get current uncommitted changes: `git status --porcelain`
-   - Compare with state file to note any drift
+
+4. **Compare context**:
+   - Compare current git context with state file to note any drift
 
 5. **Present state to user**:
    - Display the full state file content

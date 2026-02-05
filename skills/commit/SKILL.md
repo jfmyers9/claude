@@ -12,11 +12,13 @@ Create a git commit following the Conventional Commits specification (https://ww
 ## Process
 
 1. Check if `--amend` flag is present in $ARGUMENTS
-2. Run `git status` to see what's changed (never use -uall flag)
-3. If amending: run `git log -1 --format="%B"` to see the previous commit message and `git diff HEAD~1` to see all changes in the commit being amended plus any new staged changes
-4. If not amending: run `git diff --staged` to see staged changes, or `git diff` if nothing is staged
-5. If the user provided a message in $ARGUMENTS (excluding --amend), use it (ensure it follows conventional commit format)
-6. If no message provided, analyze all relevant changes and generate an appropriate commit message
+2. **Run in parallel** (these are independent reads):
+   - `git status` to see what's changed (never use -uall flag)
+   - If amending: `git log -1 --format="%B"` and `git diff HEAD~1`
+   - If not amending: `git diff --staged` (or `git diff` if nothing
+     staged)
+3. If the user provided a message in $ARGUMENTS (excluding --amend), use it (ensure it follows conventional commit format)
+4. If no message provided, analyze all relevant changes and generate an appropriate commit message
 
 ## Commit Message Format
 

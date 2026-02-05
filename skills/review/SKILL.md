@@ -26,15 +26,18 @@ developer. It provides thoughtful, constructive feedback that explains the
      - Binary files and images
    - If no files to review, inform user and exit
 
-2. **Gather context**:
-   - Get commit history: `git log main..HEAD --format="%h %s" --no-decorate`
-   - Get diff statistics: `git diff main...HEAD --shortstat`
-   - Count changed files for scope assessment
-   - Check if PR exists: `gh pr view --json number,title 2>/dev/null`
-   - For each file to review:
-     - Read the entire file (not just diff) to understand full context
-     - Read the diff to see what changed: `git diff main...HEAD -- <file>`
-     - Note file type and language
+2. **Gather context** (parallelize as much as possible):
+
+   a. **Git metadata** (run all in parallel):
+      - Commit history: `git log main..HEAD --format="%h %s" --no-decorate`
+      - Diff statistics: `git diff main...HEAD --shortstat`
+      - PR check: `gh pr view --json number,title 2>/dev/null`
+
+   b. **For each file to review** (read all files in parallel -- each
+      file's reads are independent of other files):
+      - Read the entire file (not just diff) to understand full context
+      - Read the diff: `git diff main...HEAD -- <file>`
+      - Note file type and language
 
 3. **Perform senior engineer review**:
 
