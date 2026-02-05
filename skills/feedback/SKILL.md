@@ -35,25 +35,23 @@ If no feedback text provided, inform user and exit:
 
 ## Find Recent Implementation
 
-Look for the most recent implementation context:
+Check all sources in parallel, then use the first match found
+(in priority order):
 
-1. **Check for active tracking file** (multi-phase implementation):
-   - Find most recent .jim/states/active-*.md file
-   - If found, extract implementation context from it
+1. Find most recent .jim/states/active-*.md file
+2. Find most recent .jim/states/*-implemented-*.md file by timestamp
+3. Run: git diff --name-only HEAD
 
-2. **Check for implementation state file**:
-   - Find most recent .jim/states/*-implemented-*.md file by timestamp
-   - If found, extract implementation context from it
+Run all three checks simultaneously. Use the first source that
+returns results, preferring in the order listed above.
 
-3. **Fall back to git diff**:
-   - If no state files found, use uncommitted changes as context
-   - Run: git diff --name-only HEAD
-   - If git command fails (not a git repository), inform user:
-     "This skill requires either implementation state files or a git
-     repository. Please specify which files your feedback applies to."
-   - If no uncommitted changes, inform user:
-     "No recent implementation found. Please run /implement first or
-     specify which files your feedback applies to."
+If none return results:
+- If git command failed (not a git repository), inform user:
+  "This skill requires either implementation state files or a git
+  repository. Please specify which files your feedback applies to."
+- If no results from any source, inform user:
+  "No recent implementation found. Please run /implement first or
+  specify which files your feedback applies to."
 
 Extract from state files:
 - Files changed (list of paths)

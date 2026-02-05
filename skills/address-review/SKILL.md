@@ -184,6 +184,10 @@ For complex fixes:
 
 ## Apply Fixes
 
+Group fixes by file. For fixes in different files, apply them
+in parallel (each file's fixes are independent of other files).
+Within a single file, apply fixes sequentially to avoid conflicts.
+
 For each simple fix task:
 
 1. **TaskUpdate to in_progress**

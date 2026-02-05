@@ -17,8 +17,10 @@ This skill reviews uncommitted code changes and refines them by simplifying impl
    - Filter to only include code files (exclude config, lock files, generated files)
    - If no files found, inform user and exit
 
-2. **For each file to review**:
-   - Read the entire file to understand context
+2. **Read all files in parallel**:
+   - Read all identified code files simultaneously to gather context
+
+3. **For each file** (can process independent files in parallel):
    - Analyze the code for:
      - **Unnecessary complexity**: Nested conditionals, overly abstract code, premature optimization
      - **Clever code**: Code that prioritizes brevity over clarity
@@ -30,7 +32,7 @@ This skill reviews uncommitted code changes and refines them by simplifying impl
      - **Outdated comments**: Comments that don't match the implementation
      - **Missing valuable comments**: Complex logic that needs explanation
 
-3. **Apply refinements**:
+4. **Apply refinements**:
    - Simplify complex code:
      - Flatten nested conditionals where possible
      - Extract magic numbers to named constants (only if used multiple times)
@@ -49,13 +51,13 @@ This skill reviews uncommitted code changes and refines them by simplifying impl
      - Add comments to code you didn't change
      - Refactor code beyond the changes being committed
 
-4. **Verify changes**:
+5. **Verify changes**:
    - After editing each file, verify it's still valid:
      - Check syntax if possible (run linter, parser check, etc.)
      - If verification fails, revert the change and note the issue
    - Keep track of all refinements made
 
-5. **Present summary**:
+6. **Present summary**:
    - Show a summary of refinements for each file:
      - Simplifications applied
      - Comments removed
