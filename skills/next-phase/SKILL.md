@@ -43,23 +43,25 @@ Parse the active tracking file to determine:
 - Which phase is next (first uncompleted phase)
 - Current branch name
 
-## Verify State
+## Verify State and Load Source (in parallel)
 
-1. Check current git branch matches tracking file branch
-   - If different, warn user but continue
-   - Note branch change in updated tracking file
+After reading the tracking file, perform these in parallel:
 
-2. Check if all phases are complete
-   - If yes, report "All phases completed!" and exit
-   - Suggest reviewing changes and using `/commit`
+a. **Verify git state**:
+   1. Check current git branch matches tracking file branch
+      - If different, warn user but continue
+      - Note branch change in updated tracking file
+   2. Check if all phases are complete
+      - If yes, report "All phases completed!" and exit
+      - Suggest reviewing changes and using `/commit`
+   3. Identify next phase to execute
+      - Find first phase marked `[ ]` (incomplete)
+      - Extract phase name and number
 
-3. Identify next phase to execute
-   - Find first phase marked `[ ]` (incomplete)
-   - Extract phase name and number
+b. **Read the source exploration document** from the path
+   in tracking file.
 
-## Load Source Exploration Document
-
-Read the exploration document from the path in tracking file.
+These are independent and can run simultaneously.
 
 Find the "Next Steps" section and locate the next phase:
 - Look for phase markers matching the phase number
@@ -84,6 +86,12 @@ For each task in order:
 3. Verify the step succeeded (check syntax, run relevant tests if quick)
 4. TaskUpdate to completed
 5. If step fails: stop, report the error, leave task in_progress
+
+## Write State Files (in parallel)
+
+After executing phase tasks, write both state files
+simultaneously. The tracking file update and implementation
+state file are independent writes.
 
 ## Update Active Tracking File
 

@@ -47,10 +47,15 @@ Thoroughly explore: [insert $ARGUMENTS]
 
 ## Investigation (be exhaustive)
 
-1. **Find relevant files**: Use Glob for patterns, Grep for keywords/functions
-2. **Follow code paths**: Read files completely, trace imports, find usages
-3. **Understand architecture**: Patterns, conventions, libraries, config
-4. **Check docs**: READMEs, comments, related issues/PRs
+1. **Gather initial context in parallel**:
+   - Use Glob to find relevant files by pattern
+   - Use Grep to search for keywords/functions
+   - Read READMEs, config files, and documentation
+
+2. **Follow code paths**: Read files completely, trace imports,
+   find usages
+
+3. **Understand architecture**: Patterns, conventions, libraries
 
 Don't make assumptions — follow code paths to completion.
 

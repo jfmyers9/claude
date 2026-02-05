@@ -38,7 +38,7 @@ Read the state file to verify it exists and is well-formed.
 From the state file, extract:
 
 1. **Source exploration document** (from "Source" section)
-   - Read this to understand what was planned
+   - Path to read for understanding what was planned
 
 2. **Files changed** (from "Files Changed" section)
    - Parse the list of absolute file paths
@@ -57,12 +57,17 @@ From the state file, extract:
 
 If state file is missing critical sections, inform user and exit.
 
-## Read All Changed Files
+## Read Source and Changed Files (in parallel)
 
-For each file in the "Files Changed" section:
-1. Read the entire file using Read tool
-2. If file doesn't exist, note this in review (might be deleted file)
-3. Gather context on file type, purpose, and structure
+After extracting file paths from the state file, read all files
+in parallel:
+- The source exploration document
+- All files listed in "Files Changed" section
+
+These reads are independent and should happen simultaneously.
+If a changed file doesn't exist, note this in review (might be
+a deleted file). Gather context on each file's type, purpose,
+and structure.
 
 ## Perform Senior Engineer Review
 

@@ -70,6 +70,13 @@ to track what was done.
 
 Run: `mkdir -p .jim/states`
 
+### Write Both State Files (in parallel)
+
+After ensuring the directory exists, write both state files
+simultaneously. The active tracking file and implementation
+state file are independent writes with no dependencies on
+each other.
+
 ### 1. Write Active Tracking File (if multi-phase)
 
 If phases were detected, create/update active tracking file at
