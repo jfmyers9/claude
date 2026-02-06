@@ -48,7 +48,7 @@ Or add to your dotfiles install script.
 
 ## Skills
 
-- `/start <branch-name>` - Start a new track of work by creating an empty Graphite branch
+- `/start <branch-name>` - Start a new track of work by creating an empty Graphite branch (auto-prefixed with `jm/`)
 - `/ship` - Runs git-town workflow: sync branch with master and create PR
 - `/commit [message]` - Create a conventional commit (auto-generates message if not provided)
 - `/resume-work [branch]` - Summarize current branch and PR state to help resume work
