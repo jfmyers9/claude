@@ -24,6 +24,7 @@ Or add to your dotfiles install script.
 ├── CLAUDE.md          # Global instructions for all sessions
 ├── settings.json      # Model, plugins, permissions
 ├── skills/
+│   ├── start/         # /start - start new work on empty Graphite branch
 │   ├── ship/          # /ship - git sync && git propose
 │   ├── commit/        # /commit - conventional commits
 │   ├── resume-work/   # /resume-work - branch and PR summary
@@ -47,6 +48,7 @@ Or add to your dotfiles install script.
 
 ## Skills
 
+- `/start <branch-name>` - Start a new track of work by creating an empty Graphite branch
 - `/ship` - Runs git-town workflow: sync branch with master and create PR
 - `/commit [message]` - Create a conventional commit (auto-generates message if not provided)
 - `/resume-work [branch]` - Summarize current branch and PR state to help resume work
@@ -257,6 +259,7 @@ implementations for complex features:
 
 **Basic Workflow:**
 ```bash
+/start auth-feature           # Create branch for new work
 /explore "add authentication feature"
 /implement                    # Executes Phase 1
 /review-implementation        # Review Phase 1 changes
@@ -271,6 +274,7 @@ implementations for complex features:
 
 **Workflow with Auto-Review:**
 ```bash
+/start auth-feature           # Create branch for new work
 /explore "add authentication feature"
 /implement --review           # Executes Phase 1 and runs review automatically
 # Address any issues, test
@@ -282,6 +286,7 @@ implementations for complex features:
 
 **Workflow with Automated Fixes:**
 ```bash
+/start auth-feature           # Create branch for new work
 /explore "add authentication feature"
 /implement --review           # Executes Phase 1 and runs review automatically
 /address-review               # Apply automated fixes for high priority issues
@@ -388,23 +393,26 @@ automatically runs code review after implementation completes:
 **Complete Workflow Example:**
 
 ```bash
-# 1. Explore the feature
+# 1. Start a new track of work
+/start jwt-auth
+
+# 2. Explore the feature
 /explore "add user authentication with JWT tokens"
 
-# 2. Implement Phase 1 (Foundation)
+# 3. Implement Phase 1 (Foundation)
 /implement
 # Creates: .jim/states/active-user-authentication.md
 #          .jim/states/20260201-123456-implemented-phase1-user-authentication.md
 
-# 3. Review the implementation
+# 4. Review the implementation
 /review-implementation
 # Creates: .jim/notes/review-impl-20260201-123500-user-authentication.md
 # Shows: Code quality assessment, adherence to plan, ready to commit verdict
 
-# 4. Address any issues from review, then commit
+# 5. Address any issues from review, then commit
 /commit
 
-# 5. Continue to Phase 2 with auto-review
+# 6. Continue to Phase 2 with auto-review
 /next-phase --review
 # Updates: .jim/states/active-user-authentication.md
 # Creates: .jim/states/20260201-124000-implemented-phase2-user-authentication.md
@@ -412,10 +420,10 @@ automatically runs code review after implementation completes:
 # Creates: .jim/notes/review-impl-20260201-124010-user-authentication.md
 # Output includes review summary inline
 
-# 6. Address any issues, then commit Phase 2
+# 7. Address any issues, then commit Phase 2
 /commit
 
-# 7. Continue until all phases complete
+# 8. Continue until all phases complete
 /next-phase
 # If last phase: reports "All phases completed!"
 ```
