@@ -1,6 +1,6 @@
 ---
 name: explore
-description: Deeply explore prompts, gather context, and suggest approaches
+description: "Use when the user wants to investigate, research, plan, understand a codebase, explore an idea, or figure out how to approach a feature before implementing it."
 allowed-tools: Bash, Read, Task
 argument-hint: "<description of what to explore>"
 ---

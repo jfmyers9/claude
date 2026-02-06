@@ -31,6 +31,8 @@ This skill reviews uncommitted code changes and refines them by simplifying impl
      - **Obvious comments**: Comments explaining self-explanatory code
      - **Outdated comments**: Comments that don't match the implementation
      - **Missing valuable comments**: Complex logic that needs explanation
+     - **Doc comments**: JSDoc, docstrings, GoDoc, RustDoc, etc.
+       Preserve these by default (see Doc Comment Preservation below)
 
 4. **Apply refinements**:
    - Simplify complex code:
@@ -82,6 +84,21 @@ This skill reviews uncommitted code changes and refines them by simplifying impl
 - Documenting edge cases or gotchas
 - Explaining business logic or domain-specific behavior
 - Warning about performance implications or limitations
+
+**Doc Comment Preservation:**
+
+Preserve documentation comments by default: JSDoc (`/** */`),
+Python docstrings (`"""`), GoDoc, RustDoc (`///`), and similar
+structured doc comments. These serve as API documentation and are
+often consumed by tools, IDEs, and doc generators.
+
+Only remove a doc comment if it is genuinely vacuous:
+- Empty doc comment with no content
+- Restates the function signature with zero additional information
+  (e.g., `/** Gets the name. */ getName()`)
+
+If a doc comment is inaccurate or outdated, **update it** rather
+than removing it.
 
 **When to simplify code:**
 - Remove redundant defaults (`.get(key, None)` → `.get(key)`)

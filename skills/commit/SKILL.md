@@ -1,8 +1,8 @@
 ---
 name: commit
-description: Create a conventional commit for staged or all changes
+description: "Use when the user wants to commit, save changes, create a conventional commit, amend a commit, or make a fixup commit."
 allowed-tools: Bash
-argument-hint: "[--amend] [message or leave blank for auto-generate]"
+argument-hint: "[--amend] [--fixup <commit>] [message or leave blank for auto-generate]"
 ---
 
 # Conventional Commit
@@ -11,14 +11,22 @@ Create a git commit following the Conventional Commits specification (https://ww
 
 ## Process
 
-1. Check if `--amend` flag is present in $ARGUMENTS
+1. Check if `--amend` or `--fixup` flag is present in $ARGUMENTS
 2. **Run in parallel** (these are independent reads):
    - `git status` to see what's changed (never use -uall flag)
+   - `git diff --cached` to check if anything is staged
    - If amending: `git log -1 --format="%B"` and `git diff HEAD~1`
-   - If not amending: `git diff --staged` (or `git diff` if nothing
-     staged)
-3. If the user provided a message in $ARGUMENTS (excluding --amend), use it (ensure it follows conventional commit format)
-4. If no message provided, analyze all relevant changes and generate an appropriate commit message
+   - If fixup: `git log --oneline -10` to show recent commits
+   - If not amending/fixup: `git diff --staged` (or `git diff` if
+     nothing staged)
+3. **If nothing is staged** (`git diff --cached` is empty):
+   - Check if there are tracked file changes (`git diff --name-only`)
+   - If tracked changes exist: ask the user whether to stage all
+     tracked changes or let them pick specific files
+   - If no tracked or untracked changes: inform the user there's
+     nothing to commit and exit
+4. If the user provided a message in $ARGUMENTS (excluding flags), use it (ensure it follows conventional commit format)
+5. If no message provided, analyze all relevant changes and generate an appropriate commit message
 
 ## Commit Message Format
 
@@ -55,10 +63,26 @@ Types:
 - Use imperative mood ("add feature" not "added feature")
 - If changes span multiple concerns, prefer the most significant type
 - Stage specific files rather than using `git add -A`
+- NEVER use `--no-verify` to skip pre-commit hooks
+
+## Hook Failure Recovery
+
+If the commit fails due to a pre-commit hook:
+
+1. Read the hook output to understand what failed
+2. Fix the issue (formatting, lint errors, etc.)
+3. Re-stage the affected files with `git add <files>`
+4. Create a **new** commit (do NOT use `--amend` — the failed commit
+   never happened, so amending would modify the previous commit)
 
 ## Execute
 
 1. Stage appropriate files with `git add <specific-files>`
 2. If amending: use `git commit --amend -m "$subject" -m "$(echo "$body" | fmt -w 72)"`
-3. If not amending: use `git commit -m "$subject" -m "$(echo "$body" | fmt -w 72)"`
-4. Show the user the final commit
+3. If fixup: use `git commit --fixup <target-commit-hash>`
+   - The target commit is determined from `$ARGUMENTS` (e.g.,
+     `--fixup abc123` or `--fixup HEAD~2`)
+   - If no target specified, show the recent commits from step 2
+     and ask the user which commit to fix up
+4. If normal: use `git commit -m "$subject" -m "$(echo "$body" | fmt -w 72)"`
+5. Show the user the final commit

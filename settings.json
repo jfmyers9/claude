@@ -8,5 +8,18 @@
       "Task(test-runner)"
     ]
   },
-  "model": "opus"
+  "model": "opus",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/post_tool_use_format.py"
+          }
+        ]
+      }
+    ]
+  }
 }

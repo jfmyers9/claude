@@ -4,6 +4,29 @@
 - Use `/submit` to sync and create PRs
 - Use `/commit` for conventional commits
 
+## Conciseness
+
+- Make plans extremely concise. Sacrifice grammar for concision.
+- Prefer bullet points over prose. Omit filler words.
+- In conversation, be direct. Skip preamble and summaries unless
+  asked.
+
+## Efficiency
+
+- Run parallel operations in single messages when possible
+- Delegate heavy work to subagents; main thread orchestrates
+- Pre-compute summaries for subagent context rather than passing
+  raw content
+
+## Context Budget
+
+- Monitor context usage carefully throughout sessions
+- Pipe long command output through `tail`/`head` to limit volume
+- Summarize large file contents rather than reading in full when
+  a summary suffices
+- When context is running low, prefer finishing current work over
+  starting new tasks
+
 ## Archive Directory
 
 The `.jim/archive/` directory contains archived documentation.
