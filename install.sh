@@ -12,6 +12,7 @@ items=(
   "settings.json"
   "skills"
   "rules"
+  "agents"
 )
 
 for item in "${items[@]}"; do

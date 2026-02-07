@@ -13,6 +13,7 @@ git clone <your-repo-url> ~/dotfiles/claude-config
 ln -sf ~/dotfiles/claude-config/CLAUDE.md ~/.claude/CLAUDE.md
 ln -sf ~/dotfiles/claude-config/settings.json ~/.claude/settings.json
 ln -sf ~/dotfiles/claude-config/skills ~/.claude/skills
+ln -sf ~/dotfiles/claude-config/agents ~/.claude/agents
 ln -sf ~/dotfiles/claude-config/rules ~/.claude/rules
 ```
 
@@ -23,6 +24,13 @@ Or add to your dotfiles install script.
 ```
 ├── CLAUDE.md          # Global instructions for all sessions
 ├── settings.json      # Model, plugins, permissions
+├── agents/
+│   ├── researcher.md  # Fast codebase researcher (haiku)
+│   ├── reviewer.md    # Mentoring code reviewer (sonnet)
+│   ├── architect.md   # System design analyst (sonnet)
+│   ├── implementer.md # Focused code builder (inherit)
+│   ├── tester.md      # Test specialist (sonnet)
+│   └── devil.md       # Devil's advocate (sonnet)
 ├── skills/
 │   ├── start/         # /start - start new work on empty Graphite branch
 │   ├── ship/          # /ship - git sync && git propose
@@ -41,7 +49,11 @@ Or add to your dotfiles install script.
 │   ├── load-state/        # /load-state - load saved work state
 │   ├── list-states/       # /list-states - list all saved states
 │   ├── archive/           # /archive - archive old .jim files
-│   └── list-archive/      # /list-archive - list archived content
+│   ├── list-archive/      # /list-archive - list archived content
+│   ├── team-review/       # /team-review - parallel code review team
+│   ├── team-debug/        # /team-debug - adversarial debugging team
+│   ├── team-build/        # /team-build - feature build team
+│   └── team-explore/      # /team-explore - deep research team
 └── rules/
     └── style.md       # Coding preferences
 ```
@@ -61,6 +73,10 @@ Or add to your dotfiles install script.
 - `/review-implementation [state-file|slug]` - Review code from recent implementation with clean context
 - `/address-review [--priority=high|medium|low] [review-doc|slug]` - Address feedback from code reviews with automated fixes. Defaults to high priority issues only.
 - `/feedback <feedback> [--type=bug|quality|change]` - Provide user feedback on recent implementation and apply fixes directly
+- `/team-review [file pattern or branch]` - Spawn a parallel code review team (reviewer, architect, devil)
+- `/team-debug <bug description>` - Spawn an adversarial debugging team with competing hypotheses
+- `/team-build <feature description or doc path>` - Spawn a feature build team (implementer, tester, reviewer)
+- `/team-explore <topic>` - Spawn a deep research team (researcher, architect, devil)
 
 ### Code Review
 
@@ -426,6 +442,143 @@ automatically runs code review after implementation completes:
 # 8. Continue until all phases complete
 /next-phase
 # If last phase: reports "All phases completed!"
+```
+
+## Custom Agents
+
+Custom agents are specialized AI personas defined in `agents/`.
+Each agent has a focused role, specific tool access, and a distinct
+communication style. They can be used individually or as teammates
+in team skills.
+
+**Using agents individually:**
+```
+Use the researcher agent to find all files related to authentication.
+Use the architect agent to analyze the module structure.
+Use the devil agent to stress-test this API design.
+```
+
+### Agent Reference
+
+| Agent | Model | Tools | Description |
+|-------|-------|-------|-------------|
+| **researcher** | haiku | Read, Grep, Glob, Bash | Fast codebase researcher for finding files, tracing code paths, and gathering context |
+| **reviewer** | sonnet | Read, Grep, Glob, Bash | Senior code reviewer with mentoring style; has persistent user memory |
+| **architect** | sonnet | Read, Grep, Glob, Bash | System design analyst in plan mode; evaluates design patterns and tradeoffs |
+| **implementer** | inherit | All (acceptEdits) | Focused builder that follows plans precisely and writes clean code |
+| **tester** | sonnet | Read, Grep, Glob, Bash, Write, Edit | Test specialist who writes thorough tests and validates correctness |
+| **devil** | sonnet | Read, Grep, Glob, Bash | Devil's advocate who challenges assumptions, finds edge cases, and stress-tests ideas |
+
+**Key details:**
+- `researcher` uses haiku for speed on read-only research tasks
+- `reviewer` has `memory: user` for cross-session learning of
+  codebase patterns and conventions
+- `architect` uses `permissionMode: plan` (read-only analysis with
+  design proposals)
+- `implementer` uses `model: inherit` (matches your current model)
+  and `permissionMode: acceptEdits` (full implementation capability)
+- `tester` has Write and Edit tools for creating test files
+- `devil` is read-only; constructive criticism, not destructive
+
+## Team Skills
+
+Team skills orchestrate multiple custom agents into coordinated
+teams for common development workflows. They use the experimental
+Agent Teams feature (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`).
+
+### `/team-review` - Parallel Code Review
+
+Spawns three reviewers in parallel, each examining the code from
+a different angle, then synthesizes their feedback into a unified
+review document.
+
+**Team composition:** reviewer + architect + devil
+
+**What each reviewer focuses on:**
+- **reviewer**: Code quality, readability, error handling, style
+- **architect**: Design patterns, coupling, cohesion, maintainability
+- **devil**: Edge cases, failure modes, security, assumptions
+
+**Scope detection:** Automatically determines what to review from
+git state (feature branch diff, uncommitted changes, or specified
+files).
+
+**Output:** Unified review saved to
+`.jim/notes/team-review-{timestamp}-{branch}.md`
+
+```bash
+/team-review                    # Review current branch changes
+/team-review "src/**/*.ts"      # Review specific files
+```
+
+### `/team-debug` - Adversarial Debugging
+
+Spawns three investigators who each pursue a different hypothesis
+about a bug, then synthesizes findings into a root cause analysis.
+
+**Team composition:** 3 researcher agents
+
+**Hypothesis categories:**
+1. **Data/State** - Incorrect data, unexpected state, race conditions
+2. **Logic/Control flow** - Wrong branching, missing conditions,
+   algorithm errors
+3. **Integration/Environment** - External dependencies, config
+   issues, API misuse
+
+**Output:** Root cause analysis saved to
+`.jim/notes/debug-{timestamp}-{slug}.md`
+
+```bash
+/team-debug "Login fails when username contains special characters"
+/team-debug "API returns 500 after deploying the new middleware"
+```
+
+### `/team-build` - Feature Build
+
+Spawns a coordinated build team that implements a feature, writes
+tests, and reviews the result in sequence.
+
+**Team composition:** implementer -> tester -> reviewer (sequential)
+
+**Workflow:**
+1. **implementer** builds the feature following the plan
+2. **tester** writes tests once implementation is ready
+3. **reviewer** reviews both implementation and tests
+
+**Input:** Accepts a feature description or path to an exploration
+document. If no arguments, looks for the most recent exploration
+in `.jim/plans/`.
+
+**Output:** Build report saved to
+`.jim/notes/build-{timestamp}-{slug}.md`
+
+```bash
+/team-build "Add rate limiting to the API endpoints"
+/team-build .jim/plans/20260207-jwt-auth.md
+```
+
+### `/team-explore` - Deep Research
+
+Spawns three specialists to explore a topic from multiple angles,
+then synthesizes findings into a comprehensive exploration document
+compatible with `/implement`.
+
+**Team composition:** researcher + architect + devil (parallel)
+
+**What each specialist does:**
+- **researcher**: Broad context gathering, file discovery,
+  dependency tracing
+- **architect**: Architecture analysis, design pattern evaluation,
+  structural considerations
+- **devil**: Challenge assumptions, identify risks, find edge cases
+
+**Output:** Exploration document saved to
+`.jim/plans/{timestamp}-{topic-slug}.md` (compatible with
+`/implement` and `/next-phase`)
+
+```bash
+/team-explore "How to add WebSocket support to the server"
+/team-explore "Migrating from REST to GraphQL"
 ```
 
 ## What's NOT included
