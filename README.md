@@ -50,9 +50,11 @@ Or add to your dotfiles install script.
 │   ├── list-states/       # /list-states - list all saved states
 │   ├── archive/           # /archive - archive old .jim files
 │   ├── list-archive/      # /list-archive - list archived content
+│   ├── team/              # /team - dynamic team composition
 │   ├── team-review/       # /team-review - parallel code review team
 │   ├── team-debug/        # /team-debug - adversarial debugging team
-│   ├── team-build/        # /team-build - feature build team
+│   ├── team-build/        # /team-build - concurrent feature build team
+│   ├── team-parallel-build/ # /team-parallel-build - multi-feature parallel builds
 │   └── team-explore/      # /team-explore - deep research team
 └── rules/
     └── style.md       # Coding preferences
@@ -73,9 +75,11 @@ Or add to your dotfiles install script.
 - `/review-implementation [state-file|slug]` - Review code from recent implementation with clean context
 - `/address-review [--priority=high|medium|low] [review-doc|slug]` - Address feedback from code reviews with automated fixes. Defaults to high priority issues only.
 - `/feedback <feedback> [--type=bug|quality|change]` - Provide user feedback on recent implementation and apply fixes directly
+- `/team <task> [--agents a,b,c]` - Compose a dynamic team for any task (auto-selects agents and orchestration pattern if `--agents` omitted)
 - `/team-review [file pattern or branch]` - Spawn a parallel code review team (reviewer, architect, devil)
 - `/team-debug <bug description>` - Spawn an adversarial debugging team with competing hypotheses
-- `/team-build <feature description or doc path>` - Spawn a feature build team (implementer, tester, reviewer)
+- `/team-build <feature description or doc path>` - Spawn a concurrent feature build team (architect, implementer, tester, reviewer) with iteration loop
+- `/team-parallel-build <feature1> <feature2> [...]` - Build multiple independent features in parallel on separate Graphite branches
 - `/team-explore <topic>` - Spawn a deep research team (researcher, architect, devil)
 
 ### Code Review
@@ -486,6 +490,32 @@ Team skills orchestrate multiple custom agents into coordinated
 teams for common development workflows. They use the experimental
 Agent Teams feature (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`).
 
+### `/team` - Dynamic Team Composition
+
+Compose a team of agents on the fly for any task. Automatically
+detects the best orchestration pattern based on agent capabilities.
+
+**Agent selection:** Specify agents explicitly with `--agents`
+or let the skill auto-select based on task keywords (explore,
+review, debug, build, etc.).
+
+**Orchestration patterns** (auto-detected):
+- **Solo**: 1 agent -- no team overhead, direct execution
+- **Fan-out**: All read-only agents -- parallel analysis with
+  synthesized report
+- **Pipeline**: Mixed read/write agents -- analysts first
+  (parallel), then builders (sequential), then optional review
+
+**Valid agents:** researcher, reviewer, architect, implementer,
+tester, devil (max 6)
+
+```bash
+/team "analyze auth module" --agents researcher,architect
+/team "build and test rate limiting" --agents architect,implementer,tester,reviewer
+/team "explore caching strategies"    # auto-selects: researcher, architect, devil
+/team "debug login failure"           # auto-selects: researcher x3
+```
+
 ### `/team-review` - Parallel Code Review
 
 Spawns three reviewers in parallel, each examining the code from
@@ -533,17 +563,21 @@ about a bug, then synthesizes findings into a root cause analysis.
 /team-debug "API returns 500 after deploying the new middleware"
 ```
 
-### `/team-build` - Feature Build
+### `/team-build` - Concurrent Feature Build
 
-Spawns a coordinated build team that implements a feature, writes
-tests, and reviews the result in sequence.
+Spawns a coordinated build team with concurrent execution where
+possible and an iteration loop for addressing review feedback.
 
-**Team composition:** implementer -> tester -> reviewer (sequential)
+**Team composition:** architect, implementer, tester, reviewer
 
 **Workflow:**
-1. **implementer** builds the feature following the plan
-2. **tester** writes tests once implementation is ready
-3. **reviewer** reviews both implementation and tests
+1. **architect** validates the approach (sanity check gate)
+2. **implementer** builds the feature while **tester** writes
+   test specs concurrently
+3. **tester** fills in test bodies and runs them
+4. **reviewer** reviews both implementation and tests
+5. If critical/high issues found, **implementer** gets one
+   iteration to fix them
 
 **Input:** Accepts a feature description or path to an exploration
 document. If no arguments, looks for the most recent exploration
@@ -555,6 +589,34 @@ in `.jim/plans/`.
 ```bash
 /team-build "Add rate limiting to the API endpoints"
 /team-build .jim/plans/20260207-jwt-auth.md
+```
+
+### `/team-parallel-build` - Multi-Feature Parallel Builds
+
+Build multiple independent features in parallel, each on its own
+Graphite branch. Each feature runs through a full build workflow
+(architecture check, implementation, testing, self-review) as an
+independent agent.
+
+**Prerequisites:** Clean working tree, Graphite CLI installed
+
+**Workflow:**
+1. Creates a Graphite branch per feature (`jm/feat-{slug}`)
+2. Spawns one build agent per feature, all in parallel
+3. Each agent runs: architecture check, implementation, tests,
+   self-review, and fix loop
+4. Collects results and generates an aggregate report
+5. Returns to the base branch
+
+**Limits:** 2-5 features per run (use `/team-build` for single
+features)
+
+**Output:** Aggregate report saved to
+`.jim/notes/parallel-build-{timestamp}.md`
+
+```bash
+/team-parallel-build "add rate limiting" "add caching layer"
+/team-parallel-build plans/auth.md plans/logging.md
 ```
 
 ### `/team-explore` - Deep Research
