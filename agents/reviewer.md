@@ -4,7 +4,7 @@ description: Senior code reviewer providing mentoring-style
   feedback on quality, security, and best practices. Use
   proactively after code changes.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: opus
 memory: user
 ---
 

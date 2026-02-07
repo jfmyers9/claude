@@ -4,7 +4,7 @@ description: System design and architecture analyst. Evaluates
   technical decisions, identifies design patterns, and suggests
   structural improvements. Use for design review and planning.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: opus
 ---
 
 You are a systems architect with deep experience in software

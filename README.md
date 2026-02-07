@@ -26,8 +26,8 @@ Or add to your dotfiles install script.
 ├── settings.json      # Model, plugins, permissions
 ├── agents/
 │   ├── researcher.md  # Fast codebase researcher (haiku)
-│   ├── reviewer.md    # Mentoring code reviewer (sonnet)
-│   ├── architect.md   # System design analyst (sonnet)
+│   ├── reviewer.md    # Mentoring code reviewer (opus)
+│   ├── architect.md   # System design analyst (opus)
 │   ├── implementer.md # Focused code builder (inherit)
 │   ├── tester.md      # Test specialist (sonnet)
 │   └── devil.md       # Devil's advocate (sonnet)
@@ -467,18 +467,18 @@ Use the devil agent to stress-test this API design.
 | Agent | Model | Tools | Description |
 |-------|-------|-------|-------------|
 | **researcher** | haiku | Read, Grep, Glob, Bash | Fast codebase researcher for finding files, tracing code paths, and gathering context |
-| **reviewer** | sonnet | Read, Grep, Glob, Bash | Senior code reviewer with mentoring style; has persistent user memory |
-| **architect** | sonnet | Read, Grep, Glob, Bash | System design analyst in plan mode; evaluates design patterns and tradeoffs |
+| **reviewer** | opus | Read, Grep, Glob, Bash | Senior code reviewer with mentoring style; has persistent user memory |
+| **architect** | opus | Read, Grep, Glob, Bash | System design analyst; evaluates design patterns and tradeoffs |
 | **implementer** | inherit | All (acceptEdits) | Focused builder that follows plans precisely and writes clean code |
 | **tester** | sonnet | Read, Grep, Glob, Bash, Write, Edit | Test specialist who writes thorough tests and validates correctness |
 | **devil** | sonnet | Read, Grep, Glob, Bash | Devil's advocate who challenges assumptions, finds edge cases, and stress-tests ideas |
 
 **Key details:**
 - `researcher` uses haiku for speed on read-only research tasks
-- `reviewer` has `memory: user` for cross-session learning of
-  codebase patterns and conventions
-- `architect` uses `permissionMode: plan` (read-only analysis with
-  design proposals)
+- `reviewer` uses opus for depth; has `memory: user` for
+  cross-session learning of codebase patterns and conventions
+- `architect` uses opus for thorough design analysis (read-only
+  tools enforce analysis-only behavior)
 - `implementer` uses `model: inherit` (matches your current model)
   and `permissionMode: acceptEdits` (full implementation capability)
 - `tester` has Write and Edit tools for creating test files
@@ -641,6 +641,86 @@ compatible with `/implement`.
 ```bash
 /team-explore "How to add WebSocket support to the server"
 /team-explore "Migrating from REST to GraphQL"
+```
+
+### Complete Team Workflow Example
+
+Here's a full workflow showing how teams integrate with the
+single-agent development flow, including when to use teams
+vs solo agents:
+
+```bash
+# ──────────────────────────────────────────────────
+# PHASE 1: Explore (teams add parallel perspectives)
+# ──────────────────────────────────────────────────
+
+# Simple feature? Use the single-agent explore:
+/explore "add rate limiting to API endpoints"
+
+# Complex or unfamiliar territory? Use team-explore
+# for 3 parallel perspectives (researcher + architect
+# + devil):
+/team-explore "migrate auth system from sessions to JWT"
+
+# Or compose a custom team for the task:
+/team "evaluate caching strategies" --agents researcher,architect
+
+# ──────────────────────────────────────────────────
+# PHASE 2: Build (teams add quality gates + iteration)
+# ──────────────────────────────────────────────────
+
+# Single feature? team-build gives you architect gate,
+# concurrent impl+test, review, and iteration loop:
+/team-build .jim/plans/20260207-jwt-auth.md
+
+# Multiple independent features? Build them in parallel
+# on separate Graphite branches:
+/team-parallel-build "add rate limiting" "add health endpoint"
+# Creates jm/feat-add-rate-limiting and
+# jm/feat-add-health-endpoint, builds both concurrently
+
+# Small/well-defined feature? Single agent is fine:
+/implement
+
+# ──────────────────────────────────────────────────
+# PHASE 3: Review (teams add diverse perspectives)
+# ──────────────────────────────────────────────────
+
+# Quick review of a small change? Single agent:
+/review
+
+# Thorough multi-perspective review? Team of 3:
+/team-review
+
+# Then address findings and commit:
+/address-review --priority=high
+/commit
+
+# ──────────────────────────────────────────────────
+# PHASE 4: Debug (teams reduce anchoring bias)
+# ──────────────────────────────────────────────────
+
+# Bug found? 3 researchers with competing hypotheses:
+/team-debug "API returns 500 after adding rate limiting"
+
+# ──────────────────────────────────────────────────
+# WHEN TO USE TEAMS vs SOLO AGENTS
+# ──────────────────────────────────────────────────
+#
+# USE TEAMS when:
+#   - You want multiple perspectives (review, explore)
+#   - You want adversarial thinking (debug, review)
+#   - You're building multiple features simultaneously
+#   - The task benefits from parallel analysis
+#
+# USE SOLO when:
+#   - The task is well-defined and straightforward
+#   - You want to minimize token cost
+#   - Speed matters more than breadth
+#   - One context window is sufficient
+#
+# RULE OF THUMB:
+#   Solo for known territory, teams for unknown territory
 ```
 
 ## What's NOT included
