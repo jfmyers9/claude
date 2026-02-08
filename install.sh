@@ -10,6 +10,7 @@ mkdir -p "$CLAUDE_DIR"
 items=(
   "CLAUDE.md"
   "settings.json"
+  "statusline.py"
   "skills"
   "rules"
   "agents"

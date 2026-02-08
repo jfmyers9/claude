@@ -23,8 +23,8 @@ optionally spawn a deep exploration of significant diffs.
 
 ### 1. Read Tracking File
 
-Read `.jim/tracked-repos.json`. If it doesn't exist, tell the
-user no repos are tracked and offer to add one.
+Read `tracked-repos.json` (repo root). If it doesn't exist,
+tell the user no repos are tracked and offer to add one.
 
 Format:
 ```json
@@ -95,7 +95,7 @@ gh api 'repos/{owner}/{repo}/commits?per_page=1' \
   --jq '.[0].sha'
 ```
 
-Update `.jim/tracked-repos.json` with:
+Update `tracked-repos.json` with:
 - New `last_reviewed_sha`
 - New `last_reviewed_date` (today)
 - New `review_doc` path (if exploration was run)
@@ -107,6 +107,17 @@ If user asks to track a new repo (no existing entry):
 2. Get current HEAD SHA
 3. Add entry to tracked-repos.json
 4. Suggest running `/team-explore` for initial review
+
+## Alternatives
+
+For repos where deeper file-level diffing is needed (e.g.,
+reviewing exact line changes rather than commit summaries),
+git submodules are an option. They let you pin to a specific
+commit and run `git diff` locally. However, the API-based
+approach used here is lighter and doesn't require cloning
+external repos. Only consider submodules if the GitHub compare
+API's 250-commit limit or lack of inline diffs becomes a real
+pain point.
 
 ## Error Handling
 
@@ -120,6 +131,6 @@ If user asks to track a new repo (no existing entry):
 - **API 250-commit limit**: If `ahead_by` exceeds 250, warn
   the user that the commit list is truncated by the GitHub
   API and suggest reviewing the repo directly on GitHub.
-- **Malformed tracking file**: If `.jim/tracked-repos.json`
+- **Malformed tracking file**: If `tracked-repos.json`
   cannot be parsed as valid JSON, inform the user and offer
   to back up the broken file and recreate it from scratch.
