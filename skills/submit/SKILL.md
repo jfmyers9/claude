@@ -7,15 +7,14 @@ argument-hint: "[--stack] [--sync-only]"
 
 # Submit
 
-Run the Graphite workflow to submit the current branch:
+Graphite workflow to submit current branch:
 
-1. Check for uncommitted changes - if present, warn the user and stop
-2. Run `gt restack --only` to restack the current branch
-   - If `gt restack --only` fails (non-zero exit code), display the error and stop
-3. If `--sync-only` flag provided: stop after restack, do not submit
-4. Run `gt submit` to push and create/update PRs
-   - Use `gt submit --stack` if `--stack` flag provided (submits entire stack)
-   - If `gt submit` fails (non-zero exit code), display the error and stop
+1. Verify no uncommitted changes (warn + stop if present)
+2. Run `gt restack --only` to restack branch
+   - Fail on non-zero exit, display error
+3. If `--sync-only` flag: stop (don't submit)
+4. Run `gt submit` to push + create/update PRs
+   - Use `gt submit --stack` if `--stack` flag provided
+   - Fail on non-zero exit, display error
 
-Wait for each command to complete and show the user the output. Display any
-PR URLs prominently so the user can click them.
+Show output for each command + display PR URLs prominently.

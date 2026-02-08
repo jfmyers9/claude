@@ -5,54 +5,38 @@ disable-model-invocation: true
 allowed-tools: Bash, Read, Glob
 ---
 
-# List States Skill
+# List States
 
-This skill lists all saved work states from `.jim/states/` to help you find a
-state to load or see what contexts you've saved.
+Lists saved work states from `.jim/states/` (names, dates, summaries).
 
-## Instructions
+## Steps
 
-1. **Check if .jim/states/ exists**:
-   - If directory doesn't exist or is empty, inform user:
-     - "No saved states found. Use `/save-state` to save your first state."
-   - Exit if no states
+1. Check if `.jim/states/` exists + has files
+   - If empty: "No saved states found. Use `/save-state` to save your first state."
 
-2. **List all state files**:
-   - Find all `.md` files in `.jim/states/`: `ls -lt .jim/states/*.md 2>/dev/null`
-   - Sort by modification time (most recent first)
+2. List `.md` files: `ls -lt .jim/states/*.md 2>/dev/null`
+   - Sorted by modification time (newest first)
 
-3. **For each state file**:
-   - Get filename (label)
-   - Get modification date: `stat -c %y` or `ls -l`
-   - Extract the first "Summary" line or the line after "## Summary"
-   - Extract the branch name from the "Branch:" line
+3. For each file extract:
+   - filename (label)
+   - modification date: `stat -c %y` or `ls -l`
+   - "## Summary" text
+   - "Branch:" value
 
-4. **Present list**:
-   - Format as a table or list:
+4. Display as table:
+   ```
+   | Label      | Branch             | Modified         | Summary                    |
+   |------------|--------------------|--------------------|----------------------------|
+   | current    | feature/user-auth  | 2 hours ago        | Working on JWT validation  |
+   | bug-fix    | fix/login-error    | 1 day ago          | Fixing login redirect bug  |
+   | experiment | main               | 3 days ago         | Testing new API approach   |
+   ```
 
-```
-## Saved States
-
-| Label      | Branch             | Modified         | Summary                    |
-|------------|--------------------|--------------------|----------------------------|
-| current    | feature/user-auth  | 2 hours ago        | Working on JWT validation  |
-| bug-fix    | fix/login-error    | 1 day ago          | Fixing login redirect bug  |
-| experiment | main               | 3 days ago         | Testing new API approach   |
-```
-
-5. **Suggest actions**:
-   - Tell user to run `/load-state {label}` to resume a specific state
-   - Mention `/save-state {label}` to create or update a state
-
-## Tips
-
-- States are sorted by modification time (most recent first)
-- The "current" state is typically your main work context
-- Old states can be deleted manually from `.jim/states/`
+5. Suggest: `/load-state {label}` to resume, `/save-state {label}` to create/update
 
 ## Notes
 
-- This skill only reads information; it does not modify any files
-- State files are plain markdown stored in `.jim/states/`
-- Use `/load-state {label}` to load a specific state
-- Use `/save-state {label}` to create or update a state
+- Read-only operation
+- State files = plain markdown in `.jim/states/`
+- Sorted by modification time (newest first)
+- Old states can be deleted manually

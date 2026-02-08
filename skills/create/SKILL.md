@@ -7,17 +7,16 @@ argument-hint: "[branch-name] [-m \"commit message\"]"
 
 # Create Stacked Branch
 
-Create a new branch stacked on top of the current branch using Graphite:
+Create branch stacked on current branch via Graphite:
 
-1. Check for staged changes - if none, warn the user to stage changes first
-2. Parse arguments:
-   - If `branch-name` provided, use it
-   - If `-m "message"` provided, use it as commit message
-   - If neither provided, prompt user or auto-generate from staged changes
+1. Verify staged changes exist; warn if not
+2. Parse args:
+   - `branch-name` -> use as branch name
+   - `-m "message"` -> use as commit message
+   - Neither -> prompt or auto-generate from staged changes
 3. Run `gt create [branch-name] [-m "message"]`
-   - This creates a new branch with staged changes as a commit
-   - The branch is automatically stacked on the current branch
-4. Show the output and new branch name to the user
+   - Creates branch + stages changes as commit
+   - Auto-stacks on current branch
+4. Show output + new branch name
 
-The new branch becomes part of the current stack and can be submitted with
-`/submit --stack` to create PRs for the entire stack.
+Branch joins current stack; submit with `/submit --stack` for full stack PRs.

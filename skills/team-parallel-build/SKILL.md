@@ -22,166 +22,135 @@ allowed-tools:
 
 # Team Parallel Build Skill
 
-Build multiple independent features in parallel, each on its own
-Graphite branch. Each feature runs through a full build workflow
-(architecture check, implementation, testing, review) as an
-independent agent on a separate branch.
+Build multiple independent features in parallel on separate Graphite
+branches. Each runs full build workflow (architecture → implementation →
+testing → review) as independent agent.
 
 ## Instructions
 
 ### 1. Parse Arguments
 
-Parse `$ARGUMENTS` to extract multiple feature specifications.
-Features can be:
+Parse `$ARGUMENTS` to extract multiple feature specs. Accept:
+- Quoted strings: `"add rate limiting" "add caching layer"`
+- File paths (`.md` suffix): `plans/auth.md plans/logging.md`
 
-- **Quoted strings**: `"add rate limiting" "add caching layer"`
-- **File paths** (ending in `.md`): `plans/auth.md plans/logging.md`
-- **Unquoted words** separated by spaces (only if clearly distinct
-  feature names)
+Split on quoted boundaries first, then treat tokens as `.md` paths.
+Reject ambiguous input; ask user to quote descriptions.
 
-Split on quoted boundaries first, then treat remaining tokens as
-file paths if they end in `.md`, otherwise reject ambiguous input
-and ask the user to quote feature descriptions.
+Validation:
+- Min 2 features (else suggest `/team-build`, exit)
+- Max 5 features (else warn, exit)
+- All `.md` paths must exist
 
-**Validation:**
-- Minimum 2 features required. If only 1, suggest using
-  `/team-build` instead and exit.
-- Maximum 5 features to keep costs manageable. If more than 5,
-  warn the user and exit.
-- If any file path doesn't exist, warn and exit.
-
-For each feature, determine its specification:
-- If it's a `.md` file path, read the file content as the plan
-- Otherwise, use the quoted string as the feature description
+For each feature: if `.md` file → read content as plan; else → use
+quoted string as description.
 
 ### 2. Pre-flight Checks
 
-Run these checks before creating any branches:
+Before creating branches:
 
-1. **Clean working tree**: Run `git status --porcelain`. If there
-   are uncommitted changes, warn the user and exit. Parallel
-   builds require a clean tree to avoid carrying changes into
-   feature branches.
+1. Clean tree: `git status --porcelain`. Exit if uncommitted changes
+   (parallel builds need clean state).
 
-2. **Record base branch**: Run `git branch --show-current` and
-   store it. All feature branches will stack on this branch, and
-   we return here at the end.
+2. Record base: `git branch --show-current`. Stack all features
+   on this branch; return here at end.
 
-3. **Verify Graphite CLI**: Run `gt --version`. If `gt` is not
-   found, tell the user to install Graphite CLI and exit.
+3. Verify Graphite: `gt --version`. Exit if not installed.
 
 ### 3. Create Branches
 
-For each feature, create a Graphite branch:
+For each feature:
 
-1. Generate a slug from the feature name: lowercase, replace
-   spaces with hyphens, remove special characters, truncate
-   to 40 characters. Prefix with `jm/feat-` (e.g.,
-   `jm/feat-add-rate-limiting`).
+1. Slug: lowercase + hyphens, remove special chars, truncate 40 chars,
+   prefix `jm/feat-` (e.g., `jm/feat-add-rate-limiting`)
 
-2. Make sure we're on the base branch before creating each new
-   branch: `git checkout {base-branch}`
+2. Ensure on base: `git checkout {base-branch}` before each new branch
 
-3. Run `gt create {branch-name}` to create the branch on the
-   Graphite stack.
+3. Create: `gt create {branch-name}`
 
-4. Store the mapping: feature description/plan -> branch name.
+4. Store mapping: feature → branch name
 
-After creating all branches, return to the base branch:
-`git checkout {base-branch}`
+After all branches: `git checkout {base-branch}`
 
-### 4. Create the Team
+### 4. Create Team
 
-Generate a timestamp in `HHMMSS` format. Use TeamCreate to
-create a team named `parallel-build-{HHMMSS}`.
+Generate timestamp `HHMMSS`. Use TeamCreate: name=`parallel-build-{HHMMSS}`.
 
-### 5. Create Tasks and Spawn Build Agents
+### 5. Spawn Build Agents
 
-Create one task per feature with TaskCreate. All tasks are
-independent (no dependencies between features).
+Create one task per feature (TaskCreate). All independent, no dependencies.
 
-Spawn one general-purpose agent per feature, all in parallel.
-Each agent receives:
+Spawn one general-purpose agent per feature in parallel.
 
-- **Name**: `build-{N}` (e.g., `build-1`, `build-2`)
-- **subagent_type**: general-purpose (needs full read/write)
-- **Prompt**: Include the following in each agent's instructions:
+Each agent:
+- Name: `build-{N}` (e.g., `build-1`, `build-2`)
+- subagent_type: general-purpose
+- Prompt: Include instructions below
 
 ```
-You are building a feature on branch {branch-name}.
+You are building feature on branch {branch-name}.
 
-## Setup
-1. Run: git checkout {branch-name}
-2. Verify you're on the correct branch
+Setup
+1. git checkout {branch-name}
+2. Verify correct branch
 
-## Feature Specification
+Feature Specification
 {feature description or plan content}
 
-## Build Workflow
+Build Workflow (sequential, all roles performed by you)
 
-Follow this workflow sequentially. You are a single agent
-performing all roles.
+Architecture Check (2 min max)
+- Design flaws?
+- File boundaries + module structure reasonable?
+- Critical blockers?
+If critical flaw found: note + proceed with best judgment.
 
-### Step 1: Architecture Check (2 minutes max)
-Quick sanity check before writing code:
-- Are there obvious design flaws?
-- Are file boundaries and module structure reasonable?
-- Any critical blockers?
-
-If you find a critical flaw, note it and proceed with your
-best judgment on how to address it.
-
-### Step 2: Implementation
-Build the feature:
+Implementation
 - Create/modify files as needed
-- Follow existing project conventions
-- Write clean, readable code
+- Follow project conventions
+- Clean, readable code
 - Handle errors appropriately
 
-### Step 3: Write and Run Tests
-- Write tests covering happy paths, edge cases, errors
-- Run the test suite
-- Fix any failing tests
-- Record pass/fail results
+Tests
+- Cover happy paths, edge cases, errors
+- Run test suite
+- Fix failures
+- Record results
 
-### Step 4: Self-Review
-Review your own implementation for:
-- Code quality and readability
-- Error handling completeness
-- Test coverage gaps
-- Security considerations
+Self-Review
+- Code quality + readability
+- Error handling complete?
+- Test coverage gaps?
+- Security issues?
+Note issues by severity (critical/high/medium/low).
 
-Note any issues by severity (critical/high/medium/low).
+Fix Issues
+- Address critical + high severity issues from review
+- Re-run tests after fixes
 
-### Step 5: Fix Issues
-Address any critical or high severity issues found in review.
-Re-run tests after fixes.
-
-## Reporting
-When done, send a message to the team lead with:
-1. Status: success or failed (and why)
-2. Summary of what was built
-3. List of all files created or modified
-4. Test results (pass/fail counts, failure details)
-5. Review findings (issues by severity, what was fixed)
-6. Any remaining concerns
+Reporting
+Send message to team lead:
+1. Status (success/failed + why)
+2. Build summary
+3. Files created/modified
+4. Test results (pass/fail counts + failures)
+5. Review findings (severity + fixes applied)
+6. Remaining concerns
 ```
 
-Wait for ALL build agents to complete.
+Wait for ALL agents to complete.
 
 ### 6. Collect Results
 
-After all agents finish, gather results from each agent's
-messages:
-- Which features succeeded vs failed
+Gather from each agent's messages:
+- Success vs failed features
 - Files changed per feature
 - Test results per feature
 - Review findings per feature
 
-### 7. Generate Aggregate Report
+### 7. Aggregate Report
 
-Generate a timestamp in `YYYYMMDD-HHMMSS` format. Save the
-report to `.jim/notes/parallel-build-{timestamp}.md`:
+Generate timestamp `YYYYMMDD-HHMMSS`. Save to `.jim/notes/parallel-build-{timestamp}.md`:
 
 ```markdown
 # Parallel Build Report
@@ -190,57 +159,54 @@ Built: {ISO timestamp}
 Base Branch: {base branch}
 Features: {count}
 
-## Feature Summary
+## Summary
 
 | Feature | Branch | Status | Files | Tests | Issues |
 |---------|--------|--------|-------|-------|--------|
 | {name} | {branch} | Success/Failed | {n} | Pass/Fail | {n} |
 
-## Feature Details
+## Details
 
 ### Feature 1: {name}
 Branch: {branch}
 Status: {success/failed}
 
-#### What Was Built
+**Built**
 {summary from agent}
 
-#### Files Changed
+**Files Changed**
 - {paths}
 
-#### Test Results
+**Tests**
 {pass/fail details}
 
-#### Review Findings
-{summary of review findings}
+**Review**
+{findings summary}
 
 ### Feature 2: {name}
 {same structure}
 
-## Next Steps
-- Review each branch: `gt checkout {branch}`
-- Submit PRs: `gt submit` on each branch
-- Or use /submit on each branch individually
+## Next
+- Review: `gt checkout {branch}`
+- Submit: `gt submit` per branch
+- `/submit` per branch individually
 ```
 
-### 8. Return to Base Branch
+### 8. Return to Base
 
-Run `git checkout {base-branch}` to return to the starting
-branch.
+`git checkout {base-branch}`
 
 ### 9. Shut Down Team
 
-Send shutdown requests to all build agents and clean up the
-team with TeamDelete.
+Send shutdown requests to all agents. TeamDelete cleanup.
 
-### 10. Present Results
+### 10. Results to User
 
-Display to the user:
-- How many features were built, how many succeeded/failed
-- One-line summary per feature with branch name and status
-- Test results overview (all passing, or which failed)
-- Path to the full aggregate report
-- Suggest next steps:
-  - `gt checkout {branch}` to review each feature
-  - `/submit` on each branch to create PRs
-  - Address any failed features manually
+- Feature count + success/failure split
+- Per-feature one-liner (branch + status)
+- Test overview (all pass or failures listed)
+- Report path
+- Suggest next:
+  - `gt checkout {branch}` review each
+  - `/submit` per branch for PRs
+  - Fix failed features manually

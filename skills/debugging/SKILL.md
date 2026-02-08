@@ -7,174 +7,109 @@ argument-hint: "<error message, symptom, or description of the bug>"
 
 # Systematic Debugging Skill
 
-Debug issues methodically. The core principle: **investigate before
-you fix.** No random "try this" patches. Understand the root cause
-first, then apply a targeted fix.
+Debug issues methodically. Core principle: **investigate before fix.** No random patches. Understand root cause first, then apply targeted fix.
 
 ## Instructions
 
-Spawn a general-purpose agent via Task with this prompt:
+Spawn agent via Task:
 
 ```
-Systematically debug the following issue: [insert $ARGUMENTS]
+Systematically debug: [insert $ARGUMENTS]
 
 ## Phase 1: Root Cause Investigation
 
-Do NOT propose any fixes yet. First, gather evidence.
+Do NOT propose fixes yet. Gather evidence first.
 
-1. **Read the error** carefully:
-   - Parse the full error message, stack trace, or symptom description
-   - Identify the exact file, line, and function where it fails
-   - Note the error type/category (type error, runtime crash, logic
-     bug, test failure, etc.)
+1. **Read error**: Parse full error message/stack trace. Identify exact file, line, function. Note error type/category.
 
-2. **Reproduce the issue**:
-   - Find the command, test, or action that triggers the bug
-   - Run it and capture the exact output
-   - Note whether it fails consistently or intermittently
+2. **Reproduce**: Find command/test/action that triggers bug. Run it, capture output. Note if consistent or intermittent.
 
-3. **Trace the code path** (parallelize reads when possible):
-   - Read the failing file completely (not just the error line)
-   - Follow imports and function calls upstream
-   - Read related test files if they exist
-   - Check recent git changes: `git log --oneline -10 -- <file>`
-   - Look at the diff if recent: `git diff HEAD~3 -- <file>`
+3. **Trace code path** (parallelize reads):
+   - Read failing file completely
+   - Follow imports + function calls upstream
+   - Read related test files
+   - Check recent changes: `git log --oneline -10 -- <file>`
+   - Look at diff: `git diff HEAD~3 -- <file>`
 
-4. **Map the data flow**:
-   - Trace inputs from origin to the failure point
-   - Identify where data transforms or gets passed between functions
-   - Note any assumptions the code makes about data shape or state
+4. **Map data flow**: Trace inputs from origin to failure point. Identify transforms + assumptions about data shape/state.
 
-Output a **Root Cause Summary** before proceeding:
-
-```
-Root Cause Summary:
-- Error: [exact error message]
+Output Root Cause Summary:
+- Error: [exact message]
 - Location: [file:line]
 - Trigger: [what causes it]
-- Data flow: [how data reaches the failure point]
-- Likely cause: [specific hypothesis based on evidence]
-```
+- Data flow: [how data reaches failure]
+- Likely cause: [specific hypothesis]
 
 ## Phase 2: Pattern Analysis
 
-1. **Find working examples**:
-   - Search for similar patterns in the codebase that DO work
-   - Use Grep/Glob to find analogous implementations
-   - Compare working code with the failing code
+1. **Find working examples**: Search for similar patterns that DO work. Compare working vs failing code.
 
-2. **Document differences**:
-   - List every difference between working and failing code
-   - Note missing steps, wrong ordering, type mismatches
-   - Check for missing error handling or edge cases
+2. **Document differences**: List every difference. Note missing steps, wrong ordering, type mismatches, missing error handling.
 
-3. **Check assumptions**:
-   - Verify types match at boundaries (function args, return values)
-   - Verify config/environment values are what code expects
-   - Check for race conditions or ordering dependencies
+3. **Check assumptions**: Verify types at boundaries, config/env values, race conditions, ordering deps.
 
 ## Phase 3: Hypothesis Testing
 
-Form ONE specific hypothesis based on Phase 1 and 2 evidence.
+Form ONE specific hypothesis based on evidence.
 
-1. **State the hypothesis clearly**:
-   - "The bug occurs because X, which causes Y at Z"
-   - Must be specific and falsifiable
+1. **State clearly**: "Bug occurs because X, causing Y at Z" — specific + falsifiable.
 
-2. **Design a minimal test**:
-   - What's the smallest change that would confirm or refute this?
-   - Can you add a log/assert to prove the hypothesis?
-   - If a test file exists, can you write a failing test first?
+2. **Design minimal test**: Smallest change to confirm/refute. Add log/assert to prove it. Write failing test if possible.
 
-3. **Test the hypothesis**:
-   - Make the minimal verification change
-   - Run the reproduction step again
-   - If confirmed: proceed to Phase 4
-   - If refuted: return to Phase 1 with new evidence
+3. **Test**: Make minimal change, run reproduction step. If confirmed -> Phase 4. If refuted -> back to Phase 1.
 
-**Escalation rule:** If you've tested 3 hypotheses without finding
-the root cause, stop and report findings to the user. Don't keep
-guessing. Present what you've learned and ask for guidance.
+**Escalation:** After 3 failed hypotheses, stop + report findings. Don't keep guessing. Present evidence, ask for guidance.
 
 ## Phase 4: Implementation
 
-1. **Write a failing test first** (when applicable):
-   - The test should fail with the current bug
-   - The test should pass once the fix is applied
-   - Keep the test focused on the specific issue
+1. **Write failing test first** (when applicable)
+2. **Apply targeted fix**: Fix only what's broken. Directly address root cause. Keep change minimal.
+3. **Verify**: Run failing test (should pass), run full suite, run reproduction step, check no regressions.
+4. **Check related issues**: Search for same pattern elsewhere. Note them, don't fix now.
 
-2. **Apply the targeted fix**:
-   - Fix only what's broken, nothing else
-   - The fix should directly address the root cause
-   - Keep the change as small as possible
+## Red Flags (stop + reconsider)
 
-3. **Verify the fix**:
-   - Run the failing test (should now pass)
-   - Run the full test suite for the affected area
-   - Run the original reproduction step
-   - Check that no other tests broke
-
-4. **Check for related issues**:
-   - Search for the same pattern elsewhere in the codebase
-   - If the bug pattern appears in other places, note them
-   - Don't fix them now — report them for separate attention
-
-## Red Flags (stop and reconsider)
-
-If you catch yourself doing any of these, STOP:
-
-- Proposing a fix before completing Phase 1
-- Saying "quick fix for now" or "let's just try..."
-- Making changes without understanding why they'd work
-- Changing multiple things at once hoping one helps
-- Ignoring test failures to "fix them later"
+- Proposing fix before completing Phase 1
+- "Quick fix" or "let's just try..."
+- Changes without understanding why they'd work
+- Changing multiple things hoping one helps
+- Ignoring test failures
 
 ## Return Value
 
-Return a concise debugging report:
-
-```
 ## Debugging Report
 
-**Issue:** [brief description]
-**Root Cause:** [what was actually wrong and why]
-**Fix Applied:** [what was changed]
-**Verification:** [test results, reproduction check]
+**Issue:** [brief]
+**Root Cause:** [what was wrong + why]
+**Fix Applied:** [what changed]
+**Verification:** [test results]
 
 Files Modified:
-- [list of changed files]
+- [list]
 
 Related Issues Found:
-- [any similar patterns elsewhere, or "None"]
-```
-
-Do NOT include the full investigation log. Keep it focused on
-results.
+- [list or "None"]
 ```
 
 ## Output
 
-Display to user: the debugging report from the agent, including
-root cause, fix applied, and verification results.
+Display debugging report from agent: root cause, fix applied, verification results.
 
 ## Tips
 
-- The hardest bugs come from wrong assumptions, not wrong code
-- Read error messages completely — the answer is often right there
-- When stuck, trace data flow from source to failure point
-- Resist the urge to "just try something" — understand first
-- Small, targeted fixes are better than broad changes
+- Hardest bugs come from wrong assumptions, not wrong code
+- Read error messages completely — answer often right there
+- Stuck? Trace data flow from source to failure
+- Resist "just try something" — understand first
+- Small targeted fixes > broad changes
 
 ## Triage
 
-If the bug could have multiple root causes across different subsystems,
-suggest `/team-debug` instead. It spawns three investigators pursuing
-competing hypotheses in parallel.
+Multiple possible root causes across subsystems? Suggest `/team-debug` (three investigators with competing hypotheses).
 
 ## Notes
 
-- This skill modifies files to apply fixes
-- It may also create test files to verify the fix
-- The escalation rule (3 failed hypotheses) prevents endless loops
-- Works best when given specific error messages or reproduction steps
-- Vague descriptions ("it's broken") will still work but take longer
+- Modifies files to apply fixes
+- May create test files
+- 3-hypothesis escalation prevents endless loops
+- Works best with specific error messages

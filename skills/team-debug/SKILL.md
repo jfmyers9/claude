@@ -1,7 +1,7 @@
 ---
 name: team-debug
-description: Spawn an adversarial debugging team with competing hypotheses
-argument-hint: "<description of the bug or issue>"
+description: Spawn adversarial debugging team w/ competing hypotheses
+argument-hint: "<bug/issue description>"
 allowed-tools:
   - Task
   - Skill
@@ -22,96 +22,65 @@ allowed-tools:
 
 # Team Debug Skill
 
-Spawn a team of three investigators who each pursue a different
-hypothesis about a bug, then synthesize findings into a root cause
-analysis.
+Spawn 3 investigators pursuing different hypotheses → synthesize root cause.
 
 ## Instructions
 
-### 1. Parse the Bug Description
+### 1. Parse Bug Description
 
-Extract the bug description from `$ARGUMENTS`. If no arguments
-provided, ask the user to describe the bug and exit.
+Extract from `$ARGUMENTS`. If missing, ask user + exit.
 
 ### 2. Formulate Hypotheses
 
-Before spawning the team, analyze the bug description and formulate
-three distinct hypotheses about the root cause. Each hypothesis
-should investigate a different category:
+Analyze bug + create 3 distinct hypotheses (tailor to specific bug):
 
-1. **Data/State hypothesis** - The bug is caused by incorrect data,
-   unexpected state, race conditions, or data flow issues.
-2. **Logic/Control flow hypothesis** - The bug is caused by
-   incorrect logic, wrong branching, missing conditions, or
-   algorithm errors.
-3. **Integration/Environment hypothesis** - The bug is caused by
-   external dependencies, configuration issues, API misuse, or
-   environment differences.
+1. **Data/State** - incorrect data, unexpected state, race conditions, data flow
+2. **Logic/Control Flow** - incorrect logic, wrong branching, missing conditions, algorithm errors
+3. **Integration/Environment** - external deps, config issues, API misuse, env differences
 
-Tailor each hypothesis to the specific bug described.
+### 3. Create Team
 
-### 3. Create the Team
-
-Generate a timestamp in `HHMMSS` format (e.g., `162345`). Use TeamCreate
-to create a team named `debug-squad-{HHMMSS}` (e.g., `debug-squad-162345`).
-This avoids name collisions when multiple debug sessions run concurrently.
+Generate timestamp (HHMMSS). Create team: `debug-squad-{HHMMSS}` (prevents collisions).
 
 ### 4. Create Tasks
 
-Create three tasks with TaskCreate, one per hypothesis:
-
-1. **Investigate data/state hypothesis** - Explore whether the bug
-   stems from data or state issues.
-2. **Investigate logic/control flow hypothesis** - Explore whether
-   the bug stems from logic errors.
-3. **Investigate integration/environment hypothesis** - Explore
-   whether the bug stems from external factors.
+3 tasks via TaskCreate (1 per hypothesis):
+- Investigate data/state hypothesis
+- Investigate logic/control flow hypothesis
+- Investigate integration/environment hypothesis
 
 ### 5. Spawn Teammates
 
-Spawn three teammates using the Task tool, all using the
-`researcher` subagent type:
+3 teammates via Task tool (subagent_type: `researcher`):
 
-- **investigator-1** (subagent_type: `researcher`): Assign the
-  data/state hypothesis. Tell it to search the codebase for
-  evidence supporting or refuting this hypothesis. Ask it to
-  trace data flow, check state mutations, look for race
-  conditions, and find relevant code paths. It should report
-  back with evidence for/against, confidence level, and
-  suggested fix if the hypothesis holds.
+**investigator-1**: Data/state hypothesis
+- Search codebase for supporting/refuting evidence
+- Trace data flow, check state mutations, find race conditions, trace code paths
+- Report: evidence for/against, confidence, suggested fix
 
-- **investigator-2** (subagent_type: `researcher`): Assign the
-  logic/control flow hypothesis. Tell it to search for logic
-  errors, incorrect conditions, missing edge cases, and
-  algorithmic issues. It should trace the execution path,
-  check branching logic, and look for off-by-one errors or
-  missing null checks. Report with evidence, confidence, and
-  suggested fix.
+**investigator-2**: Logic/control flow hypothesis
+- Search logic errors, incorrect conditions, missing edge cases, algorithmic issues
+- Trace execution path, check branching, off-by-one errors, null checks
+- Report: evidence, confidence, suggested fix
 
-- **investigator-3** (subagent_type: `researcher`): Assign the
-  integration/environment hypothesis. Tell it to check external
-  dependencies, configuration files, API usage, version
-  compatibility, and environment assumptions. Report with
-  evidence, confidence, and suggested fix.
+**investigator-3**: Integration/environment hypothesis
+- Check external deps, config files, API usage, version compatibility, env assumptions
+- Report: evidence, confidence, suggested fix
 
-Include in each teammate's prompt:
-- The full bug description
-- Their specific hypothesis to investigate
-- The other two hypotheses (so they can note if they find
-  evidence relevant to those)
-- Instructions to send findings back via SendMessage
+Include in each prompt:
+- Full bug description
+- Their specific hypothesis
+- Other 2 hypotheses (for cross-checking)
+- SendMessage instructions for results
 
-### 6. Coordinate and Collect Results
+### 6. Coordinate + Collect
 
-Wait for all three investigators to report back. As results come
-in, note overlapping evidence or contradictions between hypotheses.
+Wait for 3 reports. Note overlapping evidence + contradictions.
 
 ### 7. Synthesize Root Cause Analysis
 
-After all investigations complete, synthesize findings:
-
 ```markdown
-# Debug Analysis: [brief bug title]
+# Debug Analysis: [bug title]
 
 Investigated: [ISO timestamp]
 Bug: [one-line summary]
@@ -119,16 +88,16 @@ Hypotheses tested: 3
 
 ## Bug Description
 
-[Full description from user]
+[Full user description]
 
 ## Hypotheses Investigated
 
 ### Hypothesis 1: Data/State
 - **Investigator**: investigator-1
-- **Confidence**: [high/medium/low]
+- **Confidence**: high/medium/low
 - **Evidence for**: [list]
 - **Evidence against**: [list]
-- **Verdict**: [supported/refuted/inconclusive]
+- **Verdict**: supported/refuted/inconclusive
 
 ### Hypothesis 2: Logic/Control Flow
 [Same structure]
@@ -139,34 +108,29 @@ Hypotheses tested: 3
 ## Root Cause Assessment
 
 **Most likely cause**: [description]
-**Confidence**: [high/medium/low]
-**Supporting evidence**: [key evidence points]
+**Confidence**: high/medium/low
+**Supporting evidence**: [key points]
 
 ## Recommended Fix
 
-[Specific, actionable steps to fix the bug]
-[Include file paths and line numbers where relevant]
+[Specific actionable steps, file paths + line numbers]
 
 ## Additional Findings
 
-[Any other issues discovered during investigation]
-[Cross-hypothesis evidence or unexpected findings]
+[Other issues, cross-hypothesis evidence, unexpected findings]
 ```
 
-Save the analysis to
-`.jim/notes/debug-{timestamp}-{slug}.md`
-(generate a slug from the bug description).
+Save to `.jim/notes/debug-{timestamp}-{slug}.md` (slug from bug description).
 
 ### 8. Shut Down Team
 
-Send shutdown requests to all teammates and clean up the team.
+Send shutdown requests to all teammates. Delete team.
 
 ### 9. Present Results
 
-Display to the user:
-- The most likely root cause (1-2 sentences)
+Show user:
+- Most likely root cause (1-2 sentences)
 - Confidence level
 - Recommended fix (brief)
-- Path to the full analysis document
-- Suggest next steps (e.g., implement the fix, or investigate
-  further if confidence is low)
+- Path to full analysis
+- Suggest next steps

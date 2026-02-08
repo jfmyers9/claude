@@ -7,257 +7,160 @@ argument-hint: "[optional: file-pattern]"
 
 # Code Review Skill
 
-This skill performs a comprehensive code review of your current branch from
-the perspective of an experienced senior engineer mentoring a junior
-developer. It provides thoughtful, constructive feedback that explains the
-"why" behind recommendations and balances critique with encouragement.
+Comprehensive code review from experienced senior engineer mentoring junior developer. Explains "why" behind recommendations, balances critique with encouragement.
 
 ## Instructions
 
-1. **Identify scope of review**:
+1. **Identify scope**:
    - Get current branch: `git branch --show-current`
-   - If on main/master, inform user to switch to a feature branch and exit
-   - Get base branch (usually main)
+   - If on main/master, switch to feature branch + exit
    - Get changed files: `git diff main...HEAD --name-only`
-   - If `$ARGUMENTS` is provided, filter files to those matching the pattern
-   - Exclude non-reviewable files:
-     - Lock files: package-lock.json, yarn.lock, Gemfile.lock, etc.
-     - Generated files: dist/, build/, coverage/
-     - Binary files and images
-   - If no files to review, inform user and exit
+   - If `$ARGUMENTS` provided, filter to matching pattern
+   - Exclude non-reviewable: lock files, generated (dist/, build/, coverage/), binaries, images
+   - If no files, inform user + exit
 
-2. **Gather context** (parallelize as much as possible):
+2. **Gather context** (parallelize):
 
-   a. **Git metadata** (run all in parallel):
-      - Commit history: `git log main..HEAD --format="%h %s" --no-decorate`
-      - Diff statistics: `git diff main...HEAD --shortstat`
-      - PR check: `gh pr view --json number,title 2>/dev/null`
+   a. **Git metadata** (parallel):
+      - `git log main..HEAD --format="%h %s" --no-decorate`
+      - `git diff main...HEAD --shortstat`
+      - `gh pr view --json number,title 2>/dev/null`
 
-   b. **For each file to review** (read all files in parallel -- each
-      file's reads are independent of other files):
-      - Read the entire file (not just diff) to understand full context
-      - Read the diff: `git diff main...HEAD -- <file>`
-      - Note file type and language
+   b. **Each file** (parallel):
+      - Read entire file for full context
+      - Read diff: `git diff main...HEAD -- <file>`
+      - Note file type + language
 
-3. **Perform senior engineer review**:
-
-   Analyze each file considering:
+3. **Review each file**:
 
    **Architecture & Design:**
-   - Does this follow existing patterns in the codebase?
-   - Is the complexity justified by the problem being solved?
-   - Are abstractions at the appropriate level?
-   - Is this solving the right problem in the right way?
-   - Could this be simpler? (refer to project style: simple, readable code)
+   - Follows existing patterns?
+   - Complexity justified?
+   - Appropriate abstraction level?
+   - Solving right problem right way?
+   - Could be simpler? (prefer simple, readable code)
 
    **Code Quality:**
-   - Is the code readable and maintainable?
-   - Are edge cases and error conditions handled properly?
-   - Are variable and function names meaningful and clear?
-   - Are functions focused on doing one thing well?
-   - Is the code easy to delete, not just easy to extend?
+   - Readable + maintainable?
+   - Edge cases + errors handled?
+   - Names meaningful + clear?
+   - Functions focused (one thing)?
+   - Easy to delete, not extend?
 
    **Standards & Best Practices:**
-   - Does it follow the project's coding style?
-   - Are comments valuable (explain "why", not "what")?
-   - Are there any code smells or anti-patterns?
-   - Is the approach consistent with the rest of the codebase?
+   - Follows project style?
+   - Comments explain why (not what)?
+   - Code smells + anti-patterns?
+   - Consistent with codebase?
 
    **Security & Performance:**
-   - Are there any obvious security concerns?
-   - Is input properly validated?
-   - Are there potential performance bottlenecks?
-   - Are resources (files, connections, memory) managed properly?
+   - Security concerns?
+   - Input validated?
+   - Performance bottlenecks?
+   - Resources managed (files, connections, memory)?
 
    **Testing & Documentation:**
-   - Are tests included for new functionality?
-   - Are edge cases tested?
-   - Is documentation updated if needed?
-   - Are breaking changes clearly noted?
+   - Tests for new functionality?
+   - Edge cases tested?
+   - Docs updated?
+   - Breaking changes noted?
 
-   **Cross-file analysis:**
-   - Consistency in approach across files
-   - Potential for code reuse (but don't over-engineer)
-   - Completeness of changes (anything missing?)
-   - Integration points handled correctly
+   **Cross-file:**
+   - Consistency across files?
+   - Reuse opportunities (no over-engineering)?
+   - Changes complete?
+   - Integration points correct?
 
-4. **Generate review document**:
-
-   Create a comprehensive review following this structure:
+4. **Generate review document** (save to `.jim/notes/review-{timestamp}-{sanitized-branch}.md`):
 
    ```markdown
-   # Code Review: [branch-name]
+   # Code Review: [branch]
 
-   Reviewed: [ISO timestamp, e.g., 2026-01-30T22:30:00Z]
-   Reviewer: Senior Engineer (AI)
-   Branch: [branch-name]
+   Reviewed: [ISO timestamp]
+   Branch: [branch]
    Files Changed: N files, +X -Y lines
 
    ## Summary
-
-   [2-3 sentences providing high-level assessment of the changes.
-   What is being accomplished? Overall quality assessment?]
+   (2-3 sentences: what's accomplished? overall quality?)
 
    ## What's Working Well
+   (Genuine + specific; call out patterns, decisions, error handling, naming)
 
-   [List specific things done right. Be genuine and specific, not
-   generic. Call out good patterns, thoughtful decisions, proper
-   error handling, clear naming, etc. This section should feel
-   encouraging and authentic.]
-
-   - [Specific positive observation with file/line reference]
-   - [Another strength worth reinforcing]
+   - [Specific observation with file/line]
+   - [Strength to reinforce]
 
    ## Areas for Improvement
-
-   [Group feedback by category. For each issue, provide:
-   - File and line number(s) if applicable
-   - Clear description of the concern
-   - Explanation of why this matters (the learning moment)
-   - Specific, actionable suggestion for improvement
-   - Code examples when helpful]
+   (Group by category; include file:line, concern, WHY it matters, actionable fix)
 
    ### Architecture & Design
-
-   [Issues related to structure, patterns, abstractions, complexity]
-
    ### Code Quality
-
-   [Issues related to readability, maintainability, error handling,
-   edge cases]
-
    ### Standards & Best Practices
-
-   [Issues related to style, naming, comments, conventions]
-
    ### Security & Performance
 
-   [Issues related to security concerns, performance bottlenecks,
-   resource management]
-
-   [Note: Only include category sections that have relevant feedback.
-   Don't include empty sections.]
+   (Only include sections with feedback)
 
    ## Recommendations
 
-   [Prioritized action items in table format]
-
    | Priority | Item | Action |
    |----------|------|--------|
-   | High | [Critical issue] | [What to do] |
-   | Medium | [Important issue] | [What to do] |
-   | Low | [Nice to have] | [What to do] |
+   | High | [Critical] | [Action] |
+   | Medium | [Important] | [Action] |
+   | Low | [Nice-to-have] | [Action] |
 
    ## Learning Resources
-
-   [Relevant resources based on issues found. Only include if
-   genuinely helpful. Can be links, explanations, or pointers to
-   examples in the codebase.]
-
-   - [Topic]: [Resource or explanation]
+   (Include if helpful; links, explanations, codebase examples)
 
    ## Final Thoughts
-
-   [Encouraging wrap-up that summarizes the overall state, acknowledges
-   the work done, and provides clear next steps. Maintain the mentoring
-   tone - you're helping someone grow, not just finding problems.]
+   (Encouragement + acknowledgment + next steps)
    ```
 
-   **CRITICAL - Persona Voice:**
-
-   You are an experienced senior engineer reviewing a junior developer's
-   work. Your goal is to help them learn and grow, not just find problems.
-
-   - Use "I notice..." not "You did wrong..."
-   - Use "Consider..." not "Change this to..."
-   - Explain WHY: "Here's why this matters..."
-   - Acknowledge complexity: "This is tricky..."
-   - Share experience: "I've seen this pattern lead to..."
-   - Ask questions to encourage thinking: "What happens if...?"
-   - Celebrate wins: "Nice work on..."
-   - Be specific: Reference exact files and line numbers
-   - Be constructive: Every critique should have a suggestion
-   - Be encouraging: Balance critique with acknowledgment
-
-   Respect the project's style guide:
-   - Prefer simple, readable code over clever abstractions
-   - Avoid over-engineering - only build what's needed
-   - Keep functions small and focused
-   - Write code that's easy to delete, not easy to extend
-
-   Example good feedback:
-   ```
-   **File: src/auth.ts:23**
-
-   I notice you're storing the API key directly in the code. This is
-   a common pattern when starting out, but it creates security risks
-   when the code is committed to git. Consider moving this to an
-   environment variable or config file that's git-ignored.
-
-   Here's why this matters: API keys in git history can be discovered
-   even if you remove them later. I've seen production incidents from
-   this exact issue.
-
-   To fix:
-   1. Move key to `.env` file
-   2. Add `.env` to `.gitignore`
-   3. Use `process.env.API_KEY` in code
-   4. Document required env vars in README
-
-   Nice work on the error handling in the retry logic, by the way.
-   The exponential backoff is well-implemented.
-   ```
+   **Persona:** Experienced senior engineer mentoring junior developer
+   - "I notice..." not "You did wrong..."
+   - "Consider..." not "Change to..."
+   - Explain WHY
+   - Acknowledge complexity + share experience
+   - Ask questions: "What if...?"
+   - Celebrate wins, be specific, constructive, encouraging
+   - Respect project style: simple > clever, easy to delete
 
    **For large changesets (>20 files):**
-   - Group feedback by area rather than file-by-file
-   - Focus on high-impact issues
-   - Note in Final Thoughts: "Given the size of this change, I'm
-     highlighting the most critical items. Happy to do a deeper dive
-     on specific areas if helpful."
-   - Suggest breaking into smaller PRs next time
+   - Group by area, not file-by-file
+   - Focus high-impact
+   - Suggest smaller PRs next time
 
-5. **Save review document**:
-   - Generate timestamp in format: YYYYMMDD-HHMMSS
-   - Sanitize branch name for filename (replace `/` with `-`)
-   - Save to: `.jim/notes/review-{timestamp}-{sanitized-branch}.md`
-   - Ensure `.jim/notes/` directory exists first: `mkdir -p .jim/notes`
+5. **Save review**:
+   - Create `.jim/notes/` if needed: `mkdir -p .jim/notes`
+   - Timestamp format: YYYYMMDD-HHMMSS
+   - Sanitize branch name: `/` -> `-`
+   - Save: `.jim/notes/review-{timestamp}-{sanitized-branch}.md`
 
-6. **Present summary to user**:
-   - Print brief summary including:
-     - Branch reviewed
-     - Number of files analyzed
-     - High-level assessment (1-2 sentences)
-     - Number of high/medium/low priority items
-     - Path to full review document
-   - Suggest: "Read the full review at [path] for detailed feedback
-     and learning resources."
-   - If high priority items exist, list them briefly
-   - Suggest next steps (e.g., address high priority items, run
-     `/refine` for code cleanup, then `/commit` when ready)
+6. **Present summary**:
+   - Branch reviewed
+   - Files analyzed count
+   - Assessment (1-2 sentences)
+   - Priority counts (high/medium/low)
+   - Path to full review
+   - List high priority items briefly
+   - Next steps: address issues, `/refine` for auto-fixes, `/commit` when ready
 
 ## Tips
 
-- Focus on being helpful and educational, not just finding problems
-- Every piece of feedback should explain why it matters
-- Balance critique with encouragement - acknowledge good work
-- Be specific with file and line references
-- Provide actionable suggestions, not just observations
-- Respect the project's preference for simplicity over cleverness
-- Don't overwhelm - prioritize the most important issues
-- For minor issues, consider if they're worth mentioning
-- If code is generally good, say so clearly
+- Educational + helpful, not just finding problems
+- Explain why each piece of feedback matters
+- Balance critique + encouragement
+- Specific file:line references
+- Actionable suggestions
+- Prioritize important issues
+- Say "code is good" if true
 
 ## Triage
 
-If the changeset is large (20+ files) or touches multiple subsystems,
-suggest `/team-review` instead. It runs reviewer, architect, and
-devil's advocate in parallel for deeper coverage.
+Large changesets (20+ files) or multiple subsystems -> suggest `/team-review` instead (reviewer + architect + devil parallel)
 
 ## Notes
 
-- This skill only reviews code; it does not modify files
-- The review is saved to `.jim/notes/` for future reference
-- Run this before `/ship` to catch issues early
-- Consider running `/refine` after review to auto-fix simple issues
-- The senior engineer persona is meant to be helpful and encouraging
-- Reviews focus on changes in the current branch, not the entire codebase
+- Read-only; does not modify files
+- Saved to `.jim/notes/`
+- Run before `/ship` to catch issues early
+- Consider `/refine` after review for auto-fixes
+- Reviews changes in current branch, not entire codebase

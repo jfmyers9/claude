@@ -7,17 +7,14 @@ argument-hint: "[-m \"commit message\"]"
 
 # Modify Branch
 
-Amend the current branch with staged changes using Graphite:
+Amend current branch with staged changes + auto-restack descendants:
 
-1. Check for staged changes - if none, warn the user to stage changes first
-2. Parse arguments:
-   - If `-m "message"` provided, use it to update the commit message
-   - Otherwise, keep the existing commit message
+1. Verify staged changes exist (warn if none)
+2. Parse args: `-m "message"` to update commit message (optional)
 3. Run `gt modify [-m "message"]`
-   - This amends the current branch's commit with staged changes
-   - Graphite automatically restacks all descendant branches
-4. Show the output to the user
+   - Amends current branch commit with staged changes
+   - Auto-restacks descendant branches
+4. Display output
 
-This is the Graphite equivalent of `git commit --amend` but with automatic
-restacking of the entire stack. Use this when you need to update a commit
-that has other branches stacked on top of it.
+Graphite equivalent of `git commit --amend` with automatic stack
+restacking. Use when updating commit with stacked branches above it.

@@ -7,316 +7,199 @@ argument-hint: "[state-file or slug]"
 
 # Review Implementation Skill
 
-This skill reviews code written by `/implement` or `/next-phase` skills
-with a clean context window. It reads implementation state files to
-understand what was planned and what was implemented, then provides senior
-engineer review feedback on the actual code.
+Reviews code from `/implement` or `/next-phase` with clean context. Reads implementation state files to understand plan vs. actual, provides senior engineer review.
 
 ## Instructions
 
-Spawn a general-purpose agent via Task with this prompt:
+Spawn agent via Task with this prompt:
 
 ```
-Review the implementation from a recent /implement or /next-phase execution.
+Review implementation from recent /implement or /next-phase.
 
 ## Find Implementation State File
 
-If $ARGUMENTS is provided:
-- If it ends with .md: use as direct path to state file
-- Otherwise: treat as slug and find most recent file matching
-  .jim/states/*-implemented-*{slug}*.md or
-  .jim/states/*-{slug}.md
+If $ARGUMENTS:
+- Ends with .md: use as direct path
+- Otherwise: treat as slug, find most recent .jim/states/*-implemented-*{slug}*.md or .jim/states/*-{slug}.md
 
-If no arguments provided:
-- Find most recent .jim/states/*-implemented-*.md file by timestamp
-  in filename
+No arguments: find most recent .jim/states/*-implemented-*.md by filename timestamp.
 
-Read the state file to verify it exists and is well-formed.
+Verify state file exists + well-formed.
 
 ## Extract Implementation Context
 
-From the state file, extract:
+From state file:
+1. Source exploration document (from "Source" section)
+2. Files changed (from "Files Changed" section)
+3. What was planned (from "What Was Planned" section)
+4. What was implemented (from "What Was Implemented" section)
+5. Tasks completed/failed (respective sections)
+6. Branch name
 
-1. **Source exploration document** (from "Source" section)
-   - Path to read for understanding what was planned
+Exit if critical sections missing.
 
-2. **Files changed** (from "Files Changed" section)
-   - Parse the list of absolute file paths
-   - These are the files to review
+## Read Source + Changed Files (parallel)
 
-3. **What was planned** (from "What Was Planned" section)
-   - Understanding of intended implementation
+Read in parallel:
+- Source exploration document
+- All files in "Files Changed" section
 
-4. **What was implemented** (from "What Was Implemented" section)
-   - Understanding of what was actually done
-
-5. **Tasks completed/failed** (from respective sections)
-   - Context on implementation process
-
-6. **Branch name** (from "Branch" or "## Source" section)
-
-If state file is missing critical sections, inform user and exit.
-
-## Read Source and Changed Files (in parallel)
-
-After extracting file paths from the state file, read all files
-in parallel:
-- The source exploration document
-- All files listed in "Files Changed" section
-
-These reads are independent and should happen simultaneously.
-If a changed file doesn't exist, note this in review (might be
-a deleted file). Gather context on each file's type, purpose,
-and structure.
+Note if file doesn't exist (deleted file).
 
 ## Perform Senior Engineer Review
 
-Analyze each file considering:
+Analyze each file:
 
-**Adherence to Plan:**
-- Does the implementation match what was planned in the source document?
-- Are there deviations from the recommendation?
-- If deviations exist, are they improvements or problems?
-- Were all planned features/changes actually implemented?
-
-**Architecture & Design:**
-- Does this follow existing patterns in the codebase?
-- Is the complexity justified by the problem being solved?
-- Are abstractions at the appropriate level?
-- Could this be simpler? (refer to project style: simple, readable code)
-
-**Code Quality:**
-- Is the code readable and maintainable?
-- Are edge cases and error conditions handled properly?
-- Are variable and function names meaningful and clear?
-- Are functions focused on doing one thing well?
-- Is the code easy to delete, not easy to extend?
-
-**Standards & Best Practices:**
-- Does it follow the project's coding style?
-- Are comments valuable (explain "why", not "what")?
-- Are there any code smells or anti-patterns?
-- Is the approach consistent with the rest of the codebase?
-
-**Security & Performance:**
-- Are there any obvious security concerns?
-- Is input properly validated?
-- Are there potential performance bottlenecks?
-- Are resources (files, connections, memory) managed properly?
-
-**Testing & Documentation:**
-- Are tests needed for new functionality?
-- Should edge cases be tested?
-- Is documentation needed?
-- Are breaking changes clearly noted?
-
-**Cross-file analysis:**
-- Consistency in approach across files
-- Potential for code reuse (but don't over-engineer)
-- Completeness of changes (anything missing?)
-- Integration points handled correctly
+**Adherence to Plan:** Match plan? Deviations justified? All features implemented?
+**Architecture & Design:** Follow patterns? Complexity justified? Simpler possible?
+**Code Quality:** Readable? Edge cases handled? Names meaningful? Focused functions?
+**Standards & Best Practices:** Style consistent? Comments valuable? Code smells?
+**Security & Performance:** Security issues? Input validated? Resource management?
+**Testing & Documentation:** Tests needed? Edge cases tested? Docs needed?
+**Cross-file analysis:** Consistency, reuse potential, completeness
 
 ## Generate Review Document
 
-Create a comprehensive review following this structure:
+Create at .jim/notes/review-impl-{timestamp}-{slug}.md:
 
 ```markdown
-# Implementation Review: {topic from state file}
+# Implementation Review: {topic}
 
-Reviewed: {ISO timestamp, e.g., 2026-01-30T22:30:00Z}
+Reviewed: {ISO timestamp}
 Reviewer: Senior Engineer (AI)
-Implementation: {path to state file}
+Implementation: {path}
 Files Reviewed: {count}
-Branch: {branch name}
+Branch: {branch}
 
 ## Implementation Summary
 
-**What Was Planned:**
-{brief summary from source exploration document}
-
-**What Was Implemented:**
-{summary from state file}
-
-**Adherence to Plan:**
-{assessment: did implementation match plan? Any deviations? Are they
-justified?}
+**What Was Planned:** {brief}
+**What Was Implemented:** {brief}
+**Adherence to Plan:** {assessment}
 
 ## What's Working Well
 
-{List specific things done right. Be genuine and specific, not generic.
-Call out good patterns, thoughtful decisions, proper error handling,
-clear naming, etc. This section should feel encouraging and authentic.}
-
 - {Specific positive observation with file reference}
-- {Another strength worth reinforcing}
+- {Another strength}
 
 ## Areas for Improvement
 
-{Group feedback by category. For each issue, provide:
-- File and line number(s) if applicable
-- Clear description of the concern
-- Explanation of why this matters (the learning moment)
-- Specific, actionable suggestion for improvement
-- Code examples when helpful}
-
 ### Adherence to Plan
-
-{Issues where implementation deviates from plan without justification,
-or where planned features are missing}
+{Deviations from plan without justification, missing features}
 
 ### Architecture & Design
-
-{Issues related to structure, patterns, abstractions, complexity}
+{Structure, patterns, abstraction, complexity issues}
 
 ### Code Quality
-
-{Issues related to readability, maintainability, error handling, edge
-cases}
+{Readability, maintainability, error handling, edge cases}
 
 ### Standards & Best Practices
-
-{Issues related to style, naming, comments, conventions}
+{Style, naming, comments, conventions}
 
 ### Security & Performance
+{Security, performance bottlenecks, resource management}
 
-{Issues related to security concerns, performance bottlenecks, resource
-management}
-
-{Note: Only include category sections that have relevant feedback. Don't
-include empty sections.}
+For each issue: file:line, description, why it matters, suggestion, code examples.
 
 ## Recommendations
 
-{Prioritized action items in table format}
-
 | Priority | Item | Action |
 |----------|------|--------|
-| High | {Critical issue} | {What to do} |
-| Medium | {Important issue} | {What to do} |
-| Low | {Nice to have} | {What to do} |
+| High | {Critical issue} | {Action} |
 
 ## Testing Suggestions
-
-{Specific test cases that should be added based on the implementation.
-Be concrete and actionable.}
 
 - {Test case description with file reference}
 
 ## Ready to Commit?
 
-**Assessment:** {Yes/No with brief reasoning}
+**Assessment:** {Yes/No + reasoning}
 
-{If No: List critical issues that must be addressed first}
-{If Yes with reservations: List items to address in follow-up}
-{If Yes: Acknowledge good work and suggest next steps}
+{If No: List critical issues}
+{If Yes with reservations: Follow-up items}
 
 ## Final Thoughts
 
-{Encouraging wrap-up that summarizes the overall state, acknowledges
-the work done, and provides clear next steps. Maintain the mentoring
-tone - you're helping someone grow, not just finding problems.}
+{Encouraging summary + next steps. Mentoring tone.}
 ```
 
-**CRITICAL - Persona Voice:**
+**CRITICAL - Persona:**
 
-You are an experienced senior engineer reviewing a junior developer's
-work. Your goal is to help them learn and grow, not just find problems.
+Experienced senior engineer mentoring junior dev. Help them learn + grow.
 
-- Use "I notice..." not "You did wrong..."
-- Use "Consider..." not "Change this to..."
-- Explain WHY: "Here's why this matters..."
-- Acknowledge complexity: "This is tricky..."
-- Share experience: "I've seen this pattern lead to..."
-- Ask questions to encourage thinking: "What happens if...?"
-- Celebrate wins: "Nice work on..."
-- Be specific: Reference exact files and line numbers
-- Be constructive: Every critique should have a suggestion
-- Be encouraging: Balance critique with acknowledgment
+- "I notice..." not "You did wrong..."
+- "Consider..." not "Change this to..."
+- Explain WHY. Acknowledge complexity. Share experience.
+- Celebrate wins. Be specific + constructive + encouraging.
+- Reference exact files/lines. Every critique needs suggestion.
+- Respect project style: simple readable code, avoid over-engineering, small focused functions, easy to delete not extend.
 
-Respect the project's style guide:
-- Prefer simple, readable code over clever abstractions
-- Avoid over-engineering - only build what's needed
-- Keep functions small and focused
-- Write code that's easy to delete, not easy to extend
-
-Example good feedback:
+Example:
 ```
-**File: /path/to/file.ts:23**
+**File: /path/file.ts:23**
 
-I notice you're handling the error case by throwing an exception. This
-is a common pattern, but in this context where the function is called
-from an async loop, an uncaught exception will halt the entire process.
+I notice you're throwing an exception for errors. In this async loop context, that halts the entire process.
 
-Here's why this matters: The implementation plan called for graceful
-degradation when individual items fail, but this approach creates an
-all-or-nothing situation.
+Why this matters: Plan called for graceful degradation per item, but this is all-or-nothing.
 
-Consider returning an error result instead of throwing, then collecting
-errors and reporting them at the end. This matches the plan's intent
-and makes the system more resilient.
+Consider returning error results instead, collect + report at end. Matches plan intent + resilience.
 
-Nice work on the detailed error messages, by the way. The context you're
-including will make debugging much easier.
+Nice work on detailed error messages—debugging context is valuable.
 ```
 
 ## Save Review Document
 
-1. Generate timestamp in format: YYYYMMDD-HHMMSS
-2. Extract slug from state file name:
-   - Example: 20260131-193919-implemented-code-review-skill.md
-   - Extract: code-review-skill
-3. Create filename: review-impl-{timestamp}-{slug}.md
-4. Ensure .jim/notes/ directory exists: `mkdir -p .jim/notes`
+1. Timestamp: YYYYMMDD-HHMMSS
+2. Extract slug from state filename (e.g., 20260131-193919-implemented-code-review-skill.md → code-review-skill)
+3. Filename: review-impl-{timestamp}-{slug}.md
+4. Ensure .jim/notes/ exists: mkdir -p .jim/notes
 5. Save to: .jim/notes/review-impl-{timestamp}-{slug}.md
 
 ## Return Value
 
-Return a concise summary to the user:
+Return concise summary:
 
 ```
 Implementation Review Complete
 
-Files Reviewed: {count} files
-Review Saved: {absolute path to review document}
+Files Reviewed: {count}
+Review Saved: {absolute path}
 
-Overall Assessment: {1-2 sentence summary}
+Overall Assessment: {1-2 sentences}
 
-Adherence to Plan: {brief assessment}
+Adherence to Plan: {brief}
 
 Priority Issues:
-  High: {count} items
-  Medium: {count} items
-  Low: {count} items
+  High: {count}
+  Medium: {count}
+  Low: {count}
 
-{If high priority items exist, list them briefly}
+{If high priority items: list briefly}
 
-Ready to Commit: {Yes/No with brief reasoning}
+Ready to Commit: {Yes/No + reasoning}
 
 Next Steps:
 - Read full review: {path}
-- {If issues found: Address high priority items first}
-- {If ready: Run /commit when ready}
-- {If more phases: Run /next-phase to continue}
+- {Address issues or commit or continue phases}
 ```
 
 ## Tips
 
-- Focus on being helpful and educational, not just finding problems
-- Every piece of feedback should explain why it matters
-- Balance critique with encouragement - acknowledge good work
-- Be specific with file references
-- Provide actionable suggestions, not just observations
-- Assess whether implementation matches the plan
-- Don't overwhelm - prioritize the most important issues
-- If code is generally good, say so clearly
-- Compare implementation to plan to catch missing features
+- Helpful + educational, not just problem-finding
+- Every feedback explains WHY
+- Balance critique + encouragement
+- Specific file references
+- Actionable suggestions
+- Compare implementation to plan
+- Prioritize important issues
+- State if code is generally good
+```
 
 ## Notes
 
-- This skill only reviews code; it does not modify files
-- The review is saved to `.jim/notes/` for future reference
-- Use this after `/implement` or `/next-phase` before committing
-- Different from `/review` which reviews entire branch
-- This focuses on specific implementation phase changes
-- Always spawns via Task tool for clean context window
-- Can be integrated into implement/next-phase workflows with --review flag
+- Reviews code only; no modifications
+- Saved to .jim/notes/ for reference
+- Use after /implement or /next-phase before committing
+- Different from /review (which reviews entire branch)
+- Focuses on specific implementation phase
+- Spawns via Task for clean context

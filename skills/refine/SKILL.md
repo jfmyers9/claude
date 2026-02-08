@@ -1,124 +1,92 @@
 ---
 name: refine
-description: Simplifies code and improves comments in uncommitted changes before committing. Removes unnecessary complexity and low-value comments.
+description: Simplifies code + improves comments in uncommitted changes. Removes unnecessary complexity + low-value comments.
 allowed-tools: Bash, Read, Edit, Glob, Grep
 argument-hint: [optional: file-pattern]
 ---
 
 # Refine Skill
 
-This skill reviews uncommitted code changes and refines them by simplifying implementation and improving comments. Use this before committing to ensure code is clean, readable, and well-documented.
+Reviews uncommitted code changes + refines by simplifying implementation + improving comments. Use before committing to ensure clean, readable, well-documented code.
 
 ## Instructions
 
 1. **Identify files to review**:
-   - If `$ARGUMENTS` is provided, use it as a file pattern (e.g., "*.py", "src/**/*.ts")
-   - Otherwise, get all modified and new files: `git diff --name-only HEAD`
-   - Filter to only include code files (exclude config, lock files, generated files)
-   - If no files found, inform user and exit
+   - If `$ARGUMENTS`: use as file pattern (e.g., "*.py", "src/**/*.ts")
+   - Otherwise: `git diff --name-only HEAD`
+   - Filter to code files only (exclude config, lock, generated files)
+   - Exit if none found
 
-2. **Read all files in parallel**:
-   - Read all identified code files simultaneously to gather context
+2. **Read files in parallel**
 
-3. **For each file** (can process independent files in parallel):
-   - Analyze the code for:
-     - **Unnecessary complexity**: Nested conditionals, overly abstract code, premature optimization
-     - **Clever code**: Code that prioritizes brevity over clarity
-     - **Over-engineering**: Abstractions, helpers, or utilities used only once
-     - **Best practice violations**: Poor naming, inconsistent patterns, code smells
-   - Analyze comments for:
-     - **Low-value comments**: Comments that restate what the code does
-     - **Obvious comments**: Comments explaining self-explanatory code
-     - **Outdated comments**: Comments that don't match the implementation
-     - **Missing valuable comments**: Complex logic that needs explanation
-     - **Doc comments**: JSDoc, docstrings, GoDoc, RustDoc, etc.
-       Preserve these by default (see Doc Comment Preservation below)
+3. **Analyze each file**:
+   - **Code**: unnecessary complexity (nested conditionals, overly abstract, premature optimization), clever code (brevity over clarity), over-engineering (abstractions used once), best practice violations
+   - **Comments**: low-value (restates code), obvious (explains self-explanatory code), outdated (doesn't match implementation), missing valuable (complex logic needs explanation)
+   - **Doc comments** (JSDoc, docstrings, GoDoc, RustDoc): preserve by default (see preservation rules below)
 
 4. **Apply refinements**:
-   - Simplify complex code:
-     - Flatten nested conditionals where possible
-     - Extract magic numbers to named constants (only if used multiple times)
-     - Use clear variable names instead of abbreviations
-     - Break down large functions (only if they do multiple things)
-   - Improve comments:
-     - Remove comments that just restate the code
-     - Remove comments like "// set variable" or "// call function"
-     - Keep comments that explain "why" not "what"
-     - Keep comments that explain non-obvious behavior or edge cases
-     - Keep comments that provide important context or warnings
-   - **Do NOT**:
-     - Add features or change behavior
-     - Add error handling that wasn't there
-     - Add abstractions unless removing complexity
-     - Add comments to code you didn't change
-     - Refactor code beyond the changes being committed
+   - Flatten nested conditionals
+   - Extract magic numbers → named constants (if multiple uses)
+   - Replace abbreviations w/ clear names
+   - Break functions doing multiple things
+   - Remove comments restating code (e.g., "// set variable", "// call function")
+   - Keep: "why" explanations, edge case warnings, context, business logic
+   - **Do NOT**: add features, change behavior, add error handling, add abstractions (unless removing complexity), add comments to unchanged code, refactor beyond committed changes
 
 5. **Verify changes**:
-   - After editing each file, verify it's still valid:
-     - Check syntax if possible (run linter, parser check, etc.)
-     - If verification fails, revert the change and note the issue
-   - Keep track of all refinements made
+   - Check syntax (linter, parser check)
+   - Revert + note issues if verification fails
+   - Track all refinements
 
-6. **Present summary**:
-   - Show a summary of refinements for each file:
-     - Simplifications applied
-     - Comments removed
-     - Comments improved
-   - Ask if user wants to see the detailed diff: `git diff`
+6. **Summary**:
+   - Simplifications applied + comments removed + comments improved per file
+   - Offer: `git diff`
 
 ## Refactoring Principles
 
-**Simplicity over cleverness:**
-- Three similar lines is better than a premature abstraction
-- Explicit is better than implicit
-- Readable is better than concise
+**Simplicity > cleverness**: 3 lines > premature abstraction. Explicit > implicit. Readable > concise.
 
-**When to remove comments:**
-- `// Create user object` above `user = new User()` - Remove
-- `// Loop through items` above `for (item in items)` - Remove
-- `// Return result` above `return result` - Remove
-- `// TODO: fix this` without context - Remove or make specific
+**Remove**:
+- `// Create user object` → `user = new User()`
+- `// Loop through items` → `for (item in items)`
+- `// Return result` → `return result`
+- `// TODO: fix this` (without context)
 
-**When to keep comments:**
-- Explaining why a non-obvious approach was chosen
-- Documenting edge cases or gotchas
-- Explaining business logic or domain-specific behavior
-- Warning about performance implications or limitations
+**Keep**:
+- Why non-obvious approach chosen
+- Edge cases + gotchas
+- Business logic + domain rules
+- Performance warnings + limitations
 
-**Doc Comment Preservation:**
+**Doc Comment Preservation**:
 
-Preserve documentation comments by default: JSDoc (`/** */`),
-Python docstrings (`"""`), GoDoc, RustDoc (`///`), and similar
-structured doc comments. These serve as API documentation and are
-often consumed by tools, IDEs, and doc generators.
+Preserve by default: JSDoc (`/** */`), Python docstrings (`"""`), GoDoc, RustDoc (`///`). API documentation consumed by tools + IDEs.
 
-Only remove a doc comment if it is genuinely vacuous:
-- Empty doc comment with no content
-- Restates the function signature with zero additional information
-  (e.g., `/** Gets the name. */ getName()`)
+Remove only if vacuous:
+- Empty doc comment
+- Restates signature with zero info (e.g., `/** Gets name. */ getName()`)
 
-If a doc comment is inaccurate or outdated, **update it** rather
-than removing it.
+If inaccurate/outdated: **update**, don't remove.
 
-**When to simplify code:**
+**Code simplification**:
 - Remove redundant defaults (`.get(key, None)` → `.get(key)`)
-- Replace inline lambdas with direct expressions
+- Replace inline lambdas w/ direct expressions
 - Flatten unnecessary nesting
 
 ## Tips
 
-- Focus on changes being committed, not the entire codebase
-- Don't refactor working code that isn't being changed
-- Preserve the original intent and behavior
-- When in doubt, prefer simpler code over clever abstractions
-- Only remove comments if they're truly low-value
-- If code is complex, consider if it can be simplified rather than just adding comments
+- Focus on committed changes, not entire codebase
+- Don't refactor unchanged working code
+- Preserve original intent + behavior
+- Prefer simpler code when in doubt
+- Remove comments only if truly low-value
+- Complex code → simplify rather than comment
 - Run tests after refinements if available
 
 ## Notes
 
-- This skill modifies files in place
-- Changes are not committed automatically
-- Use `git diff` to review all changes before committing
-- If the skill makes unwanted changes, use `git restore <file>` to revert
-- Consider running this skill as part of your pre-commit workflow
+- Modifies files in place
+- Changes not auto-committed
+- Review w/ `git diff` before committing
+- Revert w/ `git restore <file>` if needed
+- Consider pre-commit workflow

@@ -7,19 +7,16 @@ argument-hint: "restack | log | up | down | checkout"
 
 # Graphite Operations
 
-Run basic Graphite commands for branch management. This skill handles
-common operations that don't need their own dedicated skill.
+Execute `gt` commands for branch management.
 
 ## Commands
 
-Execute the appropriate `gt` command based on the argument:
+- **restack**: `gt restack --only` (restack current branch)
+- **log**: `gt log` (show stack visually)
+- **up**: `gt up` (move to child branch)
+- **down**: `gt down` (move to parent branch)
+- **checkout**: `gt checkout` (interactive selection)
 
-- **restack**: Run `gt restack --only` to restack the current branch
-- **log**: Run `gt log` to show the current stack visually
-- **up**: Run `gt up` to move up the stack (to child branch)
-- **down**: Run `gt down` to move down the stack (to parent branch)
-- **checkout**: Run `gt checkout` for interactive branch selection
+Default: `gt log`
 
-If no argument provided, default to `gt log` to show the current stack.
-
-Show the command output to the user.
+Output result to user.

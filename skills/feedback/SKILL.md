@@ -7,301 +7,162 @@ argument-hint: "<feedback> [--type=bug|quality|change]"
 
 # Feedback Skill
 
-This skill accepts user feedback on the most recent implementation and either
-applies fixes directly or provides guidance. It bridges the gap between
-automated review and human-provided feedback.
+Accepts user feedback on recent implementation + applies fixes or guides.
 
 ## Instructions
 
-Spawn a general-purpose agent via Task with this prompt:
+Spawn general-purpose agent via Task with this prompt:
 
 ```
-Process user feedback on a recent implementation.
+Process user feedback on recent implementation.
 
 ## Parse Arguments
 
 Parse $ARGUMENTS for:
-- `--type=TYPE` flag: Explicit feedback type (bug|quality|change)
-  - bug: Something isn't working as expected
-  - quality: Code quality concerns (style, patterns, maintainability)
-  - change: Feature adjustment or addition request
-  - If not provided, infer from feedback content
-- Feedback text: The remaining arguments (required)
+- `--type=TYPE`: bug|quality|change
+  - bug: Something isn't working
+  - quality: Code quality concerns
+  - change: Feature adjustment/addition
+  - If absent, infer from feedback content
+- Feedback text: remaining args (required)
 
-If no feedback text provided, inform user and exit:
-"Please provide feedback on the implementation. Example:
+If no feedback provided:
+"Please provide feedback. Examples:
 /feedback The login button doesn't work on mobile
 /feedback Add input validation to the form --type=change"
 
 ## Find Recent Implementation
 
-Check all sources in parallel, then use the first match found
-(in priority order):
-
-1. Find most recent .jim/states/active-*.md file
-2. Find most recent .jim/states/*-implemented-*.md file by timestamp
+Check all sources in parallel, use first match (priority order):
+1. Most recent .jim/states/active-*.md
+2. Most recent .jim/states/*-implemented-*.md
 3. Run: git diff --name-only HEAD
 
-Run all three checks simultaneously. Use the first source that
-returns results, preferring in the order listed above.
+If none found:
+- Not git repo: "Requires implementation state files or git repository."
+- No results: "No recent implementation found. Run /implement first or
+  specify files."
 
-If none return results:
-- If git command failed (not a git repository), inform user:
-  "This skill requires either implementation state files or a git
-  repository. Please specify which files your feedback applies to."
-- If no results from any source, inform user:
-  "No recent implementation found. Please run /implement first or
-  specify which files your feedback applies to."
-
-Extract from state files:
-- Files changed (list of paths)
+From state files, extract:
+- Files changed (paths)
 - What was implemented (summary)
 - Source exploration document (if available)
 
 ## Categorize Feedback
 
-If --type flag not provided, analyze feedback to categorize:
+If --type not provided, analyze content:
 
-**Bug indicators:**
-- "doesn't work"
-- "fails"
-- "error"
-- "broken"
-- "crash"
-- "not working"
-- "won't"
-- "can't"
-- "unable"
-- Mentions of specific error messages or stack traces
-- "expected X but got Y" patterns
+**Bug indicators:** "doesn't work", "fails", "error", "broken", "crash",
+"won't", "can't", "unable", error messages/stack traces, "expected X but
+got Y"
 
-**Quality indicators:**
-- "naming"
-- "readability"
-- "confusing"
-- "unclear"
-- "inconsistent"
-- "pattern"
-- "style"
-- "convention"
-- "hard to understand"
-- "messy"
-- "clean up"
-- References to code structure or organization
+**Quality indicators:** "naming", "readability", "confusing", "unclear",
+"inconsistent", "pattern", "style", "convention", "hard to understand",
+"messy", "clean up", code structure refs
 
-**Change indicators:**
-- "add"
-- "include"
-- "also need"
-- "should have"
-- "change"
-- "modify"
-- "update"
-- "instead"
-- "feature"
-- "enhancement"
-- "improvement"
-- "would be nice"
-- "could you"
-- "I want"
+**Change indicators:** "add", "include", "also need", "should have",
+"change", "modify", "update", "instead", "feature", "enhancement",
+"improvement", "would be nice", "could you", "I want"
 
-If unclear, default to "change" as it's the safest assumption.
+Default: "change" if unclear.
 
 ## Analyze Feedback
 
-Based on feedback type, analyze what needs to be done:
+### Bugs
+1. Identify symptom
+2. Read relevant files
+3. Find likely cause: missing error handling, incorrect logic, type
+   mismatches, edge cases
+4. Assess fix complexity
 
-### For Bugs
+### Quality
+1. Identify specific issues
+2. Read relevant files
+3. Find patterns: naming, organization, comments, complex logic
+4. Assess improvements needed
 
-1. Identify the symptom described
-2. Read relevant files from implementation
-3. Look for the likely cause:
-   - Missing error handling
-   - Incorrect logic or conditions
-   - Type mismatches or null checks
-   - Edge cases not handled
-4. Determine if fix is straightforward or complex
-
-### For Quality Concerns
-
-1. Identify specific quality issues mentioned
-2. Read relevant files to understand context
-3. Look for patterns to address:
-   - Naming inconsistencies
-   - Code organization issues
-   - Missing or poor comments
-   - Overly complex logic
-4. Determine what changes would address concerns
-
-### For Change Requests
-
-1. Understand what the user wants added/changed
-2. Read relevant files to understand current state
-3. Assess scope of change:
-   - Small: Can be done inline
-   - Medium: Requires reading more context
-   - Large: May need new exploration
+### Changes
+1. Understand what to add/change
+2. Read relevant files
+3. Assess scope: small (inline), medium (context), large (explore)
 
 ## Apply Fixes
 
-Based on feedback type, create a task list and apply fixes systematically.
+Create task list + apply systematically.
 
-### Create Task List for Fixes
+### Categorize by Complexity
 
-Before applying fixes, create tasks:
+**Simple (automate):** renaming, null checks, off-by-one errors, logic
+fixes, missing imports, typos, obvious error handling, simple refactoring
 
-1. **Categorize fixes** by complexity:
-   - **Simple fixes (automate):**
-     - Variable/function renaming
-     - Missing null checks
-     - Off-by-one errors
-     - Simple logic corrections
-     - Adding missing imports
-     - Fixing typos in strings/comments
-     - Adding error handling for obvious cases
-     - Simple refactoring (extract variable, inline)
+**Medium (apply carefully):** multi-line changes, new functions, control
+flow changes, input validation, multi-file changes
 
-   - **Medium fixes (apply with care):**
-     - Multi-line code changes
-     - Adding new functions/methods
-     - Modifying control flow
-     - Adding input validation
-     - Changes spanning multiple files
+**Complex (defer to /explore):** architecture changes, new features,
+breaking API changes, performance optimizations
 
-   - **Complex fixes (defer to /explore):**
-     - Architecture changes
-     - New feature development
-     - Breaking API changes
-     - Changes requiring design decisions
-     - Performance optimizations needing profiling
-
-2. **Create tasks** using TaskCreate:
-   - Subject: Brief description of fix
-   - Description: File path, issue, and proposed solution
-   - activeForm: "Fixing {issue description}"
-   - Group tasks by file when possible
+Create tasks via TaskCreate:
+- Subject: brief fix description
+- Description: file path, issue, solution
+- activeForm: "Fixing {issue}"
+- Group by file
 
 ### Apply Fixes Workflow
 
-For each fix task:
-
-1. **TaskUpdate to in_progress**
-
-2. **Read entire file for context**
-   - Understand file structure and patterns
-   - Locate the issue by description or code pattern
-   - Verify issue still exists (might already be addressed)
-
-3. **For bugs:**
-   - Identify the root cause
-   - Determine minimal fix that addresses symptom
-   - Verify fix won't break other functionality
-   - Apply fix using Edit tool
-
-4. **For quality concerns:**
-   - Identify the specific quality issue
-   - Apply improvement while preserving behavior
-   - Maintain existing code style and patterns
-
-5. **For change requests:**
-   - Apply changes within scope
-   - If change requires understanding of larger system, note it
-   - If change is beyond current context, defer
-
-6. **Verify after each edit:**
-   - Check file can be parsed (basic syntax check)
-   - For TypeScript/JavaScript: verify no obvious type errors
-   - For Python: check indentation is correct
-   - If syntax broken: revert change, mark task as failed
-
-7. **TaskUpdate based on result:**
-   - If fix succeeded: mark completed
-   - If fix failed: mark failed with reason, continue to next task
-   - Never leave tasks hanging in in_progress
-
-8. **Error handling:**
-   - If file not found: skip, note in summary
-   - If Edit fails (old_string not found): try more specific context
-   - If still fails: skip, note as "couldn't locate code pattern"
-   - If ambiguous feedback: skip, ask for clarification
-
-### Track Results
-
-Maintain counts for summary:
-- Fixes applied successfully
-- Fixes skipped (too complex, ambiguous)
-- Fixes failed (couldn't apply)
-- Files modified
+Per fix task:
+1. TaskUpdate -> in_progress
+2. Read entire file for context
+3. Identify root cause (bugs), apply minimal fix, verify no side effects
+4. Check syntax + no obvious errors; revert if broken
+5. TaskUpdate: completed or failed
+6. Track: fixes applied, skipped, failed, files modified
 
 ### Scope Guidelines
-
-- Only fix what the feedback specifically mentions
-- Don't "improve" unrelated code
-- Preserve existing behavior unless fixing a bug
-- Keep changes minimal and focused
-- If unsure, ask for clarification rather than guess
-- For large changes: recommend /explore for planning
+- Fix feedback mentions only
+- Don't improve unrelated code
+- Preserve behavior unless fixing bug
+- Keep changes minimal
+- For large changes: recommend /explore
 
 ## Create Feedback Document
 
-Generate timestamp in format: YYYYMMDD-HHMMSS
-Create filename: feedback-{timestamp}.md
-Save to: .jim/notes/feedback-{timestamp}.md
-
-Document structure:
+Generate timestamp YYYYMMDD-HHMMSS. Save to .jim/notes/feedback-{timestamp}.md:
 
 ```markdown
-# Feedback: {brief summary of feedback}
+# Feedback: {brief summary}
 
-Received: {ISO timestamp, e.g., 2026-01-30T22:30:00Z}
+Received: {ISO timestamp}
 Type: {Bug|Quality|Change}
 Status: {Addressed|Partially Addressed|Needs Clarification|Deferred}
 
 ## Original Feedback
-
-{verbatim user feedback}
+{verbatim feedback}
 
 ## Context
-
-Implementation: {path to state file or "uncommitted changes"}
-Files Involved: {list of relevant files}
+- Implementation: {state file path or "uncommitted changes"}
+- Files Involved: {list}
 
 ## Analysis
-
-{What was identified as the issue/request}
-
-{For bugs: What the likely cause was}
-{For quality: What patterns were identified}
-{For changes: What modifications were requested}
+{What was identified}
 
 ## Actions Taken
-
-{What was done to address the feedback}
+{What was done}
 
 ### Files Modified
-
-- {/absolute/path/to/file.ext} - {brief description of change}
+- {path} - {description}
 
 ### Changes Made
-
-{Detailed description of changes, with before/after if helpful}
+{Detailed description}
 
 ## Verification
-
-{How to verify the fix works}
-
-- {Step to verify}
-- {Expected result}
+{How to verify fix}
 
 ## Notes
+{Context, caveats, follow-ups}
 
-{Any additional context, caveats, or follow-up needed}
-
-{If partially addressed or deferred:}
-### Remaining Items
-
-- {What still needs to be done}
-- {Why it wasn't addressed}
+### Remaining Items (if partial)
+- {Still to do}
+- {Why not addressed}
 ```
 
 ## Ensure Directory Exists
@@ -310,94 +171,63 @@ Run: `mkdir -p .jim/notes`
 
 ## Return Value
 
-Return concise summary to user:
-
-```
 Feedback Processed
 
 Type: {Bug|Quality|Change}
 Status: {Addressed|Partially Addressed|Needs Clarification|Deferred}
 
-Summary: {1-2 sentence summary of what was done}
+Summary: {1-2 sentences}
 
 Files Modified: {count} files
-{List files briefly}
+{List files}
 
-Feedback Document: {absolute path to feedback document}
+Feedback Document: {absolute path}
 
-{If addressed:}
-Verification:
-{Brief steps to verify the fix}
-
-{If partially addressed:}
-Remaining:
-- {What still needs to be done}
-
-{If needs clarification:}
-Questions:
-- {What needs clarification to proceed}
-
-{If deferred (large change):}
-Recommendation:
-This change is substantial. Consider running:
-/explore "{brief description of change}"
+{If addressed:} Verification steps
+{If partial:} Remaining items
+{If unclear:} Questions
+{If deferred:} Recommendation: /explore "{description}"
 
 Next Steps:
-1. Verify the changes work as expected
-2. If issues remain: /feedback "description of remaining issue"
+1. Verify changes work
+2. If issues remain: /feedback "description"
 3. When satisfied: /commit
 
 ---
-Did this fix address your concern?
-- If yes, you can proceed to /commit
-- If partially, run /feedback with remaining issues
-- If no, please describe what's still wrong
-```
+Did this address your concern?
+- If yes: proceed to /commit
+- If partial: /feedback with remaining issues
+- If no: describe what's still wrong
 
 ## Guidelines
 
-**Stay Focused:**
-- Address only what the feedback mentions
-- Don't expand scope without user request
-- Ask for clarification if feedback is ambiguous
+**Stay Focused:** Address feedback only, don't expand scope, ask for
+clarification if ambiguous
 
-**Be Conservative:**
-- When fixing bugs, make minimal changes
-- Don't refactor "while you're in there"
-- Preserve existing patterns and style
+**Be Conservative:** Minimal changes, no refactoring, preserve patterns
 
-**Communicate Clearly:**
-- Explain what you changed and why
-- Provide verification steps
-- Note anything you couldn't address
+**Communicate Clearly:** Explain what changed + why, provide verification,
+note what couldn't address
 
-**Know Your Limits:**
-- Large changes need /explore planning
-- Complex bugs may need investigation
-- When unsure, ask rather than guess
+**Know Limits:** Large changes -> /explore, complex bugs -> investigate,
+ask rather than guess
 
 ## Tips
 
-- Read the full context before making changes
-- If feedback is vague, ask for specific examples
-- Check if feedback relates to recent implementation
+- Read full context before changes
+- Ask for specific examples if vague
+- Check feedback relates to recent implementation
 - Track all changes for easy review
-- Suggest verification steps the user can follow
-- If feedback reveals a larger issue, note it for future work
+- Suggest verification steps
+- Note larger issues for future
 
 ## Notes
 
-- This skill modifies files but does not commit changes
-- Creates audit trail of user feedback in .jim/notes/
-- Works with or without implementation state files
-- Different from /address-review which processes AI reviews
-- Different from /continue-explore which refines plans
-- Always spawns via Task tool for clean context window
-
-## Return Value from Skill Loader
-
-After the Task completes, display:
-- Feedback processing summary
-- Path to feedback document
-- Suggested next steps
+- Modifies files, no commit
+- Audit trail in .jim/notes/
+- Works with/without state files
+- Different from /address-review (AI reviews)
+- Different from /continue-explore (plans)
+- Spawns via Task for clean context
+```
 ```

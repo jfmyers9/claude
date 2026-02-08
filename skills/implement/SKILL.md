@@ -7,86 +7,79 @@ argument-hint: "[exploration-doc.md or leave blank for latest]"
 
 # Implement Skill
 
-Execute the plan from an exploration document, tracking progress via tasks.
+Execute plan from exploration document, tracking progress via tasks.
 
 ## Agent Prompt
 
-Spawn a general-purpose agent via Task with this prompt:
+Spawn agent via Task with this prompt:
 
 ```
-Implement the plan from an exploration document.
+Implement plan from exploration document.
 
 ## Parse Arguments
 
-Parse $ARGUMENTS for:
+Parse $ARGUMENTS:
 - `--review` flag: if present, run code review after implementation
-- File/slug: exploration document path or slug (remaining arguments)
+- File/slug: exploration document path or slug
 
-Store the review flag state for later use.
+Store review flag state.
 
-## Find the Document
+## Find Document
 
-If argument provided (excluding flags): read that file from `.jim/plans/`
-Otherwise: find most recent `.jim/plans/*.md` file by timestamp in filename
+If argument provided (excluding flags): read from `.jim/plans/`
+Otherwise: find most recent `.jim/plans/*.md` by timestamp in filename
 
-Verify the document has "Recommendation" and "Next Steps" sections.
+Verify document has "Recommendation" + "Next Steps" sections.
 
 ## Detect Phases
 
-Parse the "Next Steps" section for phase markers:
-- Look for patterns like `**Phase N: Name**` or `### Phase N: Name`
-- If phase markers found, extract phases with their tasks
-- If no phase markers, treat all tasks as a single phase
-- Store phase information for tracking file
+Parse "Next Steps" for phase markers:
+- `**Phase N: Name**` or `### Phase N: Name`
+- If found: extract phases + tasks
+- If not: treat all tasks as single phase
+- Store phase info for tracking file
 
 ## Create Task List
 
 If phases detected:
-- Create tasks only from Phase 1
+- Create tasks from Phase 1 only
 - Store remaining phases for future execution
 
-If no phases (single-phase plan):
-- Create tasks from all steps in "Next Steps" section
+If no phases:
+- Create tasks from all "Next Steps"
 
-For each task:
-- TaskCreate with clear subject, description, and activeForm
-- Steps should be concrete and verifiable
+Each task: TaskCreate with clear subject, description, activeForm
 
 ## Execute Steps
 
-For each task in order:
-1. TaskUpdate to in_progress
-2. Execute the step (read files, write code, run commands as needed)
-3. Verify the step succeeded (check syntax, run relevant tests if quick)
-4. TaskUpdate to completed
-5. If step fails: stop, report the error, leave task in_progress
+For each task:
+1. TaskUpdate -> in_progress
+2. Execute step (read files, write code, run commands)
+3. Verify success (check syntax, quick tests)
+4. TaskUpdate -> completed
+5. Fail: stop, report error, leave task in_progress
 
 ## Write State Files
 
-After executing steps (whether all succeed or some fail), write state files
-to track what was done.
+After execution (success/partial), write state files.
 
 ### Ensure Directory Exists
 
-Run: `mkdir -p .jim/states`
+`mkdir -p .jim/states`
 
-### Write Both State Files (in parallel)
+### Write Both State Files (parallel)
 
-After ensuring the directory exists, write both state files
-simultaneously. The active tracking file and implementation
-state file are independent writes with no dependencies on
-each other.
+Active tracking + implementation state files are independent.
 
-### 1. Write Active Tracking File (if multi-phase)
+#### 1. Active Tracking File (if multi-phase)
 
-If phases were detected, create/update active tracking file at
-`.jim/states/active-{slug}.md`:
+Create/update `.jim/states/active-{slug}.md`:
 
 ```markdown
-# Active Implementation: {topic from exploration doc title}
+# Active Implementation: {topic}
 
-Source: {absolute path to exploration document}
-Started: {ISO timestamp, e.g., 2026-01-30T22:30:00Z}
+Source: {absolute path}
+Started: {ISO timestamp}
 Branch: {current git branch}
 Status: in_progress
 
@@ -94,7 +87,6 @@ Status: in_progress
 
 - [x] Phase 1: {name} (completed {ISO timestamp})
 - [ ] Phase 2: {name}
-- [ ] Phase 3: {name}
 
 ## Current State
 
@@ -106,130 +98,92 @@ Next Phase: 2
 
 ### Phase 1 (completed {ISO timestamp})
 
-{summary of what was done in Phase 1}
+{summary of what was done}
 
 Files changed:
-- {absolute/path/to/file1.ext} - {brief description}
-- {absolute/path/to/file2.ext} - {brief description}
+- {absolute/path/file.ext} - {description}
 
 Tasks completed:
-1. {task subject} - {outcome}
-2. {task subject} - {outcome}
+1. {subject} - {outcome}
 
 Tasks failed/skipped: {list or "None"}
 
-Notes: {any additional context}
+Notes: {context}
 ```
 
-### 2. Write Implementation State File
+#### 2. Implementation State File
 
-Extract the slug from the source exploration document filename:
-- Example: `20260129-015102-ship-command-bail-on-failure.md` -> `ship-command-bail-on-failure`
-- Remove the timestamp prefix and `.md` extension
-
-Generate current timestamp in `YYYYMMDD-HHMMSS` format
-Create filename: `{timestamp}-implemented-{slug}.md`
-
-Write to `.jim/states/{filename}` with this format:
+Extract slug from filename (remove timestamp + `.md`)
+Generate timestamp YYYYMMDD-HHMMSS
+Write to `.jim/states/{timestamp}-implemented-{slug}.md`:
 
 ```markdown
-# Implementation: {topic from exploration doc title}
+# Implementation: {topic}
 
 Implemented: {ISO timestamp}
 Branch: {current git branch}
 
 ## Source
-
-{absolute path to exploration document}
+{absolute path}
 
 ## What Was Planned
-
-{brief summary of the recommendation from source document}
+{brief summary}
 
 ## What Was Implemented
-
-{summary of what was actually done}
+{summary}
 
 ### Tasks Completed
-
-1. {task subject} - {brief outcome}
-2. {task subject} - {brief outcome}
+1. {subject} - {outcome}
 
 ### Tasks Failed/Skipped
-
-{list any tasks that weren't completed, or "None"}
+{list or "None"}
 
 ## Files Changed
-
-- {absolute/path/to/file1.ext} - {brief description of change}
-- {absolute/path/to/file2.ext} - {brief description of change}
+- {absolute/path/file.ext} - {description}
 
 ## Notes
-
-{any additional context, issues, or follow-up needed}
+{context}
 ```
 
-## Optional Post-Implementation Review
+## Post-Implementation Review
 
-If --review flag was present in arguments:
-
-1. Collect the path to the implementation state file created above
-2. Spawn a review agent via Task with this prompt:
+If --review flag present: spawn review agent via Task:
 
 ```
-Review the implementation that was just completed.
+Review implementation at: {path to state file}
 
-Read the implementation state file at:
-{absolute path to implementation state file}
+Run: /review-implementation {path to state file}
 
-Run the review-implementation skill on this state file:
-/review-implementation {path to state file}
-
-Return a concise summary of the review findings, including:
-- Overall code quality assessment
+Return summary:
+- Code quality assessment
 - High priority issues (if any)
-- Whether the code is ready to commit
+- Ready to commit verdict
 ```
 
-3. Wait for review to complete
-4. Include review summary in return value
-5. Note the path to the review document in return value
+Wait for completion + include summary in return value.
 
 ## Guidelines
 
-- **Follow the plan**: Implement the recommended approach, not alternatives
-- **Stay focused**: Only do what the plan specifies
-- **Be thorough**: Complete each step fully before moving on
-- **Don't commit**: Leave changes uncommitted for user review
-- **Report clearly**: Summarize what was done and what files changed
+- Follow plan: implement recommended approach only
+- Stay focused: only do what plan specifies
+- Be thorough: complete each step fully
+- Don't commit: leave changes uncommitted for review
+- Report clearly: summarize what was done + files changed
 
 ## Return Value
 
-Return:
-- Summary of what was implemented
-- Which phase was completed (if multi-phase)
-- List of files created/modified
-- Any issues encountered
-- Path to the implementation state file in `.jim/states/`
-- If multi-phase: path to active tracking file and suggestion to use `/next-phase`
-- If single-phase: note that implementation is complete
-- If --review flag was used:
-  - Review summary with key findings
-  - Path to review document
-  - Ready to commit verdict
-- If --review flag was NOT used:
-  - Reminder: "To review implementation: /review-implementation" (include state file path)
-- Note that user should review changes and use /commit when ready
+Return: implementation summary, phase completed (if multi-phase), files
+list, issues, state file path, tracking file path (if multi-phase),
+review summary (if --review), reminder for /review-implementation +
+/commit
 ```
 
 ## Triage
 
-If the plan involves 3+ independent subsystems or would benefit from
-concurrent architecture review, testing, and implementation, suggest
-`/team-build` instead. For multiple independent features, suggest
-`/team-parallel-build`.
+3+ independent subsystems -> suggest `/team-build`
+Multiple independent features -> suggest `/team-parallel-build`
 
 ## Output
 
-Display to user: implementation summary, changed files, and reminder to
-review changes before committing.
+Display: implementation summary, changed files, reminder to review
+before committing.

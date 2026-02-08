@@ -15,77 +15,67 @@ allowed-tools:
 
 # Writing Skills
 
-Create a new skill with proper frontmatter and structure.
+Create skill with proper frontmatter + structure.
 
 ## Instructions
 
 ### 1. Parse Arguments
 
 Extract from `<arguments>`:
-- Skill name (kebab-case, e.g., `my-new-skill`)
-- Brief description of what the skill does
+- Skill name (kebab-case)
+- Brief description
 
-If missing, ask user for both.
+Ask user if missing.
 
 ### 2. Gather Requirements
 
-Ask the user (if not clear from description):
-- What triggers the skill? (user phrases, situations)
-- Is it user-invocable? (default: yes)
-- Does it orchestrate (dispatch to subagents) or act
-  directly (edit files itself)?
-- What arguments does it accept?
+If unclear from description, ask user:
+- Trigger phrases?
+- User-invocable? (default: yes)
+- Orchestrate (subagents) or direct (edit files)?
+- Arguments accepted?
 
-### 3. Create Skill Directory and File
+### 3. Create Directory + File
 
 ```bash
 mkdir -p skills/{skill-name}
 ```
 
-Write `skills/{skill-name}/SKILL.md` with this template:
+Write `skills/{skill-name}/SKILL.md`:
 
 ```markdown
 ---
 name: {skill-name}
-description: "{triggers and description}"
+description: "{triggers + description}"
 argument-hint: "{args}"
 user-invocable: true
 allowed-tools:
-  - {appropriate tools}
+  - {tools}
 ---
 
 # {Skill Title}
 
-{One-line summary of what the skill does.}
+{One-line summary.}
 
 ## Instructions
 
-{Step-by-step instructions for Claude to follow.}
+{Step-by-step instructions.}
 ```
 
-### 4. Checklist
+### 4. Verify
 
-Before finishing, verify:
+- [ ] `name` matches directory
+- [ ] `description` includes triggers
+- [ ] `allowed-tools` minimal + appropriate
+- [ ] Instructions imperative + step-by-step
+- [ ] 80-char line wrapping for prose
 
-- [ ] `name` matches directory name
-- [ ] `description` includes trigger phrases
-- [ ] `allowed-tools` is minimal and appropriate:
-  - Orchestration: Task, Skill, AskUserQuestion, Read,
-    Glob, Grep, Bash
-  - Direct-action: Read, Edit, Write, Glob, Grep, Bash,
-    AskUserQuestion
-  - Team: add SendMessage, TaskCreate, TaskUpdate,
-    TaskList, TaskGet, TeamCreate, TeamDelete
-- [ ] Instructions are imperative and step-by-step
-- [ ] No unnecessary comments or filler text
-- [ ] Follows 80-char line wrapping for prose
+### 5. Tool Selection
 
-### 5. Tool Selection Guide
-
-| Skill Type | Tools |
-|-----------|-------|
+| Type | Tools |
+|------|-------|
 | Orchestration | Task, Skill, AskUserQuestion, Read, Glob, Grep, Bash |
 | Direct-action | Read, Edit, Write, Glob, Grep, Bash, AskUserQuestion |
-| Team orchestration | Above + SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet, TeamCreate, TeamDelete |
-| Plan-mode | Above + EnterPlanMode, ExitPlanMode |
-| Git operations | Bash (scoped: git, gt, gh) |
+| Team | + SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet, TeamCreate, TeamDelete |
+| Plan-mode | + EnterPlanMode, ExitPlanMode |
+| Git | Bash (git, gt, gh only) |

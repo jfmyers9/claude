@@ -1,203 +1,159 @@
 ---
 name: next-phase
-description: Continue to the next phase of a multi-phase implementation
+description: Continue to next phase of multi-phase implementation
 allowed-tools: Task
-argument-hint: "[slug or leave blank for latest active implementation]"
+argument-hint: "[slug or blank for latest active]"
 ---
 
 # Next Phase Skill
 
-Continue to the next phase of a multi-phase implementation by reading the
-active tracking file and executing the next set of tasks.
+Continue next phase of multi-phase implementation by reading active tracking
+file + executing next task set.
 
 ## Agent Prompt
 
-Spawn a general-purpose agent via Task with this prompt:
+Spawn general-purpose agent via Task:
 
 ```
-Continue to the next phase of a multi-phase implementation.
+Continue to next phase of multi-phase implementation.
 
 ## Parse Arguments
 
-Parse $ARGUMENTS for:
-- `--review` flag: if present, run code review after phase implementation
-- Slug: tracking file slug (remaining arguments)
-
-Store the review flag state for later use.
+Extract from $ARGUMENTS:
+- `--review` flag: if present, run code review after phase
+- Slug: tracking file slug
 
 ## Find Active Tracking File
 
-If argument provided (excluding flags):
-- Look for `.jim/states/active-{argument}.md`
-- If not found, report error and suggest running `/implement` first
+If slug provided:
+- Look for `.jim/states/active-{slug}.md`
+- If not found, error + suggest `/implement`
 
-If no argument:
-- Find most recent `active-*.md` file in `.jim/states/`
-- If none found, report error and suggest running `/implement` first
+If no slug:
+- Find most recent `active-*.md` in `.jim/states/`
+- If none, error + suggest `/implement`
 
 ## Read Tracking File
 
-Parse the active tracking file to determine:
+Parse to determine:
 - Source exploration document path
-- Which phases are complete (marked with [x])
-- Which phase is next (first uncompleted phase)
+- Complete phases (marked [x])
+- Next phase (first uncompleted)
 - Current branch name
 
-## Verify State and Load Source (in parallel)
+## Verify State + Load Source (parallel)
 
-After reading the tracking file, perform these in parallel:
+**a) Verify git state:**
+1. Check current branch = tracking file branch
+   - If different: warn + note in tracking file
+2. Check all phases complete
+   - If yes: report "All phases completed!" + exit
+   - Suggest `/commit`
+3. ID next phase
+   - Find first [ ] phase
+   - Extract name + number
 
-a. **Verify git state**:
-   1. Check current git branch matches tracking file branch
-      - If different, warn user but continue
-      - Note branch change in updated tracking file
-   2. Check if all phases are complete
-      - If yes, report "All phases completed!" and exit
-      - Suggest reviewing changes and using `/commit`
-   3. Identify next phase to execute
-      - Find first phase marked `[ ]` (incomplete)
-      - Extract phase name and number
+**b) Read source exploration document** from tracking file path
 
-b. **Read the source exploration document** from the path
-   in tracking file.
-
-These are independent and can run simultaneously.
-
-Find the "Next Steps" section and locate the next phase:
-- Look for phase markers matching the phase number
-- Patterns: `**Phase N: Name**` or `### Phase N: Name`
-- Extract tasks for that phase
-
-If phase not found in source document:
-- Report error: phase structure may have changed
-- Suggest using `/continue-explore` to update the plan
-- Do not execute any tasks
+Find "Next Steps" + locate next phase:
+- Match `**Phase N: Name**` or `### Phase N: Name`
+- Extract phase tasks
+- If not found: error + suggest `/continue-explore`
 
 ## Execute Phase Tasks
 
-Create TaskList from the next phase's tasks:
-- For each task in the phase:
-  - TaskCreate with clear subject, description, and activeForm
-  - Steps should be concrete and verifiable
+TaskCreate for each task:
+- Clear subject, description, activeForm
+- Concrete + verifiable steps
 
 For each task in order:
-1. TaskUpdate to in_progress
-2. Execute the step (read files, write code, run commands as needed)
-3. Verify the step succeeded (check syntax, run relevant tests if quick)
-4. TaskUpdate to completed
-5. If step fails: stop, report the error, leave task in_progress
+1. TaskUpdate -> in_progress
+2. Execute (read files, write code, run commands)
+3. Verify success (syntax, quick tests)
+4. TaskUpdate -> completed
+5. If fails: stop, report error, leave in_progress
 
-## Write State Files (in parallel)
+## Write State Files (parallel)
 
-After executing phase tasks, write both state files
-simultaneously. The tracking file update and implementation
-state file are independent writes.
+Update tracking file + implementation state file simultaneously.
 
 ## Update Active Tracking File
 
-After executing phase (whether all tasks succeed or some fail):
+Mark completed phase:
+```markdown
+- [x] Phase N: Name (completed 2026-01-30T22:30:00Z)
+```
 
-1. Mark the completed phase with [x] and timestamp:
-   ```markdown
-   - [x] Phase N: Name (completed 2026-01-30T22:30:00Z)
-   ```
+Update "Current State":
+```markdown
+Current Phase: N
+Status: completed
+Next Phase: N+1 (or "all complete" if last)
+```
 
-2. Update "Current State" section:
-   ```markdown
-   Current Phase: N
-   Status: completed
-   Next Phase: N+1 (or "all complete" if last phase)
-   ```
+Add to "Implementation History":
+```markdown
+### Phase N (completed {ISO timestamp})
 
-3. Add to "Implementation History" section:
-   ```markdown
-   ### Phase N (completed {ISO timestamp, e.g., 2026-01-30T22:30:00Z})
+{summary of phase work}
 
-   {summary of what was done in this phase}
+Files changed:
+- {path} - {description}
+- (etc)
 
-   Files changed:
-   - {absolute/path/to/file1.ext} - {brief description}
-   - {absolute/path/to/file2.ext} - {brief description}
+Tasks completed:
+1. {subject} - {outcome}
+2. (etc)
 
-   Tasks completed:
-   1. {task subject} - {outcome}
-   2. {task subject} - {outcome}
+Tasks failed/skipped: {list or "None"}
 
-   Tasks failed/skipped: {list or "None"}
+Notes: {context}
+```
 
-   Notes: {any additional context}
-   ```
-
-4. If all phases are now complete, update status to "completed"
+If all complete: update status -> "completed"
 
 ## Write Implementation State File
 
-Also write a separate implementation state file for this phase:
-
-Extract the slug from active tracking filename:
-- Example: `active-multi-phase-workflow.md` -> `multi-phase-workflow`
-
-Generate current timestamp in `YYYYMMDD-HHMMSS` format
-Create filename: `{timestamp}-implemented-phase{N}-{slug}.md`
-
-Write to `.jim/states/{filename}` with standard implementation state format
-(see /implement skill for format details).
+Extract slug from `active-{slug}.md`
+Generate timestamp YYYYMMDD-HHMMSS
+Create: `.jim/states/{timestamp}-implemented-phase{N}-{slug}.md`
+Use standard implementation state format (see /implement skill).
 
 ## Optional Post-Implementation Review
 
-If --review flag was present in arguments:
-
-1. Collect the path to the implementation state file created above
-2. Spawn a review agent via Task with this prompt:
-
-```
-Review the implementation that was just completed.
-
-Read the implementation state file at:
-{absolute path to implementation state file}
-
-Run the review-implementation skill on this state file:
-/review-implementation {path to state file}
-
-Return a concise summary of the review findings, including:
-- Overall code quality assessment
-- High priority issues (if any)
-- Whether the code is ready to commit
-```
-
-3. Wait for review to complete
-4. Include review summary in return value
-5. Note the path to the review document in return value
+If `--review` flag:
+1. Spawn review agent via Task
+2. Review implementation state file
+3. Run /review-implementation {state-file-path}
+4. Return concise summary:
+   - Code quality assessment
+   - High priority issues
+   - Ready to commit verdict
+5. Include review summary + path in return
 
 ## Guidelines
 
-- **Follow the plan**: Execute the next phase as specified
-- **Stay focused**: Only do what the phase specifies
-- **Be thorough**: Complete each step fully before moving on
-- **Don't commit**: Leave changes uncommitted for user review
-- **Report clearly**: Summarize what phase was done and what files changed
+- Follow the plan: execute phase as specified
+- Stay focused: only do what phase specifies
+- Be thorough: complete each step fully
+- Don't commit: leave for user review
+- Report clearly: summarize phase + file changes
 
 ## Return Value
 
-Return:
-- Which phase was completed (e.g., "Phase 2: Core Features")
-- Summary of what was implemented
-- List of files created/modified
-- Any issues encountered
-- Path to the active tracking file
-- Path to the implementation state file
-- If more phases remain: suggest using `/next-phase` to continue
-- If all complete: note that implementation is finished
-- If --review flag was used:
-  - Review summary with key findings
-  - Path to review document
-  - Ready to commit verdict
-- If --review flag was NOT used:
-  - Reminder: "To review implementation: /review-implementation" (include state file path)
-- Note that user should review changes and use /commit when ready
+- Phase completed (e.g., "Phase 2: Core Features")
+- Summary of implementation
+- Created/modified files list
+- Issues encountered
+- Path to active tracking + state files
+- If phases remain: suggest `/next-phase`
+- If complete: note finished + need `/commit`
+- If reviewed: summary + path + verdict
+- If not reviewed: reminder `/review-implementation` + path
+- Note user should review before `/commit`
 ```
 
 ## Output
 
-Display to user: phase summary, what was implemented, changed files,
-next steps, and reminder to review changes before committing.
+Display: phase summary, what implemented, changed files, next steps, review
+reminder.

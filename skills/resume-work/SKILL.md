@@ -8,96 +8,81 @@ argument-hint: [optional: branch-name]
 
 # Resume Work Skill
 
-This skill analyzes the current branch and associated PR to provide a comprehensive summary of the changeset state, helping you resume work efficiently.
+Analyzes branch + PR state to summarize changeset for resuming work.
 
 ## Instructions
 
-1. **Get current branch information**:
-   - If `$ARGUMENTS` is provided, checkout that branch first: `git checkout $ARGUMENTS`
-   - Get current branch name: `git branch --show-current`
-   - Get base branch (usually main/master)
-   - Verify the branch exists and has commits
+1. **Get branch info**:
+   - Checkout `$ARGUMENTS` if provided: `git checkout $ARGUMENTS`
+   - Get name: `git branch --show-current`
+   - Identify base branch (main/master)
+   - Verify exists + has commits
 
-2. **Ensure branch is up to date with origin**:
-   - Check for local uncommitted changes: `git status --porcelain`
-   - If there are uncommitted changes:
-     - Show the user the uncommitted changes
-     - Display message: "⚠️  Cannot sync branch - you have local uncommitted changes. Please commit or stash your changes before resuming."
-     - Stop here and do not proceed with the rest of the skill
-   - Fetch latest from origin: `git fetch origin`
-   - Check if remote branch exists: `git rev-parse --verify origin/[branch-name]`
-   - If remote branch exists:
-     - Check if local is behind remote: `git rev-list HEAD..origin/[branch-name] --count`
-     - If behind, pull changes: `git pull --ff-only origin [branch-name]`
-     - If pull fails (exit code != 0), display error and stop:
-       - "⚠️  Failed to pull changes from origin. Please resolve any conflicts manually before resuming."
-       - Stop here and do not proceed
-   - If remote branch doesn't exist, note that this is a local-only branch
+2. **Sync with origin**:
+   - Check uncommitted: `git status --porcelain`
+   - If any: show changes, warn "Cannot sync - commit or stash first", stop
+   - Fetch: `git fetch origin`
+   - Check remote exists: `git rev-parse --verify origin/[branch-name]`
+   - If exists:
+     - Check behind: `git rev-list HEAD..origin/[branch-name] --count`
+     - If behind, pull: `git pull --ff-only origin [branch-name]`
+     - On failure: warn "resolve conflicts manually", stop
+   - If no remote: note as local-only branch
 
-3. **Gather all branch context in parallel** (these are all independent
-   reads and should run simultaneously):
-   - PR info: `gh pr view --json number,title,body,state,author,createdAt,updatedAt,additions,deletions,changedFiles,reviewDecision,comments,reviews`
-     (if no PR exists, note that but continue)
-   - Commit history: `git log main..HEAD --oneline --no-decorate`
-   - Detailed last commit: `git log -1 --format=fuller`
-   - Commit count: `git rev-list --count main..HEAD`
-   - Changed files summary: `git diff main...HEAD --stat`
-   - Diff summary: `git diff main...HEAD --shortstat`
-   - Working tree status: `git status`
-   - Ahead/behind remote: `git rev-list --left-right --count @{upstream}...HEAD` (if remote exists)
+3. **Gather context in parallel**:
+   - `gh pr view --json number,title,body,state,author,createdAt,updatedAt,additions,deletions,changedFiles,reviewDecision,comments,reviews`
+   - `git log main..HEAD --oneline --no-decorate`
+   - `git log -1 --format=fuller`
+   - `git rev-list --count main..HEAD`
+   - `git diff main...HEAD --stat`
+   - `git diff main...HEAD --shortstat`
+   - `git status`
+   - `git rev-list --left-right --count @{upstream}...HEAD` (if remote)
 
-   After all results are gathered, identify types of changes (new files,
-   modified files, deleted files) from the collected output.
+   Identify change types (new, modified, deleted).
 
-4. **Present summary** including:
-   - Branch name, base branch, created/updated dates
-   - PR status (number, title, state, review status, changes) or note if none
-   - Commit list with short hashes
+4. **Present summary**:
+   - Branch name, base, dates
+   - PR status (number, title, state, review, changes) or "No PR"
+   - Commits with short hashes
    - Changed files summary
-   - Current state (uncommitted changes, sync status)
-   - Recent PR activity if applicable
-   - Actionable next step recommendation
+   - Current state (uncommitted, sync status)
+   - PR activity
+   - Next step recommendation
 
-5. **Persist session context** for other skills:
-   - Get current branch name: `git branch --show-current`
-   - Sanitize branch name for filename (replace `/` with `-`)
-   - Ensure `.jim/states/` directory exists: `mkdir -p .jim/states`
-   - **Overwrite** (not append) `.jim/states/session-{sanitized-branch-name}.md`:
+5. **Save session context** (overwrite):
+   - Sanitize branch name: replace `/` with `-`
+   - Ensure `.jim/states/` exists: `mkdir -p .jim/states`
+   - Write `.jim/states/session-{sanitized-branch-name}.md`:
      ```markdown
      # Session Context
-
-     Updated: {ISO timestamp, e.g., 2026-01-30T19:25:32Z}
+     Updated: {ISO timestamp}
      Branch: {branch-name}
      Base: {base-branch}
-
      ## PR Status
-     {PR number, title, state, or "No PR"}
-
+     {number, title, state, or "No PR"}
      ## Recent Commits
-     {commit list from step 3}
-
+     {commit list}
      ## Changed Files
-     {file summary from step 3}
-
+     {file summary}
      ## Current State
-     {uncommitted changes, sync status from step 3}
+     {uncommitted changes, sync status}
      ```
-   - This context is automatically used by `/explore` and other skills
-   - File is completely rewritten each time (fresh state)
+   - Auto-used by `/explore` + other skills
+   - Fully rewritten each run (fresh state)
 
 ## Tips
 
-- The skill automatically ensures the branch is synced with origin before proceeding
-- If uncommitted changes are detected, the user must commit or stash them first
-- If pull fails, the user must manually resolve conflicts before resuming
-- If the branch has uncommitted changes, mention them prominently
-- If the branch is behind main, suggest syncing
-- If PR has requested changes, highlight them
-- Keep the summary concise but informative
-- Focus on actionable information
+- Auto-syncs branch before proceeding
+- Uncommitted changes block resume → commit/stash first
+- Pull failures require manual conflict resolution
+- Highlight uncommitted changes prominently
+- Suggest sync if behind main
+- Highlight PR requested changes
+- Keep concise + actionable
 
 ## Notes
 
-- This skill only reads information; it does not make any changes to the repository
-- If no PR exists but commits are ready, you might suggest creating a PR with `/ship`
-- If branch needs syncing, user can use `/ship` which will handle that
+- Read-only (no repo changes)
+- No PR + ready commits → suggest `/ship`
+- Behind main → user can `/ship` to sync
