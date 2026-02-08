@@ -2,6 +2,22 @@
 name: team-debug
 description: Spawn an adversarial debugging team with competing hypotheses
 argument-hint: "<description of the bug or issue>"
+allowed-tools:
+  - Task
+  - Skill
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Bash
+  - AskUserQuestion
+  - SendMessage
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
+  - TaskGet
+  - TeamCreate
+  - TeamDelete
 ---
 
 # Team Debug Skill

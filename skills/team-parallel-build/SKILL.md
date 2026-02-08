@@ -2,6 +2,22 @@
 name: team-parallel-build
 description: Build multiple features in parallel on separate branches
 argument-hint: "<feature1> <feature2> [feature3...]"
+allowed-tools:
+  - Task
+  - Skill
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Bash
+  - AskUserQuestion
+  - SendMessage
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
+  - TaskGet
+  - TeamCreate
+  - TeamDelete
 ---
 
 # Team Parallel Build Skill

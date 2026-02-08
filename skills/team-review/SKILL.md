@@ -2,6 +2,22 @@
 name: team-review
 description: Spawn a parallel code review team (reviewer, architect, devil)
 argument-hint: "[optional: file pattern or branch]"
+allowed-tools:
+  - Task
+  - Skill
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Bash
+  - AskUserQuestion
+  - SendMessage
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
+  - TaskGet
+  - TeamCreate
+  - TeamDelete
 ---
 
 # Team Review Skill

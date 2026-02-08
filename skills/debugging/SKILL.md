@@ -165,6 +165,12 @@ root cause, fix applied, and verification results.
 - Resist the urge to "just try something" — understand first
 - Small, targeted fixes are better than broad changes
 
+## Triage
+
+If the bug could have multiple root causes across different subsystems,
+suggest `/team-debug` instead. It spawns three investigators pursuing
+competing hypotheses in parallel.
+
 ## Notes
 
 - This skill modifies files to apply fixes

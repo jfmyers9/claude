@@ -247,6 +247,12 @@ developer. It provides thoughtful, constructive feedback that explains the
 - For minor issues, consider if they're worth mentioning
 - If code is generally good, say so clearly
 
+## Triage
+
+If the changeset is large (20+ files) or touches multiple subsystems,
+suggest `/team-review` instead. It runs reviewer, architect, and
+devil's advocate in parallel for deeper coverage.
+
 ## Notes
 
 - This skill only reviews code; it does not modify files

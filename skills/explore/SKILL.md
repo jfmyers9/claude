@@ -86,6 +86,12 @@ Do not return the full document.
 Display to user: file path, brief summary, and note they can read the
 full exploration document for details.
 
+## Triage
+
+If the topic spans 3+ subsystems or would benefit from adversarial
+challenge, suggest `/team-explore` instead. It spawns researcher,
+architect, and devil's advocate agents in parallel.
+
 ## Notes
 
 - **Automatic context injection**: If `/resume-work` was run recently (within

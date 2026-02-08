@@ -2,6 +2,22 @@
 name: team
 description: Compose a dynamic team of agents for any task
 argument-hint: "<task description> [--agents agent1,agent2,...]"
+allowed-tools:
+  - Task
+  - Skill
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Bash
+  - AskUserQuestion
+  - SendMessage
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
+  - TaskGet
+  - TeamCreate
+  - TeamDelete
 ---
 
 # Team Skill

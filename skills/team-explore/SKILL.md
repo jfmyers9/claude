@@ -2,6 +2,22 @@
 name: team-explore
 description: Spawn a deep research team (researcher, architect, devil)
 argument-hint: "<topic to explore>"
+allowed-tools:
+  - Task
+  - Skill
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Bash
+  - AskUserQuestion
+  - SendMessage
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
+  - TaskGet
+  - TeamCreate
+  - TeamDelete
 ---
 
 # Team Explore Skill

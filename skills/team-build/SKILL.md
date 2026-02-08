@@ -2,6 +2,22 @@
 name: team-build
 description: Spawn a feature build team (architect, implementer, tester, reviewer)
 argument-hint: "<feature description or exploration doc path>"
+allowed-tools:
+  - Task
+  - Skill
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Bash
+  - AskUserQuestion
+  - SendMessage
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
+  - TaskGet
+  - TeamCreate
+  - TeamDelete
 ---
 
 # Team Build Skill

@@ -222,6 +222,13 @@ Return:
 - Note that user should review changes and use /commit when ready
 ```
 
+## Triage
+
+If the plan involves 3+ independent subsystems or would benefit from
+concurrent architecture review, testing, and implementation, suggest
+`/team-build` instead. For multiple independent features, suggest
+`/team-parallel-build`.
+
 ## Output
 
 Display to user: implementation summary, changed files, and reminder to
