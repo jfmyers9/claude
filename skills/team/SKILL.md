@@ -82,6 +82,84 @@ Follow instructions for pattern from step 2.
 
 ---
 
+## Failure Handling
+
+All patterns must handle agent failure/timeout. Apply these rules
+throughout.
+
+### Detecting Failure
+
+An agent has failed when:
+- It sends an error message instead of results
+- It goes idle without sending findings after being prompted twice
+- It reports it cannot complete the task
+
+### Timeout Protocol
+
+If an agent hasn't responded after spawning:
+1. Wait for idle notification (normal -- agents go idle between turns)
+2. Send a status check message: "Status update? What progress so far?"
+3. If no substantive response after second prompt, treat as failed
+
+### Handling Failed Agents
+
+**Solo**: If the single agent fails, report failure to user with
+whatever partial output was received. Suggest re-running or manual
+approach.
+
+**Fan-out**: Continue with remaining agents. Note the gap in the
+synthesis. Report which agent failed and what perspective is missing.
+Minimum 1 agent must succeed to produce a report.
+
+**Pipeline**: See retry logic in Pipeline Pattern section. Phase
+failures may block downstream phases.
+
+### Graceful Degradation
+
+Always prefer partial results over total failure:
+- If 2/3 analysts succeed in fan-out, synthesize from 2
+- If implementer succeeds but tester fails, report untested impl
+- If reviewer fails, note "Review skipped due to agent failure"
+- Include `## Failures` section in report listing what failed + why
+
+---
+
+## Progress Reporting
+
+During long operations, keep the user informed. Report status at
+these checkpoints:
+
+### When to Report
+
+- **Team created**: "Team {name} created with {N} agents ({list}).
+  Pattern: {pattern}."
+- **Phase transitions**: "Phase 1 complete ({N}/{total} agents
+  succeeded). Starting Phase 2..."
+- **Agent completion**: "Agent {name} finished. {remaining} agents
+  still working."
+- **Failures**: "Agent {name} failed. Retrying..." or
+  "Agent {name} failed. Continuing without."
+- **Final**: "All agents complete. Synthesizing report..."
+
+### Format
+
+Keep reports to 1 line. Use plain text, not markdown. Example:
+```
+[team-143052] 2/3 analysts complete. Waiting on architect-agent...
+[team-143052] Phase 1 done. Spawning implementer...
+[team-143052] Builder failed. Retrying (1/1)...
+```
+
+### Pipeline-Specific
+
+For pipeline pattern, report before each phase:
+1. "Starting analysis phase ({N} analysts)..."
+2. "Analysis complete. Starting build phase ({N} builders)..."
+3. "Build complete. Starting review..."
+4. "Review complete. Generating report..."
+
+---
+
 ## Solo Pattern (1 agent)
 
 Minimal overhead. Spawn one agent directly.
@@ -92,6 +170,7 @@ Minimal overhead. Spawn one agent directly.
    - Give full task description
    - Instruct to work thoroughly + send findings via SendMessage
    - Wait for completion
+   - On failure: follow Failure Handling > Solo protocol
 4. Present agent output directly to user
 5. Save to `.jim/notes/team-{HHMMSS}-{slug}.md`
    - `{slug}` = short kebab-case summary (max 5 words)
@@ -121,6 +200,8 @@ Synthesize into unified report.
    - subagent_type: agent type
    - Prompt: task description + framing + SendMessage instructions
 4. Wait for ALL to complete
+   - If an agent fails: follow Failure Handling > Fan-out protocol
+   - Continue synthesis with successful agents (min 1 required)
 5. Synthesize findings into report:
    ```markdown
    # Team Report: [task summary]
@@ -190,6 +271,8 @@ Dependencies:
 
 1. Spawn all analysts parallel (same as fan-out)
 2. Wait for ALL. Collect findings.
+   - Failed analysts: apply fan-out degradation (min 1 must succeed)
+   - If ALL fail: report to user, suggest manual analysis or re-run
 3. Compile analysis summary → pass to builders
 
 ### Phase 2: Build
@@ -202,6 +285,9 @@ Dependencies:
    - Builder-specific framing
    - SendMessage instructions
 3. Wait for ALL. Collect results.
+   - Failed builder: attempt 1 retry with same prompt (see Retry
+     Logic below). If retry fails, note in report.
+   - Implementer failure blocks tester. Skip tester if impl failed.
 
 ### Phase 3: Review (if reviewer)
 
@@ -211,6 +297,16 @@ Dependencies:
    - Phase 2 build results
    - Review for quality + correctness instructions
 2. Wait. Collect findings.
+   - Reviewer failure: note "Review skipped due to agent failure"
+
+### Retry Logic (Pipeline Only)
+
+When a pipeline builder fails:
+1. Shut down the failed agent
+2. Spawn a fresh agent with same name + prompt + suffix note:
+   "Previous attempt failed. Start fresh."
+3. Max 1 retry per agent. If retry fails, proceed without.
+4. Log retry attempt + outcome in report
 
 ### Synthesize + Report
 
@@ -232,6 +328,9 @@ Pattern: pipeline (analysis → build → review)
 
 ## Phase 3: Review
 [Reviewer findings, or "No reviewer in team. Skipped."]
+
+## Failures
+[Agent failures + retries, or "None"]
 
 ## Summary
 [Overall outcome. What analyzed, built, reviewed. Issues + status.]

@@ -79,6 +79,13 @@ Update tracking file + implementation state file simultaneously.
 
 ## Update Active Tracking File
 
+Update YAML frontmatter fields:
+```yaml
+phase: {N}
+status: in_progress  # or "completed" if last phase
+updated: "{ISO timestamp}"
+```
+
 Mark completed phase:
 ```markdown
 - [x] Phase N: Name (completed 2026-01-30T22:30:00Z)
@@ -117,7 +124,9 @@ If all complete: update status -> "completed"
 Extract slug from `active-{slug}.md`
 Generate timestamp YYYYMMDD-HHMMSS
 Create: `.jim/states/{timestamp}-implemented-phase{N}-{slug}.md`
-Use standard implementation state format (see /implement skill).
+Use standard implementation state format (see /implement skill),
+including YAML frontmatter with `type: implementation-state`,
+`phase: {N}`, and other standard fields.
 
 ## Optional Post-Implementation Review
 

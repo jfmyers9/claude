@@ -52,6 +52,9 @@ From description:
 Generate timestamp `HHMMSS` format. TeamCreate: `feature-build-{HHMMSS}`
 (avoids collisions with concurrent builds).
 
+Report: "Team feature-build-{HHMMSS} created. Pipeline:
+architect -> implementer+tester -> tester fills -> reviewer."
+
 ### 4. Create Tasks
 
 5 tasks via TaskCreate:
@@ -84,6 +87,11 @@ Wait. Gate check: if critical concern -> pause, present to user
 
 If approved -> update plan with architect notes.
 
+If architect fails (error/timeout): warn user, ask whether to proceed
+without architecture check or abort. Default: proceed with caution note.
+
+Report: "Architecture check complete. Spawning implementer + tester..."
+
 ### 6. Spawn Implementer + Tester (parallel)
 
 After architect approval, spawn both:
@@ -102,6 +110,17 @@ verify, message when done (all files created/modified).
 
 Wait both finish.
 
+**If builder fails**: Retry once -- shut down failed agent, spawn fresh
+**builder-retry** (implementer) with same prompt + "Previous attempt
+failed. Start fresh." If retry fails, report to user and abort pipeline
+(no point testing without implementation).
+
+**If spec-writer fails**: Retry once -- spawn **spec-writer-retry**
+(tester) with same prompt. If retry fails, proceed without test specs
+(step 7 tester writes tests from scratch using implementation).
+
+Report: "Implementation + test specs complete. Tester filling tests..."
+
 ### 7. Tester Fills Tests
 
 Message **spec-writer**:
@@ -113,6 +132,12 @@ Message **spec-writer**:
 - Message results (locations + pass/fail + details)
 
 Wait.
+
+**If tester fails during fill**: Retry once -- message spec-writer to
+try again from scratch. If retry fails, note "Tests incomplete" in
+report and continue to review.
+
+Report: "Tests complete. Spawning reviewer..."
 
 ### 8. Spawn Reviewer
 
@@ -131,6 +156,11 @@ Message findings by severity:
 - **Low**: Future improvement
 
 Wait.
+
+**If reviewer fails**: Note "Review skipped due to agent failure" in
+report. Proceed to synthesis. Suggest manual review.
+
+Report: "Review complete. Checking for issues..."
 
 ### 9. Iteration Loop (max 1)
 
@@ -200,6 +230,10 @@ Agents: architect, implementer, tester, reviewer
 
 [If happened: what fixed, re-test results, re-review outcome.
 Else: "No critical/high issues found."]
+
+## Failures
+
+[Agent failures, retries, degraded steps, or "None"]
 
 ## Status
 

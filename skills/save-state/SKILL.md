@@ -30,6 +30,14 @@ uncommitted changes, recent commits, modified files, + user context.
 
 5. **Write file**: `.jim/states/{label}.md`
    ```markdown
+   ---
+   type: saved-state
+   topic: "{user summary, brief}"
+   branch: "{branch}"
+   status: paused
+   created: "{ISO timestamp}"
+   ---
+
    # Work State: {label}
 
    Saved: {timestamp}

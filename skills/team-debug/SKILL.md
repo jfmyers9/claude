@@ -42,6 +42,9 @@ Analyze bug + create 3 distinct hypotheses (tailor to specific bug):
 
 Generate timestamp (HHMMSS). Create team: `debug-squad-{HHMMSS}` (prevents collisions).
 
+Report: "Debug squad created. 3 investigators pursuing independent
+hypotheses..."
+
 ### 4. Create Tasks
 
 3 tasks via TaskCreate (1 per hypothesis):
@@ -76,6 +79,11 @@ Include in each prompt:
 ### 6. Coordinate + Collect
 
 Wait for 3 reports. Note overlapping evidence + contradictions.
+
+Report agent completions as they arrive:
+"Investigator-{N} complete ({N}/3). Hypothesis: {verdict}."
+
+After all: "All investigators complete. Synthesizing root cause..."
 
 ### 7. Synthesize Root Cause Analysis
 

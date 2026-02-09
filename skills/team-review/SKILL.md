@@ -42,6 +42,8 @@ Collect changed files + summary diff for teammate prompts.
 
 Generate timestamp `HHMMSS` format (e.g., `162345`). TeamCreate: `code-review-{HHMMSS}`. Prevents collisions when reviews run concurrently.
 
+Report: "Review team created. 3 reviewers analyzing {count} files..."
+
 ### 3. Create Tasks
 
 TaskCreate 3 tasks:
@@ -68,7 +70,10 @@ Include in each prompt:
 
 ### 5. Collect Results
 
-Wait for 3 reviews. Acknowledge receipt as they arrive.
+Wait for 3 reviews. Report completions as they arrive:
+"{agent} review complete ({done}/3)."
+
+After all: "All reviews in. Synthesizing unified feedback..."
 
 ### 6. Synthesize
 

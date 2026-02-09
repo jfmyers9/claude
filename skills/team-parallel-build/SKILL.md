@@ -76,6 +76,9 @@ After all branches: `git checkout {base-branch}`
 
 Generate timestamp `HHMMSS`. Use TeamCreate: name=`parallel-build-{HHMMSS}`.
 
+Report: "Team parallel-build-{HHMMSS} created. Building {N} features
+in parallel on separate branches."
+
 ### 5. Spawn Build Agents
 
 Create one task per feature (TaskCreate). All independent, no dependencies.
@@ -139,6 +142,17 @@ Send message to team lead:
 ```
 
 Wait for ALL agents to complete.
+
+**Agent failure handling**: If an agent fails (error message, goes
+idle without results after 2 prompts):
+1. Send status check: "Status update? What progress so far?"
+2. If still no response, mark feature as "Failed"
+3. Continue collecting results from other agents
+4. Do NOT retry -- each agent is on its own branch, partial state
+   may exist. Note in report for manual recovery.
+
+Report agent completions as they arrive:
+"build-{N} complete ({done}/{total}). Feature: {name} -- {status}."
 
 ### 6. Collect Results
 

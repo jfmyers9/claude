@@ -34,6 +34,8 @@ Extract exploration topic from `$ARGUMENTS`. If missing, ask user what to explor
 
 Generate timestamp (HHMMSS format, e.g. `162345`). Create team named `deep-explore-{HHMMSS}` via TeamCreate to avoid collisions.
 
+Report: "Exploration team created. 3 specialists investigating..."
+
 ### 3. Create Tasks
 
 TaskCreate three tasks:
@@ -56,6 +58,11 @@ Include in each prompt:
 ### 5. Coordinate + Collect
 
 Wait for all three to report. Note connections between discoveries.
+
+Report agent completions as they arrive:
+"{agent} complete ({done}/3)."
+
+After all: "All specialists complete. Synthesizing exploration doc..."
 
 ### 6. Synthesize Document
 

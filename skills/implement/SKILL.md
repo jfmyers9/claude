@@ -76,12 +76,19 @@ Active tracking + implementation state files are independent.
 Create/update `.jim/states/active-{slug}.md`:
 
 ```markdown
-# Active Implementation: {topic}
+---
+type: active-tracking
+topic: "{topic}"
+source: "{absolute path}"
+branch: "{current git branch}"
+status: in_progress
+phase: 1
+total_phases: {N}
+created: "{ISO timestamp}"
+updated: "{ISO timestamp}"
+---
 
-Source: {absolute path}
-Started: {ISO timestamp}
-Branch: {current git branch}
-Status: in_progress
+# Active Implementation: {topic}
 
 ## Phases
 
@@ -118,10 +125,18 @@ Generate timestamp YYYYMMDD-HHMMSS
 Write to `.jim/states/{timestamp}-implemented-{slug}.md`:
 
 ```markdown
-# Implementation: {topic}
+---
+type: implementation-state
+topic: "{topic}"
+source: "{absolute path}"
+branch: "{current git branch}"
+status: completed
+phase: 1
+total_phases: {N}
+created: "{ISO timestamp}"
+---
 
-Implemented: {ISO timestamp}
-Branch: {current git branch}
+# Implementation: {topic}
 
 ## Source
 {absolute path}
