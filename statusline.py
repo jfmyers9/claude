@@ -16,8 +16,6 @@ RESET = "\033[0m"
 
 SEP = f" {DIM}|{RESET} "
 
-GIT_CACHE = "/tmp/claude-statusline-git"
-GIT_TTL = 5
 USAGE_CACHE = "/tmp/claude-statusline-usage.json"
 USAGE_TTL = 60
 
@@ -134,56 +132,6 @@ def _run(cmd, cwd=None):
 
 # -- Data fetchers --
 
-def git_info(cwd):
-    if not cwd:
-        return None
-    import hashlib
-    cache_path = GIT_CACHE + "-" + hashlib.md5(cwd.encode()).hexdigest()[:8]
-    cached = read_cache(cache_path, GIT_TTL)
-    if cached is not None:
-        return cached or None
-
-    try:
-        branch = _run(["git", "branch", "--show-current"], cwd)
-        if not branch:
-            branch = _run(["git", "rev-parse", "--short", "HEAD"], cwd)[:7]
-
-        lines = _run(["git", "status", "--porcelain"], cwd).splitlines()
-        staged = modified = 0
-        for ln in lines:
-            if len(ln) < 2:
-                continue
-            if ln[0] in "AMDRC":
-                staged += 1
-            if ln[1] in "MD":
-                modified += 1
-
-        parts = [f"{LGRAY}󰘬 {branch}{RESET}"]
-        if staged:
-            parts.append(f"{GREEN}•{staged}{RESET}")
-        if modified:
-            parts.append(f"{ORANGE}+{modified}{RESET}")
-
-        try:
-            raw = _run(["git", "remote", "get-url", "origin"], cwd)
-            url = raw
-            if url.startswith("git@"):
-                url = url.replace(":", "/", 1).replace("git@", "https://")
-            if url.endswith(".git"):
-                url = url[:-4]
-            name = url.rsplit("/", 1)[-1]
-            parts.append(f"\033]8;;{url}\a{CYAN}{name}{RESET}\033]8;;\a")
-        except Exception:
-            parts.append(f"{CYAN}{os.path.basename(cwd)}{RESET}")
-
-        result = " ".join(parts)
-    except Exception:
-        result = ""
-
-    write_cache(cache_path, result)
-    return result or None
-
-
 def fetch_usage():
     cached = read_cache(USAGE_CACHE, USAGE_TTL)
     if cached is not None:
@@ -238,7 +186,6 @@ def main():
                    (usage.get("cache_read_input_tokens") or 0)
 
     cost_data = data.get("cost") or {}
-    cwd = (data.get("workspace") or {}).get("current_dir", "")
     vim = data.get("vim")
     agent = data.get("agent")
 
@@ -252,12 +199,8 @@ def main():
     parts1.append(f"{DIM}󰇁 {fmt_cost(cost_data.get('total_cost_usd'))}{RESET}")
     sys.stdout.write(SEP.join(parts1))
 
-    # === LINE 2: git | 5h quota bar | weekly quota bar | vim | agent ===
+    # === LINE 2: 5h quota bar | weekly quota bar | vim | agent ===
     parts2 = []
-
-    gi = git_info(cwd)
-    if gi:
-        parts2.append(gi)
 
     quota = fetch_usage()
     if quota:
