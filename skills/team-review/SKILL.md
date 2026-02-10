@@ -67,6 +67,41 @@ Include in each prompt:
 - Changed files (absolute paths)
 - Reminder to read files completely, not just diff
 - SendMessage instructions for results
+- Required output format per role:
+
+  **reviewer-agent**:
+  ```
+  ## Findings
+  [issues organized by file, each with severity + description]
+  ## Summary
+  [overall code quality assessment]
+  | Severity | Count |
+  | Critical | N |
+  | Important | N |
+  | Suggestion | N |
+  ```
+
+  **architect-agent**:
+  ```
+  ## Design Assessment
+  [patterns, coupling, cohesion, abstraction evaluation]
+  ## Tradeoffs
+  [design tradeoffs identified + recommendations]
+  ## Summary
+  [overall architecture assessment]
+  ```
+
+  **devil-agent**:
+  ```
+  ## Edge Cases
+  [scenarios: "What happens when..." with file refs]
+  ## Security Concerns
+  [vulnerabilities or risks found]
+  ## Failure Modes
+  [how changes could break under stress]
+  ## Summary
+  [overall risk assessment]
+  ```
 
 ### 5. Collect Results
 
@@ -125,7 +160,7 @@ Reviewers: reviewer, architect, devil
 [Agent failures, or "None"]
 ```
 
-Save to `.jim/notes/team-review-{timestamp}-{branch}.md` (branch name: `/` -> `-`).
+Save to `.jim/notes/team-review-{YYYYMMDD-HHMMSS}-{slug}.md` (slug from branch name: `/` -> `-`).
 
 ### 7. Shut Down Team
 

@@ -133,13 +133,19 @@ Fix Issues
 - Re-run tests after fixes
 
 Reporting
-Send message to team lead:
-1. Status (success/failed + why)
-2. Build summary
-3. Files created/modified
-4. Test results (pass/fail counts + failures)
-5. Review findings (severity + fixes applied)
-6. Remaining concerns
+Send message to team lead using this format:
+## Status
+[success/failed + why]
+## Build Summary
+[what was implemented]
+## Files Created/Modified
+[absolute paths with descriptions]
+## Test Results
+[pass/fail counts + failure details]
+## Review Findings
+[severity + fixes applied]
+## Remaining Concerns
+[known issues, if any]
 ```
 
 Wait for ALL agents to complete.
@@ -165,7 +171,7 @@ Gather from each agent's messages:
 
 ### 7. Aggregate Report
 
-Generate timestamp `YYYYMMDD-HHMMSS`. Save to `.jim/notes/parallel-build-{timestamp}.md`:
+Generate timestamp `YYYYMMDD-HHMMSS`. Save to `.jim/notes/team-parallel-build-{YYYYMMDD-HHMMSS}-{slug}.md` (slug from combined feature names, max 5 words):
 
 ```markdown
 # Parallel Build Report
@@ -213,7 +219,7 @@ Status: {success/failed}
 
 ### 9. Shut Down Team
 
-Send shutdown requests to all agents. After confirmed, call TeamDelete.
+Send shutdown requests to all teammates. After confirmed, call TeamDelete.
 
 ### 10. Results to User
 

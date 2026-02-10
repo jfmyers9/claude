@@ -98,7 +98,15 @@ After architect approval, spawn both with `mode: "acceptEdits"`:
 
 **builder** (general-purpose): Full plan + architect notes.
 Files to create/modify, behavior, constraints. Implement step-by-step,
-verify, message when done (all files created/modified).
+verify, message when done. Required output format:
+```
+## Implementation Summary
+[what was built + approach taken]
+## Files Created/Modified
+[absolute paths with description of changes]
+## Remaining Concerns
+[known issues or incomplete items, if any]
+```
 
 **spec-writer** (general-purpose): Feature description + plan (NOT implementation).
 - Create test files + imports
@@ -106,7 +114,13 @@ verify, message when done (all files created/modified).
 - Comments on what to verify
 - Placeholder assertions (`expect(true).toBe(false)` or `assert False`)
 - Happy paths + edge cases + error handling
-- Message when done (test files + scenarios)
+- Message when done. Required output format:
+  ```
+  ## Test Files
+  [absolute paths with description]
+  ## Scenarios Covered
+  [list of test scenarios by category: happy path, edge case, error]
+  ```
 
 Wait both finish.
 
@@ -156,7 +170,20 @@ Report: "Tests complete. Spawning reviewer..."
 - Project conventions
 - Security
 
-Message findings by severity:
+Message findings by severity. Required output format:
+```
+## Issues
+| Severity | File | Issue | Suggestion |
+|----------|------|-------|------------|
+| Critical | ... | ... | ... |
+| High | ... | ... | ... |
+| Medium | ... | ... | ... |
+| Low | ... | ... | ... |
+## Summary
+[overall quality assessment]
+```
+
+Severity definitions:
 - **Critical**: Must fix (bugs, security)
 - **High**: Should fix (design, missing handling)
 - **Medium**: Nice to have (style, naming, structure)
@@ -186,7 +213,7 @@ If issues remain after 1 fix -> note in report for manual fix.
 
 ### 10. Synthesize Results
 
-Save to `.jim/notes/build-{timestamp}-{slug}.md`:
+Save to `.jim/notes/team-build-{YYYYMMDD-HHMMSS}-{slug}.md`:
 
 ```markdown
 # Feature Build: [name]
@@ -249,7 +276,7 @@ Else: "No critical/high issues found."]
 
 ### 11. Shut Down Team
 
-Send shutdown requests to all agents. After confirmed, call TeamDelete.
+Send shutdown requests to all teammates. After confirmed, call TeamDelete.
 
 ### 12. Present Results
 

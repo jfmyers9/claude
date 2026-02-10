@@ -178,9 +178,9 @@ Minimal overhead. Spawn one agent directly.
    - Wait for completion
    - On failure: follow Failure Handling > Solo protocol
 4. Present agent output directly to user
-5. Save to `.jim/notes/team-{HHMMSS}-{slug}.md`
+5. Save to `.jim/notes/team-{YYYYMMDD-HHMMSS}-{slug}.md`
    - `{slug}` = short kebab-case summary (max 5 words)
-6. Send shutdown request to mate. After confirmed, call TeamDelete.
+6. Send shutdown request to teammate. After confirmed, call TeamDelete.
 
 ---
 
@@ -205,6 +205,15 @@ Synthesize into unified report.
    - Name: `{agent-type}-agent` or `{agent-type}-agent-{N}` (duplicates)
    - subagent_type: `general-purpose`
    - Prompt: task description + framing + SendMessage instructions
+   - Required output format (include in prompt):
+     ```
+     ## Findings
+     [main discoveries with file paths + line numbers]
+     ## Assessment
+     [analysis from your perspective]
+     ## Recommendations
+     [actionable next steps]
+     ```
 4. Wait for ALL to complete
    - If an agent fails: follow Failure Handling > Fan-out protocol
    - Continue synthesis with successful agents (min 1 required)
@@ -224,12 +233,12 @@ Synthesize into unified report.
    ## Recommendations
    [Actionable next steps]
    ```
-6. Save to `.jim/notes/team-{HHMMSS}-{slug}.md`
+6. Save to `.jim/notes/team-{YYYYMMDD-HHMMSS}-{slug}.md`
 7. Present user:
    - Brief summary (2-3 sentences)
    - Key findings ea. agent (1-2 bullets)
    - Recommendations + report path
-8. Send shutdown requests to all mates. After confirmed, call TeamDelete.
+8. Send shutdown requests to all teammates. After confirmed, call TeamDelete.
 
 ---
 
@@ -345,10 +354,10 @@ Pattern: pipeline (analysis → build → review)
 [Next steps based on pipeline outcome]
 ```
 
-1. Save to `.jim/notes/team-{HHMMSS}-{slug}.md`
+1. Save to `.jim/notes/team-{YYYYMMDD-HHMMSS}-{slug}.md`
 2. Present user:
    - Accomplishment ea. phase (1-2 sentences)
    - Files created/modified
    - Review findings
    - Report path + suggested next steps
-3. Send shutdown requests to all mates. After confirmed, call TeamDelete.
+3. Send shutdown requests to all teammates. After confirmed, call TeamDelete.

@@ -54,6 +54,43 @@ Include in each prompt:
 - Full exploration topic
 - Reminder: others exploring different angles (avoid redundancy)
 - Send findings via SendMessage
+- Required output format per role:
+
+  **explorer**:
+  ```
+  ## Relevant Files
+  [path:line - description, organized by relevance]
+  ## Existing Implementations
+  [code patterns related to topic]
+  ## Dependencies
+  [configs, external factors]
+  ## Key Findings
+  [summary of most important discoveries]
+  ```
+
+  **design-analyst**:
+  ```
+  ## Current Structure
+  [how architecture relates to topic]
+  ## Design Patterns
+  [patterns found + fit assessment]
+  ## Structural Considerations
+  [coupling, cohesion, boundaries]
+  ## Recommendations
+  [structural recommendations with tradeoffs]
+  ```
+
+  **challenger**:
+  ```
+  ## Assumptions to Validate
+  [assumptions needing verification]
+  ## Edge Cases
+  [failure modes to consider]
+  ## Security & Performance
+  [concerns raised]
+  ## Alternative Approaches
+  [alternatives to obvious approach + tradeoffs]
+  ```
 
 ### 5. Coordinate + Collect
 
@@ -159,7 +196,7 @@ Team: researcher, architect, devil
 [Concrete actions, structured with phase markers if warranted]
 ```
 
-Save to `.jim/plans/{timestamp}-{topic-slug}.md`.
+Save to `.jim/plans/team-explore-{YYYYMMDD-HHMMSS}-{slug}.md`.
 
 ### 7. Shut Down Team
 

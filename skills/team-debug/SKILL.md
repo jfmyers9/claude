@@ -75,6 +75,18 @@ Include in each prompt:
 - Their specific hypothesis
 - Other 2 hypotheses (for cross-checking)
 - SendMessage instructions for results
+- Required output format:
+  ```
+  ## Hypothesis: [name]
+  ## Evidence For
+  [supporting findings with file paths + line numbers]
+  ## Evidence Against
+  [refuting findings]
+  ## Confidence
+  [high/medium/low + reasoning]
+  ## Suggested Fix
+  [specific steps with file paths]
+  ```
 
 ### 6. Coordinate + Collect
 
@@ -140,7 +152,7 @@ Hypotheses tested: 3
 [Agent failures + retries, or "None"]
 ```
 
-Save to `.jim/notes/debug-{timestamp}-{slug}.md` (slug from bug description).
+Save to `.jim/notes/team-debug-{YYYYMMDD-HHMMSS}-{slug}.md` (slug from bug description).
 
 ### 8. Shut Down Team
 
