@@ -88,6 +88,7 @@ Spawn one general-purpose agent per feature in parallel.
 Each agent:
 - Name: `build-{N}` (e.g., `build-1`, `build-2`)
 - subagent_type: general-purpose
+- mode: acceptEdits
 - Prompt: Include instructions below
 
 ```

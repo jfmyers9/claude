@@ -54,7 +54,7 @@ hypotheses..."
 
 ### 5. Spawn Teammates
 
-3 teammates via Task tool (subagent_type: `researcher`):
+3 teammates via Task tool (subagent_type: `general-purpose`):
 
 **investigator-1**: Data/state hypothesis
 - Search codebase for supporting/refuting evidence

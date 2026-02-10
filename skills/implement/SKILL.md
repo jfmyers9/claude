@@ -11,7 +11,7 @@ Execute plan from exploration document, tracking progress via tasks.
 
 ## Agent Prompt
 
-Spawn agent via Task with this prompt:
+Spawn agent via Task (subagent_type: general-purpose) with this prompt:
 
 ```
 Implement plan from exploration document.

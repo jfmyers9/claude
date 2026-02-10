@@ -56,11 +56,11 @@ TaskCreate 3 tasks:
 
 Task tool with `team_name` + `name`:
 
-- **reviewer-agent** (subagent_type: `reviewer`): Review code quality. Read files completely, check diff. Focus: readability, best practices, error handling, style. Report by file + severity (critical/important/suggestion).
+- **reviewer-agent** (subagent_type: `general-purpose`): Review code quality. Read files completely, check diff. Focus: readability, best practices, error handling, style. Report by file + severity (critical/important/suggestion).
 
-- **architect-agent** (subagent_type: `architect`): Review design. Read files, analyze structure. Focus: design patterns, coupling/cohesion, abstraction, maintainability. Report with tradeoff analysis.
+- **architect-agent** (subagent_type: `general-purpose`): Review design. Read files, analyze structure. Focus: design patterns, coupling/cohesion, abstraction, maintainability. Report with tradeoff analysis.
 
-- **devil-agent** (subagent_type: `devil`): Stress-test changes. Read files, find edge cases, failure modes, security concerns, bad assumptions. Report as scenarios ("What happens when...").
+- **devil-agent** (subagent_type: `general-purpose`): Stress-test changes. Read files, find edge cases, failure modes, security concerns, bad assumptions. Report as scenarios ("What happens when...").
 
 Include in each prompt:
 - Branch name + review scope

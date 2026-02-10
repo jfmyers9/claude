@@ -59,12 +59,12 @@ architect -> implementer+tester -> tester fills -> reviewer."
 
 5 tasks via TaskCreate:
 
-1. **Architecture sanity check** (architect): Design review before code.
-2. **Implement feature** (implementer): Build following plan.
-3. **Write test specs** (tester): Test stubs from plan (not implementation).
+1. **Architecture sanity check** (general-purpose): Design review before code.
+2. **Implement feature** (general-purpose): Build following plan.
+3. **Write test specs** (general-purpose): Test stubs from plan (not implementation).
    Focus on what to test, not how.
-4. **Fill tests + run** (tester): Complete bodies + run suite.
-5. **Review implementation** (reviewer): Quality + correctness + conventions.
+4. **Fill tests + run** (general-purpose): Complete bodies + run suite.
+5. **Review implementation** (general-purpose): Quality + correctness + conventions.
 
 Dependencies:
 - Task 2 blocked by 1
@@ -74,7 +74,7 @@ Dependencies:
 
 ### 5. Spawn Architect
 
-**arch-check** (architect): 2-min sanity check on full plan:
+**arch-check** (general-purpose): 2-min sanity check on full plan:
 - Design flaws?
 - Missing edge cases?
 - File boundaries + structure reasonable?
@@ -94,13 +94,13 @@ Report: "Architecture check complete. Spawning implementer + tester..."
 
 ### 6. Spawn Implementer + Tester (parallel)
 
-After architect approval, spawn both:
+After architect approval, spawn both with `mode: "acceptEdits"`:
 
-**builder** (implementer): Full plan + architect notes.
+**builder** (general-purpose): Full plan + architect notes.
 Files to create/modify, behavior, constraints. Implement step-by-step,
 verify, message when done (all files created/modified).
 
-**spec-writer** (tester): Feature description + plan (NOT implementation).
+**spec-writer** (general-purpose): Feature description + plan (NOT implementation).
 - Create test files + imports
 - Function signatures + names
 - Comments on what to verify
@@ -111,12 +111,12 @@ verify, message when done (all files created/modified).
 Wait both finish.
 
 **If builder fails**: Retry once -- shut down failed agent, spawn fresh
-**builder-retry** (implementer) with same prompt + "Previous attempt
+**builder-retry** (general-purpose) with same prompt + "Previous attempt
 failed. Start fresh." If retry fails, report to user and abort pipeline
 (no point testing without implementation).
 
 **If spec-writer fails**: Retry once -- spawn **spec-writer-retry**
-(tester) with same prompt. If retry fails, proceed without test specs
+(general-purpose) with same prompt. If retry fails, proceed without test specs
 (step 7 tester writes tests from scratch using implementation).
 
 Report: "Implementation + test specs complete. Tester filling tests..."
@@ -141,7 +141,7 @@ Report: "Tests complete. Spawning reviewer..."
 
 ### 8. Spawn Reviewer
 
-**code-reviewer** (reviewer): Feature description + implementer files
+**code-reviewer** (general-purpose): Feature description + implementer files
 + tester files + results. Review for:
 - Code quality + readability
 - Error handling + edge cases

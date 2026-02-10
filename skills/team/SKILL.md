@@ -58,14 +58,20 @@ Exit if no task description found; ask user to provide one.
 
 ### 2. Classify + Choose Pattern
 
-| Agent | Write? |
-|-------|--------|
+All agents use subagent_type `general-purpose`. Role differentiation
+is via prompt only. Classify by write capability:
+
+| Role | Write? |
+|------|--------|
 | researcher | No |
 | reviewer | No |
 | architect | No |
 | devil | No |
-| implementer | Yes (acceptEdits) |
-| tester | Yes (Write, Edit) |
+| implementer | Yes |
+| tester | Yes |
+
+Write-capable agents: spawn with `mode: "acceptEdits"` so they can
+use Edit/Write tools without permission prompts.
 
 Patterns:
 - **Solo**: Exactly 1 agent
@@ -166,7 +172,7 @@ Minimal overhead. Spawn one agent directly.
 
 1. TeamCreate with team name from step 3
 2. TaskCreate with full task description
-3. Spawn mate **solo-agent** (subagent_type: agent type)
+3. Spawn mate **solo-agent** (subagent_type: `general-purpose`)
    - Give full task description
    - Instruct to work thoroughly + send findings via SendMessage
    - Wait for completion
@@ -197,7 +203,7 @@ Synthesize into unified report.
      Number: "researcher-1", "researcher-2", etc.
 3. Spawn all mates parallel. Each:
    - Name: `{agent-type}-agent` or `{agent-type}-agent-{N}` (duplicates)
-   - subagent_type: agent type
+   - subagent_type: `general-purpose`
    - Prompt: task description + framing + SendMessage instructions
 4. Wait for ALL to complete
    - If an agent fails: follow Failure Handling > Fan-out protocol

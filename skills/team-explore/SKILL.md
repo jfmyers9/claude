@@ -46,9 +46,9 @@ TaskCreate three tasks:
 
 ### 4. Spawn Teammates
 
-- **explorer** (researcher): Cast wide net. Search files (Glob+Grep), read docs, trace code paths, check dependencies. Report: files, patterns, implementations, docs organized by relevance
-- **design-analyst** (architect): Analyze architecture. Identify patterns, evaluate structure, map boundaries+interfaces, assess coupling/cohesion. Report: observations, pattern analysis, structural recommendations
-- **challenger** (devil): Think failure modes. Identify assumptions, edge cases, security/performance concerns, challenge obvious approaches. Report: specific concerns, alternatives, risks
+- **explorer** (general-purpose): Cast wide net. Search files (Glob+Grep), read docs, trace code paths, check dependencies. Report: files, patterns, implementations, docs organized by relevance
+- **design-analyst** (general-purpose): Analyze architecture. Identify patterns, evaluate structure, map boundaries+interfaces, assess coupling/cohesion. Report: observations, pattern analysis, structural recommendations
+- **challenger** (general-purpose): Think failure modes. Identify assumptions, edge cases, security/performance concerns, challenge obvious approaches. Report: specific concerns, alternatives, risks
 
 Include in each prompt:
 - Full exploration topic
