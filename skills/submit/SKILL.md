@@ -1,20 +1,24 @@
 ---
 name: submit
-description: Sync branch and create/update PRs using Graphite
+description: >
+  Sync branch + create/update PRs via Graphite.
+  Triggers: /submit, "submit PR", "push branch", "create PR".
 allowed-tools: Bash
-argument-hint: "[--stack] [--sync-only]"
+argument-hint: "[--stack] [--ready]"
 ---
 
 # Submit
 
-Graphite workflow to submit current branch:
+## Steps
 
-1. Verify no uncommitted changes (warn + stop if present)
-2. Run `gt restack --only` to restack branch
-   - Fail on non-zero exit, display error
-3. If `--sync-only` flag: stop (don't submit)
-4. Run `gt submit` to push + create/update PRs
-   - Use `gt submit --stack` if `--stack` flag provided
-   - Fail on non-zero exit, display error
-
-Show output for each command + display PR URLs prominently.
+1. Verify no uncommitted changes (`git status --porcelain`)
+   - Changes present → warn, stop
+2. Run `gt restack --only`
+   - Non-zero exit → show error, stop
+3. Build submit command:
+   - Base: `gt submit`
+   - `--stack` in `$ARGUMENTS` → add `--stack`
+   - `--ready` in `$ARGUMENTS` → add `--no-draft`
+   - Default: draft PR (no extra flags)
+4. Run submit command
+5. Show output + display PR URLs prominently

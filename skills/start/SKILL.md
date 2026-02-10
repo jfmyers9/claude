@@ -1,26 +1,21 @@
 ---
 name: start
-description: Start a new track of work by creating an empty Graphite branch
+description: >
+  Create empty Graphite branch to begin new work.
+  Triggers: /start, "start new branch", "begin work on".
 allowed-tools: Bash
-argument-hint: "<branch-name> (auto-prefixed with jm/)"
+argument-hint: "<branch-name>"
 ---
 
 # Start New Work
 
-Create empty branch on Graphite stack to begin new work. Entry point for
-workflow lifecycle.
+## Steps
 
 1. Check `$ARGUMENTS` for branch name
-   - If missing: tell user "Please provide a branch name: `/start <branch-name>`"
-   - Stop if absent
-2. Prefix with `jm/`
-   - If already starts with `jm/`: use as-is
-   - Else: prepend `jm/` -> `jm/$ARGUMENTS`
-   - Store final name for next step
-3. Check uncommitted changes: `git status --porcelain`
-   - If exist: warn "Note: You have uncommitted changes that will carry
-     forward to the new branch."
-   - Do NOT block -- proceed anyway
-4. Run `gt create {final-branch-name}` to create empty branch on stack
-5. Show output + confirm branch created
-6. Suggest: "Use `/explore` to plan your work on this branch."
+   - Missing → tell user: `/start <branch-name>`, stop
+2. Prefix with `jm/` (skip if already prefixed)
+3. Check `git status --porcelain`
+   - Uncommitted changes → warn (don't block)
+4. Run `gt create <branch-name>`
+5. Confirm branch created
+6. Suggest `/explore` to plan work

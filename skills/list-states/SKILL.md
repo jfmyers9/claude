@@ -1,42 +1,35 @@
 ---
 name: list-states
-description: Lists all saved work states in .jim/states/ with names, dates, and summaries.
+description: |
+  List all saved work states in .jim/states/.
+  Triggers: 'list states', 'show states', 'what states do I have'.
 disable-model-invocation: true
 allowed-tools: Bash, Read, Glob
 ---
 
-# List States
+# Instructions
 
-Lists saved work states from `.jim/states/` (names, dates, summaries).
+1. Check `.jim/states/` exists + has `.md` files.
+   - Empty/missing → "No saved states. Use `/save-state` to
+     save your first state."
 
-## Steps
+2. List `.md` files sorted by mtime (newest first):
+   `ls -lt .jim/states/*.md 2>/dev/null`
 
-1. Check if `.jim/states/` exists + has files
-   - If empty: "No saved states found. Use `/save-state` to save your first state."
-
-2. List `.md` files: `ls -lt .jim/states/*.md 2>/dev/null`
-   - Sorted by modification time (newest first)
-
-3. For each file extract:
-   - filename (label)
-   - modification date: `stat -c %y` or `ls -l`
-   - "## Summary" text
-   - "Branch:" value
+3. Per file, extract:
+   - Label (filename without .md)
+   - Branch (from `branch:` frontmatter or `Branch:` line)
+   - Modified date (`stat -c %y`)
+   - Summary (from `topic:` frontmatter or `## Summary` text)
 
 4. Display as table:
+
    ```
-   | Label      | Branch             | Modified         | Summary                    |
-   |------------|--------------------|--------------------|----------------------------|
-   | current    | feature/user-auth  | 2 hours ago        | Working on JWT validation  |
-   | bug-fix    | fix/login-error    | 1 day ago          | Fixing login redirect bug  |
-   | experiment | main               | 3 days ago         | Testing new API approach   |
+   | Label   | Branch            | Modified    | Summary              |
+   |---------|-------------------|-------------|----------------------|
+   | current | feature/user-auth | 2 hours ago | JWT validation work  |
+   | bug-fix | fix/login-error   | 1 day ago   | Login redirect bug   |
    ```
 
-5. Suggest: `/load-state {label}` to resume, `/save-state {label}` to create/update
-
-## Notes
-
-- Read-only operation
-- State files = plain markdown in `.jim/states/`
-- Sorted by modification time (newest first)
-- Old states can be deleted manually
+5. Suggest: `/load-state {label}` to resume,
+   `/save-state {label}` to create/update.

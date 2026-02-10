@@ -1,6 +1,10 @@
 ---
 name: team-parallel-build
-description: Build multiple features in parallel on separate branches
+description: |
+  Build multiple features in parallel on separate Graphite
+  branches. Each agent runs full workflow: arch → implement →
+  test → review. Triggers: 'parallel build', 'build multiple',
+  'team parallel'.
 argument-hint: "<feature1> <feature2> [feature3...]"
 allowed-tools:
   - Task
@@ -20,11 +24,10 @@ allowed-tools:
   - TeamDelete
 ---
 
-# Team Parallel Build Skill
+# Team Parallel Build
 
-Build multiple independent features in parallel on separate Graphite
-branches. Each agent runs full workflow: architecture → implementation
-→ testing → review.
+Multiple independent features built in parallel on separate
+Graphite branches. Each agent runs full build workflow.
 
 ## Instructions
 
@@ -38,7 +41,7 @@ Split `$ARGUMENTS` on quoted boundaries or `.md` paths.
 
 ### 2. Pre-flight
 
-1. Clean tree required: `git status --porcelain` (exit if dirty)
+1. Clean tree required: `git status --porcelain` (dirty → exit)
 2. Record base branch: `git branch --show-current`
 3. Verify Graphite: `gt --version`
 
@@ -50,39 +53,47 @@ Per feature:
 
 Return to base after all branches created.
 
-### 4. Create Team
+### 4. Create Team + Tasks
 
-TeamCreate: `parallel-build-{HHMMSS}`.
+TeamCreate: `parallel-build-{HHMMSS}`. TaskCreate 1 per
+feature.
 
 ### 5. Spawn Build Agents
 
 One general-purpose agent per feature, all parallel:
-- Name: `build-{N}`
-- mode: acceptEdits
+- Name: `build-{N}`, mode: acceptEdits
 - Prompt includes: checkout branch, feature spec, full build
-  workflow (architecture check → implement → test → self-review →
-  fix critical/high issues). Report: status, summary, files,
-  test results, review findings, remaining concerns.
+  workflow (architecture check → implement → test →
+  self-review → fix critical/high issues)
+- Report: status, summary, files, test results, review
+  findings, remaining concerns
 
 Wait all. Report completions as they arrive.
 
-**Failure handling**: Status check after 2 idle prompts. Failed →
-mark feature "Failed", continue others. No retry (partial branch
-state may exist).
+### 6. Failure Handling
 
-### 6. Aggregate Report
+Status check after 2 idle prompts. Failed → mark feature
+"Failed", continue others. No retry (partial branch state
+may exist).
 
-Save to `.jim/notes/team-parallel-build-{YYYYMMDD-HHMMSS}-{slug}.md`:
+### 7. Aggregate Report
 
-Summary table (feature, branch, status, files, tests, issues) +
-per-feature details (what built, files, tests, review findings).
+Save to
+`.jim/notes/team-parallel-build-{YYYYMMDD-HHMMSS}-{slug}.md`:
 
-### 7. Return to Base + Shutdown
+- Summary table (feature, branch, status, files, tests, issues)
+- Per-feature details (what built, files, tests, review
+  findings)
+
+### 8. Return to Base + Shutdown
 
 `git checkout {base-branch}`. Shutdown all → TeamDelete.
 
-### 8. Present
+### 9. Present
 
-Feature count + success/failure split, per-feature one-liner,
-test overview, report path. Next: `gt checkout {branch}` to
-review, `/submit` per branch for PRs.
+- Feature count + success/failure split
+- Per-feature one-liner
+- Test overview
+- Report path
+- Next: `gt checkout {branch}` to review, `/submit` per
+  branch for PRs

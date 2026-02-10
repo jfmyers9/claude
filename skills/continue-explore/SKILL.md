@@ -1,18 +1,20 @@
 ---
 name: continue-explore
-description: Continue an existing exploration with user feedback
+description: |
+  Continue existing exploration with feedback.
+  Triggers: 'continue exploring', 'refine exploration',
+  'update the plan'.
 allowed-tools: Bash, Read, Task
-argument-hint: "[file-path] <feedback>"
+argument-hint: "[<existing-doc>] <feedback>"
 ---
 
-# Continue Explore Skill
+# Continue Explore
 
-Shortcut for `/explore` with an existing document. Routes to
-explore skill's continue mode.
+Shortcut for `/explore --continue`.
 
 ## Instructions
 
-Invoke `/explore $ARGUMENTS`
+Invoke `/explore --continue $ARGUMENTS`
 
 If no arguments: find most recent `.jim/plans/*.md`, display
 summary, ask user what to refine.

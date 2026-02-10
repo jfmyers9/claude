@@ -1,85 +1,75 @@
 ---
 name: address-review
-description: Address feedback from code review with automated fixes
+description: >
+  Address feedback from code review with automated fixes.
+  Triggers: 'address review', 'fix review feedback',
+  'apply review fixes'.
 allowed-tools: Task
 argument-hint: "[review-doc or slug] [--priority=high|medium|low|all]"
 ---
 
-# Address Review Skill
-
-Reads code review docs (`/review`, `/review-implementation`) + applies
-automated fixes. Flags complex issues for manual intervention.
-
 ## Parse Arguments
 
-Parse `$ARGUMENTS` for:
+From `$ARGUMENTS`:
 - `--priority=LEVEL`: high (default) | medium (high+medium) |
   low (all three) | all
-- Review doc path or slug: remaining args after flags
+- Remaining text: review doc path or slug
 
 ## Find Review Document
 
-Path ending `.md` -> use directly. Otherwise -> slug, find most
-recent `.jim/notes/review-impl-*{slug}*.md` or
-`.jim/notes/review-*{slug}*.md`.
+- Path ending `.md` → use directly
+- Slug → find most recent `.jim/notes/review-impl-*{slug}*.md`
+  or `.jim/notes/review-*{slug}*.md` (prefer review-impl)
+- No args → most recent review doc in `.jim/notes/`
 
-No args -> most recent in `.jim/notes/`, prefer `review-impl-*`.
-
-Spawn via Task:
+## Spawn Task
 
 ```
-Address feedback from a code review document.
+Address feedback from code review.
 
 ## Context
 
-Review document: [insert absolute path to review doc]
-Priority level: [insert priority filter]
-Review content summary: [insert key findings from review doc]
+Review document: {absolute path}
+Priority filter: {level}
+Review content summary: {key findings}
 
-## Parse Review Feedback
+## Instructions
 
-Extract actionable items from:
+1. Parse review feedback from:
+   - **Recommendations table** — Priority, Item, Action.
+     "Verify"/"Consider" items = optional.
+   - **Areas for Improvement** — category, file:line, issue,
+     suggested fix
+   - Cross-reference files. Skip nonexistent files.
 
-1. **Recommendations table** ("## Recommendations"): Priority, Item,
-   Action. "Verify"/"Consider" items = optional.
+2. Filter by priority. No matches → report counts per level,
+   suggest `--priority=all`, exit.
 
-2. **Areas for Improvement** subsections: category, file:line, issue
-   description, suggested fix, code examples.
+3. Categorize:
 
-3. Cross-reference files changed. Skip nonexistent files.
+   | Simple (automate)         | Complex (flag for manual)   |
+   |---------------------------|-----------------------------|
+   | Rename, comment fix,      | Architecture changes,       |
+   | constant extraction,      | logic modifications,        |
+   | import reorder, format,   | algorithm improvements,     |
+   | extract/inline var,       | security fixes,             |
+   | remove unused code,       | perf optimizations,         |
+   | null checks, doc updates  | breaking API changes,       |
+   |                           | cross-file audits           |
 
-## Filter by Priority
+   "consider"/"would be worth" → categorize by complexity.
+   "verify"/"audit" → skip (human judgment).
+   Missing path → skip + note.
 
-Apply priority filter. No matches -> report counts per level +
-suggest `--priority=all`. Exit if empty.
+4. Apply simple fixes:
+   - Group by file, sequential within file
+   - Read entire file, locate issue by line # or pattern
+   - Apply via Edit (follow suggestion, preserve style)
+   - Verify syntax; revert if broken → mark failed
+   - Parallel across files
 
-## Categorize + Apply Fixes
+5. Save to `.jim/notes/fixes-{YYYYMMDD-HHMMSS}-{slug}.md`:
 
-| Simple (automate) | Complex (flag for manual) |
-|---|---|
-| Rename, comment fixes, constant extraction, import changes, formatting, extract/inline var, remove unused code, null checks, doc additions, argument hints | Architecture changes, logic mods, algorithm improvements, error handling w/ business logic, security fixes, perf optimizations, breaking APIs, cross-file audits |
-
-Edge: "consider"/"would be worth" -> categorize by complexity.
-"verify"/"audit" -> skip (human judgment). Missing path -> skip + note.
-
-## Create Tasks + Apply
-
-TaskCreate per fix (group by file). Apply simple fixes:
-
-1. TaskUpdate -> in_progress
-2. Read entire file, locate issue by line # or pattern
-3. Apply via Edit (follow suggestion exactly, preserve style)
-4. Verify syntax; revert if broken -> mark failed
-5. TaskUpdate -> completed or failed
-
-Parallel across files, sequential within file.
-Error: file not found -> skip. Edit fails -> try more context or skip.
-
-## Generate Fixes Summary
-
-Save to `.jim/notes/fixes-{YYYYMMDD-HHMMSS}-{slug}.md`:
-
-```markdown
 # Review Fixes Applied: {topic}
 
 Applied: {ISO timestamp}
@@ -87,11 +77,9 @@ Review Source: {path}
 Priority Level: {level}
 
 ## Summary
-
 Total: {n} | Addressed: {n} | Skipped: {n} | Failed: {n}
 
 ## Issues Addressed
-
 ### {/path/file.ext}
 - [x] **{Issue}** (Line {n}, {Priority}) — {fix description}
 
@@ -105,19 +93,15 @@ Total: {n} | Addressed: {n} | Skipped: {n} | Failed: {n}
 - {path} - {count} fixes
 
 ## Next Steps
-1. git diff  2. Run tests  3. /review-implementation  4. /commit
+1. git diff  2. Run tests  3. /review-implementation
+4. /commit
+
+Guidelines: safe fixes only — skip when uncertain. Failure
+doesn't stop execution. No auto-commit.
 ```
 
-## Return Value
+## Present Results
 
-Summary: addressed/skipped/failed counts, files modified list,
-fixes doc path, next steps (git diff, tests, /review-implementation,
-/commit).
-
-## Guidelines
-
-- Safe fixes only — skip when uncertain
-- Failure doesn't stop execution; log all failures
-- No auto-commit; user reviews first
-- High-impact, low-risk first
-```
+Show: addressed/skipped/failed counts, files modified,
+fixes doc path, next steps (git diff, tests,
+/review-implementation, /commit).

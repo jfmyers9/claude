@@ -1,6 +1,9 @@
 ---
 name: compress-prompt
-description: Use when compressing text for AI consumption - skill files, system prompts, agent instructions. Not for human docs.
+description: >
+  Reduce tokens in AI-targeted text (skill files, system
+  prompts, agent instructions). Not for human docs.
+  Triggers: 'compress', 'reduce tokens', 'compress prompt'.
 allowed-tools: Bash, Read, Task, Glob
 user-invocable: true
 argument-hint: "<file or glob pattern>"
@@ -8,66 +11,62 @@ argument-hint: "<file or glob pattern>"
 
 # Compress Prompt
 
-Reduce tokens in AI-targeted text. Never compress on main thread.
+Reduce tokens in AI-targeted text. Delegate all compression
+to Task agents -- never compress on main thread.
 
-## Process
+## Steps
 
-For each file to compress, spawn a general-purpose agent via Task:
+### 1. Resolve Files
 
-1. Read file, measure before-size (see Token Counting below)
-2. Include the file content + compression rules in the Task prompt
-3. Agent writes compressed output directly to the file
-4. After Task completes, measure after-size and report delta
+Expand `$ARGUMENTS` glob pattern → file list via Glob.
 
-For multiple files: spawn all Tasks in a single message for
-parallel compression.
+### 2. Measure Before
 
-## Token Counting
+Per file, count tokens:
 
-Measure token counts with:
-
-```
+```bash
 ./skills/compress-prompt/scripts/count-token <file>
 ```
 
-If `count-token` fails (uv not installed), fall back to byte
-count: `wc -c < <file>`. Report as bytes instead of tokens.
+Fallback if count-token fails: `wc -c < <file>` (report as
+bytes instead of tokens).
 
-## Optional Setup
+### 3. Spawn Compression Tasks
 
-For accurate token counts, install uv (one-time):
+For each file, spawn a Task agent with file content +
+compression rules (see template below). Agent writes
+compressed output directly to file.
 
-```
-brew install uv
-```
+Multiple files → spawn all Tasks in single message for
+parallel compression.
 
-Not required — skill works without it using byte-count fallback.
+### 4. Measure After + Report
+
+Re-measure each file. Report per-file delta + total.
 
 ## Task Prompt Template
-
-Pass this prompt to each Task agent:
 
 ```
 Compress this text for AI consumption. Apply these rules:
 
 COMPRESSION RULES:
-- Drop articles when obvious ("the file" -> "file")
-- Drop filler phrases ("In order to" -> delete, "Make sure to" -> delete)
-- Imperative voice ("You should run" -> "Run")
-- Use symbols where clear ("results in" -> "->", "and" -> "+")
-- Condense repetitive lists (keep structure, merge similar items)
-- Merge redundant examples (4 similar examples -> 1 representative + "etc")
-- Keep headers but simplify ("## Step 1: Setup" -> "## Setup")
+- Drop articles when obvious ("the file" → "file")
+- Drop filler ("In order to" → delete, "Make sure to" → delete)
+- Imperative voice ("You should run" → "Run")
+- Symbols where clear ("results in" → "→", "and" → "+")
+- Condense repetitive lists (keep structure, merge similar)
+- Merge redundant examples (4 similar → 1 representative)
+- Simplify headers ("## Step 1: Setup" → "## Setup")
 
 PRESERVE EXACTLY:
 - Commands: syntax, flags, args
-- Code blocks: unless clearly redundant
+- Code blocks (unless clearly redundant)
 - File paths
 - Keywords: errors, APIs, technical terms
 - Distinct cases with different behavior
 
 TEXT TO COMPRESS:
-{text}
+{content}
 
-Write compressed version to: {output_path}
+Write compressed version to: {file_path}
 ```

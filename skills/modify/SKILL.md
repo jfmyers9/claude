@@ -1,20 +1,23 @@
 ---
 name: modify
-description: Amend the current branch and auto-restack descendants using Graphite
+description: >
+  Amend current branch + auto-restack descendants via Graphite.
+  Triggers: /modify, "amend branch", "update branch commit".
 allowed-tools: Bash
 argument-hint: "[-m \"commit message\"]"
 ---
 
 # Modify Branch
 
-Amend current branch with staged changes + auto-restack descendants:
+Graphite equivalent of `git commit --amend` with automatic
+stack restacking.
 
-1. Verify staged changes exist (warn if none)
-2. Parse args: `-m "message"` to update commit message (optional)
+## Steps
+
+1. Verify staged changes exist (`git diff --cached --quiet`)
+   - Nothing staged → warn user, stop
+2. Parse `$ARGUMENTS`: `-m "message"` → pass to gt modify
 3. Run `gt modify [-m "message"]`
-   - Amends current branch commit with staged changes
-   - Auto-restacks descendant branches
-4. Display output
+4. Show output
 
-Graphite equivalent of `git commit --amend` with automatic stack
-restacking. Use when updating commit with stacked branches above it.
+Use when updating a commit that has stacked branches above it.

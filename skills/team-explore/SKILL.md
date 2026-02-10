@@ -1,6 +1,9 @@
 ---
 name: team-explore
-description: Spawn a deep research team (researcher, architect, devil)
+description: |
+  Spawn deep research team (researcher, architect, devil) for
+  complex exploration. Triggers: 'team explore', 'deep research',
+  'multi-angle exploration'.
 argument-hint: "<topic to explore>"
 allowed-tools:
   - Task
@@ -22,59 +25,67 @@ allowed-tools:
 
 # Team Explore
 
-Three specialists explore topic from multiple angles → synthesize
-into comprehensive exploration document.
+Three specialists explore topic from multiple angles →
+synthesized exploration document.
 
 ## Instructions
 
 ### 1. Parse Topic
 
-Extract from `$ARGUMENTS`. Missing → ask + exit.
+Extract from `$ARGUMENTS`. Missing → AskUserQuestion + exit.
 
 ### 2. Create Team + Tasks
 
 TeamCreate: `deep-explore-{HHMMSS}`. TaskCreate 3 tasks:
-1. Broad context gathering (researcher)
-2. Architecture analysis (architect)
-3. Challenge assumptions (devil)
+1. Broad context gathering
+2. Architecture analysis
+3. Challenge assumptions
 
 ### 3. Spawn Teammates
 
-All general-purpose, spawned in parallel:
+All general-purpose, spawned in parallel. Each prompt includes:
+topic, note that others explore different angles, SendMessage
+instructions for reporting back.
 
 - **explorer**: Cast wide net. Glob+Grep for files, read docs,
-  trace code paths, check deps. Report: relevant files (path:line),
-  existing implementations, dependencies, key findings.
+  trace code paths, check deps. Report: relevant files
+  (path:line), existing implementations, dependencies, key
+  findings.
 
 - **design-analyst**: Analyze architecture. Patterns, structure,
-  boundaries, coupling/cohesion. Report: current structure, design
-  patterns, structural considerations, recommendations.
+  boundaries, coupling/cohesion. Report: current structure,
+  design patterns, structural considerations, recommendations.
 
 - **challenger**: Think failure modes. Assumptions, edge cases,
   security/performance concerns, challenge obvious approaches.
   Report: assumptions to validate, edge cases, concerns,
   alternative approaches.
 
-Each prompt includes: topic, note that others explore different
-angles, SendMessage instructions.
+### 4. Failure Handling
 
-**Failure handling**: Status check after 2 idle prompts. Failed →
-note missing perspective. Continue with remaining (min 1). Report
-completions as they arrive.
+Status check after 2 idle prompts. Failed agent → note missing
+perspective in synthesis. Continue with remaining (min 1 must
+succeed). Report completions as they arrive.
 
-### 4. Synthesize Document
+### 5. Synthesize Document
 
 Save to `.jim/plans/team-explore-{YYYYMMDD-HHMMSS}-{slug}.md`:
 
-Standard exploration doc structure: original request, context
-gathered (from researcher), architecture analysis (from architect),
-risks + challenges (from devil), requirements analysis (explicit,
-implicit, open questions), 2-3 potential approaches (overview,
-pros, cons, complexity, risks), recommendation, next steps with
-phase markers if warranted.
+- Original request
+- Context gathered (from explorer)
+- Architecture analysis (from design-analyst)
+- Risks + challenges (from challenger)
+- Requirements (explicit, implicit, open questions)
+- 2-3 approaches (overview, pros, cons, complexity, risks)
+- Recommendation
+- Next steps with phase markers
 
-### 5. Shutdown + Present
+### 6. Shutdown + Present
 
-Shutdown all → TeamDelete. Show: brief summary (2-3 sentences),
-recommendation, open questions/risks count, doc path. Suggest
-`/implement` or address open questions first.
+Shutdown all → TeamDelete. Present:
+- Brief summary (2-3 sentences)
+- Recommendation
+- Open questions/risks count
+- Document path
+
+Suggest `/implement` or address open questions first.

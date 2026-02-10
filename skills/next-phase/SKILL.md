@@ -1,14 +1,16 @@
 ---
 name: next-phase
-description: Continue to next phase of multi-phase implementation
+description: |
+  Continue to next phase of multi-phase implementation.
+  Triggers: 'next phase', 'continue implementing',
+  'next step'.
 allowed-tools: Task
-argument-hint: "[slug or blank for latest active]"
+argument-hint: "[slug]"
 ---
 
-# Next Phase Skill
+# Next Phase
 
-Shortcut for `/implement --continue`. Runs the implement skill
-with the `--continue` flag automatically prepended.
+Shortcut for `/implement --continue`.
 
 ## Instructions
 

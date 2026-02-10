@@ -1,38 +1,37 @@
 ---
 name: save-state
-description: Saves current work state to .jim/states/ for resuming later. Captures branch, changes, and user-provided context.
+description: |
+  Save current work state to .jim/states/ for resuming later.
+  Triggers: 'save state', 'save progress', 'bookmark work',
+  'save where I am'.
 allowed-tools: Bash, Read, Write, Glob
-argument-hint: [optional: label (defaults to "current")]
+argument-hint: "[optional: label (defaults to \"current\")]"
 ---
 
-# Save State Skill
+# Instructions
 
-Saves work state to `.jim/states/` for resuming later. Captures branch,
-uncommitted changes, recent commits, modified files, + user context.
+1. Parse label from `$ARGUMENTS`, default "current".
+   Sanitize: lowercase, hyphens only, no special chars.
 
-## Instructions
+2. Gather git context (parallel):
+   - `git branch --show-current`
+   - `git status --porcelain`
+   - `git log main..HEAD --oneline -10`
+   - `git diff --name-only HEAD~5..HEAD 2>/dev/null`
 
-1. **Label**: Use `$ARGUMENTS` or default to "current". Sanitize: hyphens +
-   lowercase, no special chars.
+3. Ask user for:
+   - **Summary** -- what are you working on? (1-2 sentences)
+   - **Next steps** -- what's next? (bullets)
+   - **Blockers** (optional) -- anything blocking?
 
-2. **Gather context** (parallel):
-   - Branch: `git branch --show-current`
-   - Changes: `git status --porcelain`
-   - Commits: `git log main..HEAD --oneline -10`
-   - Files: `git diff --name-only HEAD~5..HEAD 2>/dev/null`
+4. `mkdir -p .jim/states`
 
-3. **Prompt user**:
-   - **Summary**: What working on? (1-2 sentences)
-   - **Next steps**: What's next? (bullets)
-   - **Blockers** (optional): Anything blocking?
+5. Write `.jim/states/{label}.md`:
 
-4. **Create directory**: `mkdir -p .jim/states`
-
-5. **Write file**: `.jim/states/{label}.md`
    ```markdown
    ---
    type: saved-state
-   topic: "{user summary, brief}"
+   topic: "{brief summary}"
    branch: "{branch}"
    status: paused
    created: "{ISO timestamp}"
@@ -65,17 +64,9 @@ uncommitted changes, recent commits, modified files, + user context.
    {blockers or "None"}
    ```
 
-6. **Confirm**: Report saved to `.jim/states/{label}.md`. Remind: use
-   `/load-state {label}` to resume.
-
-## Tips
-
-- Use descriptive labels per work stream: "auth-feature", "bug-fix-123"
-- "current" label = primary work context
-- Files git-ignored (not committed)
-- Delete/overwrite old states manually
+6. Confirm saved path. Remind: `/load-state {label}` to resume.
 
 ## Related
 
-- `/list-states` - view all saved states
-- `/load-state {label}` - resume from saved state
+- `/list-states` -- view all saved states
+- `/load-state {label}` -- resume from saved state

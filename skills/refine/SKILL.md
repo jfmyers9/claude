@@ -1,92 +1,64 @@
 ---
 name: refine
-description: Simplifies code + improves comments in uncommitted changes. Removes unnecessary complexity + low-value comments.
+description: >
+  Simplify code + improve comments in uncommitted changes.
+  Triggers: 'refine', 'clean up code', 'simplify changes'.
 allowed-tools: Bash, Read, Edit, Glob, Grep
-argument-hint: [optional: file-pattern]
+argument-hint: "[optional: file-pattern]"
 ---
 
-# Refine Skill
+## Identify Files
 
-Reviews uncommitted code changes + refines by simplifying implementation + improving comments. Use before committing to ensure clean, readable, well-documented code.
+1. If `$ARGUMENTS`: use as file pattern
+2. Otherwise: `git diff --name-only HEAD`
+3. Filter to code files (exclude config, lock, generated)
+4. No files → inform + exit
 
-## Instructions
+## Read Files (parallel)
 
-1. **Identify files to review**:
-   - If `$ARGUMENTS`: use as file pattern (e.g., "*.py", "src/**/*.ts")
-   - Otherwise: `git diff --name-only HEAD`
-   - Filter to code files only (exclude config, lock, generated files)
-   - Exit if none found
+Read all identified files.
 
-2. **Read files in parallel**
+## Analyze + Apply
 
-3. **Analyze each file**:
-   - **Code**: unnecessary complexity (nested conditionals, overly abstract, premature optimization), clever code (brevity over clarity), over-engineering (abstractions used once), best practice violations
-   - **Comments**: low-value (restates code), obvious (explains self-explanatory code), outdated (doesn't match implementation), missing valuable (complex logic needs explanation)
-   - **Doc comments** (JSDoc, docstrings, GoDoc, RustDoc): preserve by default (see preservation rules below)
+For each file, find and fix:
 
-4. **Apply refinements**:
-   - Flatten nested conditionals
-   - Extract magic numbers → named constants (if multiple uses)
-   - Replace abbreviations w/ clear names
-   - Break functions doing multiple things
-   - Remove comments restating code (e.g., "// set variable", "// call function")
-   - Keep: "why" explanations, edge case warnings, context, business logic
-   - **Do NOT**: add features, change behavior, add error handling, add abstractions (unless removing complexity), add comments to unchanged code, refactor beyond committed changes
-
-5. **Verify changes**:
-   - Check syntax (linter, parser check)
-   - Revert + note issues if verification fails
-   - Track all refinements
-
-6. **Summary**:
-   - Simplifications applied + comments removed + comments improved per file
-   - Offer: `git diff`
-
-## Refactoring Principles
-
-**Simplicity > cleverness**: 3 lines > premature abstraction. Explicit > implicit. Readable > concise.
-
-**Remove**:
-- `// Create user object` → `user = new User()`
-- `// Loop through items` → `for (item in items)`
-- `// Return result` → `return result`
-- `// TODO: fix this` (without context)
-
-**Keep**:
-- Why non-obvious approach chosen
-- Edge cases + gotchas
-- Business logic + domain rules
-- Performance warnings + limitations
-
-**Doc Comment Preservation**:
-
-Preserve by default: JSDoc (`/** */`), Python docstrings (`"""`), GoDoc, RustDoc (`///`). API documentation consumed by tools + IDEs.
-
-Remove only if vacuous:
-- Empty doc comment
-- Restates signature with zero info (e.g., `/** Gets name. */ getName()`)
-
-If inaccurate/outdated: **update**, don't remove.
-
-**Code simplification**:
+**Simplify code:**
+- Flatten nested conditionals → early returns/guard clauses
+- Extract magic numbers → named constants (if used 2+ times)
+- Replace abbreviations with clear names
+- Break multi-responsibility functions
 - Remove redundant defaults (`.get(key, None)` → `.get(key)`)
-- Replace inline lambdas w/ direct expressions
-- Flatten unnecessary nesting
+- Replace inline lambdas with direct expressions
 
-## Tips
+**Improve comments:**
+- Remove code-restating comments ("increment counter",
+  "loop through items", "return result")
+- Remove contextless TODOs
+- Keep: why-explanations, edge case warnings, business logic,
+  perf constraints
+- Update inaccurate/outdated comments (don't remove)
 
-- Focus on committed changes, not entire codebase
-- Don't refactor unchanged working code
-- Preserve original intent + behavior
-- Prefer simpler code when in doubt
-- Remove comments only if truly low-value
-- Complex code → simplify rather than comment
-- Run tests after refinements if available
+**Doc comments** (JSDoc, docstrings, GoDoc, RustDoc):
+- Preserve by default — consumed by tools + IDEs
+- Remove only if vacuous (empty, or restates signature with
+  zero info)
+- If inaccurate → update, don't remove
 
-## Notes
+## Boundaries
 
-- Modifies files in place
-- Changes not auto-committed
-- Review w/ `git diff` before committing
-- Revert w/ `git restore <file>` if needed
-- Consider pre-commit workflow
+Do NOT:
+- Add features or change behavior
+- Add error handling or abstractions
+- Add comments to unchanged code
+- Touch code outside the diff
+- Refactor beyond committed changes
+
+## Verify
+
+Check syntax after changes (linter/parser). Revert + note
+if verification fails.
+
+## Summary
+
+Per file: simplifications applied, comments removed/improved.
+Offer `git diff` to review.

@@ -1,68 +1,60 @@
 ---
 name: commit
-description: "Conventional commit with --amend, --fixup, or auto-generate"
+description: >
+  Create conventional commit. Triggers: /commit, "commit this",
+  "commit changes". Supports --amend, --fixup, or auto-generated
+  message.
 allowed-tools: Bash
 argument-hint: "[--amend] [--fixup <commit>] [message]"
 ---
 
 # Conventional Commit
 
-https://www.conventionalcommits.org/en/v1.0.0/
+## Steps
 
-## Process
-
-1. Check $ARGUMENTS for `--amend` or `--fixup` flag
-2. Run in parallel:
-   - `git status` (no -uall)
+1. Parse `$ARGUMENTS` for flags: `--amend`, `--fixup <hash>`
+2. Gather info (parallel):
+   - `git status` (never -uall)
    - `git diff --cached`
-   - If amending: `git log -1 --format="%B"` + `git diff HEAD~1`
-   - If fixup: `git log --oneline -10`
-   - Else: `git diff --staged` or `git diff`
+   - Amend → `git log -1 --format="%B"` + `git diff HEAD~1`
+   - Fixup → `git log --oneline -10`
 3. If nothing staged:
    - Check `git diff --name-only` for tracked changes
-   - If tracked: ask stage all or pick specific files
-   - If none: inform nothing to commit + exit
-4. Use provided message if in $ARGUMENTS (validate conventional format)
-5. Else analyze changes + generate message
+   - Tracked changes exist → ask user: stage all or pick files
+   - Nothing at all → report "nothing to commit", stop
+4. Message:
+   - Provided in `$ARGUMENTS` → validate conventional format
+   - Absent → analyze diff, generate message
+5. Commit:
+   - `git commit -m "$subject" -m "$body"` (normal)
+   - `git commit --amend -m "$subject" -m "$body"` (amend)
+   - `git commit --fixup <hash>` (fixup)
+6. Show final commit
 
-## Format
+## Message Format
 
 ```
 <type>[scope]: <description>
 
-[body @ 72 char wrap]
+[body wrapped at 72 chars]
 ```
 
-Types: feat, fix, docs, style, refactor, perf, test, chore
+Types: feat fix docs style refactor perf test chore
 
 ## Rules
 
+- Subject < 72 chars, imperative mood
+- Body wrapped at 72 chars
+- Multiple concerns → most significant type wins
+- Stage specific files only (never `git add -A` or `git add .`)
+- NEVER use `--no-verify`
 - No co-authorship attribution
-- Subject < 72 chars
-- Body @ 72 char wraps
-- Imperative mood
-- Multiple concerns → most significant type
-- Stage specific files (no `git add -A`)
-- NEVER `--no-verify`
 
-## Hook Failure
+## Hook Failure Recovery
 
-On pre-commit hook failure:
+Failed commit never happened — do NOT `--amend`:
+
 1. Read hook output
-2. Fix issue
-3. `git add <files>`
-4. Create new commit (NOT --amend; failed commit never happened)
-
-## Execute
-
-```bash
-git add <specific-files>
-# Amend:
-git commit --amend -m "$subject" -m "$(echo "$body" | fmt -w 72)"
-# Fixup:
-git commit --fixup <target-hash>  # from $ARGUMENTS or prompt user
-# Normal:
-git commit -m "$subject" -m "$(echo "$body" | fmt -w 72)"
-```
-
-Show final commit to user
+2. Fix issues
+3. `git add <fixed-files>`
+4. New commit (same message)

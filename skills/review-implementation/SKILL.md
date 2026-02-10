@@ -1,64 +1,57 @@
 ---
 name: review-implementation
-description: Review code from recent implementation with clean context
+description: >
+  Review code from recent implementation against its plan.
+  Triggers: 'review implementation', 'review what was built',
+  'compare plan vs code'.
 allowed-tools: Task
 argument-hint: "[state-file or slug]"
 ---
 
-# Review Implementation Skill
-
-Reviews code from `/implement` or `/next-phase` with clean context.
-Reads state files to compare plan vs. actual.
-
 ## Find State File
 
 Parse `$ARGUMENTS`:
-- Path ending `.md` -> use directly
-- Otherwise -> slug, find most recent
+- Path ending `.md` → use directly
+- Slug → find most recent
   `.jim/states/*-implemented-*{slug}*.md`
-- No args -> most recent `.jim/states/*-implemented-*.md` by
-  timestamp
+- No args → most recent `.jim/states/*-implemented-*.md`
 
 ## Extract Context
 
-From state file: source exploration doc, files changed, what was
-planned, what was implemented, tasks completed/failed, branch.
+Read state file. Extract: source doc path, files changed,
+planned vs implemented, tasks completed/failed, branch.
 
-Spawn via Task:
+## Spawn Task
 
 ```
 Review implementation against plan.
 
 ## Context
 
-State file: [insert absolute path to state file]
-Source document: [insert absolute path to exploration doc]
-Files changed: [insert list from state file]
-Plan summary: [insert what was planned]
-Implementation summary: [insert what was implemented]
-Branch: [insert branch name]
+State file: {absolute path}
+Source document: {absolute path to exploration doc}
+Files changed: {list from state file}
+Plan summary: {what was planned}
+Implementation summary: {what was implemented}
+Branch: {branch name}
 
-## Read Source + Changed Files (parallel)
+## Instructions
 
-Read exploration doc + all files from "Files Changed". Note deleted
-files.
+1. Read source doc + all changed files (parallel). Note
+   deleted files.
 
-## Review
+2. Review each file across dimensions:
+   - **Plan adherence** — matches plan? deviations justified?
+     all features done?
+   - **Architecture** — patterns followed? complexity justified?
+   - **Code quality** — readable? edge cases? names? functions?
+   - **Standards** — style consistent? comments valuable?
+   - **Security/Perf** — input validated? resource mgmt?
+   - **Testing** — tests needed? edge cases covered?
+   - **Cross-file** — consistency, reuse, completeness
 
-Analyze each file:
-- **Plan adherence**: matches plan? deviations justified? all features done?
-- **Architecture**: follows patterns? complexity justified? simpler possible?
-- **Code quality**: readable? edge cases? meaningful names? focused functions?
-- **Standards**: style consistent? comments valuable? code smells?
-- **Security/Performance**: issues? input validated? resource management?
-- **Testing**: tests needed? edge cases tested?
-- **Cross-file**: consistency, reuse, completeness
+3. Save to `.jim/notes/review-impl-{YYYYMMDD-HHMMSS}-{slug}.md`:
 
-## Generate Review
-
-Save to `.jim/notes/review-impl-{YYYYMMDD-HHMMSS}-{slug}.md`:
-
-```markdown
 # Implementation Review: {topic}
 
 Reviewed: {ISO timestamp}
@@ -67,28 +60,32 @@ Files Reviewed: {count}
 Branch: {branch}
 
 ## Implementation Summary
-**Planned:** {brief}  **Implemented:** {brief}  **Adherence:** {assessment}
+**Planned:** {brief}
+**Implemented:** {brief}
+**Adherence:** {assessment}
 
 ## What's Working Well
 - {Observation with file:line}
 
 ## Areas for Improvement
-(Sections: Plan Adherence, Architecture, Code Quality, Standards,
-Security/Perf. Each issue: file:line, description, WHY, suggestion.)
+(Sections: Plan Adherence, Architecture, Code Quality,
+Standards, Security/Perf. Each: file:line, description,
+WHY, suggestion.)
 
 ## Recommendations
 | Priority | Item | Action |
+|----------|------|--------|
 
 ## Ready to Commit?
 **Assessment:** {Yes/No + reasoning}
+
+Persona: Senior engineer mentoring. "I notice..." not
+"You did wrong...". Explain WHY. Celebrate wins. Every
+critique needs a suggestion. Simple > clever.
 ```
 
-**Persona**: Senior engineer mentoring. "I notice..." not "You did
-wrong...". Explain WHY. Celebrate wins. Every critique needs
-a suggestion. Respect project style: simple > clever.
+## Present Results
 
-## Return Value
-
-Files reviewed, review path, overall assessment, priority counts,
-ready-to-commit verdict, next steps.
-```
+Show: files reviewed, review path, overall assessment,
+priority counts, ready-to-commit verdict, next steps
+(/address-review, /refine, /commit).

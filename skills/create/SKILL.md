@@ -1,22 +1,24 @@
 ---
 name: create
-description: Create a new stacked branch with staged changes using Graphite
+description: >
+  Create stacked branch with staged changes via Graphite.
+  Triggers: /create, "create branch", "new branch with changes".
 allowed-tools: Bash
 argument-hint: "[branch-name] [-m \"commit message\"]"
 ---
 
 # Create Stacked Branch
 
-Create branch stacked on current branch via Graphite:
+## Steps
 
-1. Verify staged changes exist; warn if not
-2. Parse args:
-   - `branch-name` -> use as branch name
-   - `-m "message"` -> use as commit message
-   - Neither -> prompt or auto-generate from staged changes
+1. Verify staged changes exist (`git diff --cached --quiet`)
+   - Nothing staged → warn user, stop
+2. Parse `$ARGUMENTS`:
+   - `branch-name` → use as branch name
+   - `-m "message"` → use as commit message
+   - Neither → auto-generate from staged diff
 3. Run `gt create [branch-name] [-m "message"]`
-   - Creates branch + stages changes as commit
-   - Auto-stacks on current branch
 4. Show output + new branch name
 
-Branch joins current stack; submit with `/submit --stack` for full stack PRs.
+Branch joins current stack. Use `/submit --stack` for full
+stack PRs.

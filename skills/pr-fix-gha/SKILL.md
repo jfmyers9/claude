@@ -1,81 +1,98 @@
 ---
 name: pr-fix-gha
-description: "Use when CI is failing, GitHub Actions checks are red, the build is broken, tests fail in CI, or lint/type checks fail on a pull request."
+description: >
+  Diagnose + fix failed GitHub Actions checks on a PR.
+  Triggers: 'CI failing', 'checks are red', 'build broken',
+  'tests fail in CI', 'lint failing on PR'.
 allowed-tools: Bash, Read, Edit, Glob, Grep
 argument-hint: "[PR number or leave blank for current branch PR]"
 ---
 
 # PR Fix GHA
 
-Diagnose + fix failed GitHub Actions checks. Fetches logs, identifies
-failure types, applies targeted fixes.
+Diagnose + fix failed GitHub Actions checks on a PR.
 
 ## Steps
 
 ### 1. Identify PR
 
-If `$ARGUMENTS` has PR number, use it. Otherwise detect from branch:
+Use `$ARGUMENTS` as PR number if provided. Otherwise detect:
 
 ```bash
 gh pr view --json number,title,url --jq '.number'
 ```
 
-Exit if not found.
+Exit if no PR found.
 
 ### 2. Fetch Failed Checks
 
 ```bash
-gh pr checks {pr_number} --json name,state,link \
+gh pr checks {pr} --json name,state,link \
   --jq '.[] | select(.state == "FAILURE")'
 ```
 
-Exit if none. Display with example output.
+Exit if none failed.
 
 ### 3. Get Run Logs
 
-```bash
-gh run view {run_id} --log-failed 2>/dev/null || \
-  gh run view {run_id} --log 2>/dev/null | tail -200
-```
-
-Find run ID from detailsUrl or:
+Extract run ID from check detailsUrl, or:
 
 ```bash
 gh run list --branch $(git branch --show-current) \
   --status failure --limit 5 --json databaseId,name
 ```
 
-### 4. Diagnose Failures
+Fetch logs:
 
-Parse logs, categorize:
+```bash
+gh run view {run_id} --log-failed 2>/dev/null || \
+  gh run view {run_id} --log 2>/dev/null | tail -200
+```
 
-**Build:** Missing imports/deps, type errors, syntax, module resolution
-**Test:** Assertions, missing fixtures, timeouts, snapshots
-**Lint:** Formatting, unused imports/vars, style, missing types
-**Infrastructure:** Network timeouts, resource limits, flaky, env vars
+### 4. Diagnose
 
-Extract per failure: error message, file + line, expected vs actual.
+Categorize each failure:
+
+- **Build** -- missing imports/deps, type errors, syntax,
+  module resolution
+- **Test** -- assertion failures, missing fixtures, timeouts,
+  stale snapshots
+- **Lint** -- formatting, unused imports/vars, style violations
+- **Infra** -- network timeouts, resource limits, flaky tests,
+  missing env vars
+
+Extract per failure: error message, file + line,
+expected vs actual.
+
+Build errors cascade -- fix first error, recheck before
+proceeding.
 
 ### 5. Present Fix Plan
 
-Show diagnosis + plan, await user confirmation.
+Show diagnosis + proposed fixes. Await user confirmation
+before applying.
 
 ### 6. Apply Fixes
 
-Per issue:
-1. Read file for context
-2. Apply fix with Edit
-3. Verify in context
+For each issue: read file context, apply fix via Edit,
+verify in context.
 
-**Strategies:**
-- **Lint:** Run auto-fix (`npm run lint -- --fix`, `gofmt`, etc)
-- **Types:** Read definitions, fix mismatch
-- **Tests:** Read test + impl to determine which is wrong (don't blindly
-  update tests)
-- **Imports:** Add missing, remove unused
-- **Snapshots:** Update if behavior change intentional
+Strategies by category:
+
+- **Lint** -- run auto-fix first (`npm run lint -- --fix`,
+  `gofmt`, etc)
+- **Types** -- read type definitions, fix mismatch at source
+- **Tests** -- read test + implementation to determine which
+  is wrong; never blindly update assertions
+- **Imports** -- add missing, remove unused
+- **Snapshots** -- update only if behavior change intentional
+
+Type error in file A may originate from change in file B --
+trace root cause.
 
 ### 7. Verify Locally
+
+Run relevant commands only:
 
 ```bash
 npm run lint 2>/dev/null
@@ -84,32 +101,9 @@ npm run test 2>/dev/null
 go vet ./... 2>/dev/null
 ```
 
-Only relevant commands. Don't fail if unavailable.
-
 ### 8. Commit + Push
 
-1. `git add <files>`
-2. `fix: resolve failing CI checks` (+ details in body)
-3. Ask before pushing
-4. If yes: `gt ss --update-only`
-
-## Output
-
-Summary: PR info, fixed count, files modified, fixes applied, unresolved,
-infra notes.
-
-## Tips
-
-- Read full logs, not last line
-- Build errors cascade — fix first error + recheck
-- Lint easiest to auto-fix
-- Test failures: understand intent before changing
-- Infra failures: may need re-run only
-- Type error in one file -> caused by change in another
-
-## Notes
-
-- Modifies files + commits
-- Does NOT push without asking
-- Uses `gt ss --update-only`
-- Needs `gh` authenticated
+1. Stage changed files by name
+2. Commit: `fix: resolve failing CI checks` (details in body)
+3. Ask user before pushing
+4. If confirmed: `gt ss --update-only`

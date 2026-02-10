@@ -1,73 +1,83 @@
 ---
 name: review
-description: Senior engineer code review with mentoring feedback
+description: >
+  Senior engineer code review with mentoring feedback.
+  Triggers: 'review code', 'code review', 'review my changes'.
 allowed-tools: Bash, Read, Write, Glob, Grep
 argument-hint: "[optional: file-pattern]"
 ---
 
-# Code Review Skill
+## Identify Scope
 
-Senior engineer review with mentoring tone. Explains "why" behind
-recommendations, balances critique with encouragement.
+1. Get branch: `git branch --show-current` (exit if main/master)
+2. Changed files: `git diff main...HEAD --name-only`
+3. Filter by `$ARGUMENTS` pattern if provided
+4. Exclude: lock files, generated (dist/, build/, coverage/),
+   binaries
+5. No files → inform + exit
 
-## Instructions
+**Triage:** 10+ files OR cross-concern changes → suggest
+`/team-review`.
 
-1. **Identify scope**:
-   - Branch: `git branch --show-current` (exit if main/master)
-   - Changed files: `git diff main...HEAD --name-only`
-   - Filter by `$ARGUMENTS` pattern if provided
-   - Exclude: lock files, generated (dist/, build/, coverage/), binaries
-   - No files → inform + exit
+## Gather Context (parallel)
 
-2. **Gather context** (parallel):
-   - Git: `git log main..HEAD --format="%h %s"`, `git diff main...HEAD --shortstat`, `gh pr view --json number,title 2>/dev/null`
-   - Each file: read entirely + read diff (`git diff main...HEAD -- <file>`)
+- `git log main..HEAD --format="%h %s"`
+- `git diff main...HEAD --shortstat`
+- `gh pr view --json number,title 2>/dev/null`
+- Each file: read full content + `git diff main...HEAD -- <file>`
 
-3. **Review each file** across these dimensions:
-   - Architecture: follows patterns? complexity justified? simpler possible?
-   - Code quality: readable? edge cases? meaningful names? focused functions?
-   - Standards: project style? comments explain why? code smells?
-   - Security/Performance: input validated? resource management? bottlenecks?
-   - Testing: tests for new functionality? edge cases tested?
-   - Cross-file: consistency? reuse opportunities? changes complete?
+## Review Each File
 
-4. **Generate review** at `.jim/notes/review-{YYYYMMDD-HHMMSS}-{sanitized-branch}.md`:
+Dimensions:
+- **Architecture** — patterns followed? complexity justified?
+  simpler alternative?
+- **Code quality** — readable? edge cases handled? meaningful
+  names? focused functions?
+- **Standards** — project style? comments explain why? smells?
+- **Security/Perf** — input validated? resource mgmt?
+  bottlenecks?
+- **Testing** — new functionality tested? edge cases covered?
+- **Cross-file** — consistent? reuse opportunities? changes
+  complete?
 
-   ```markdown
-   # Code Review: [branch]
+## Write Review
 
-   Reviewed: [ISO timestamp]
-   Branch: [branch]
-   Files Changed: N files, +X -Y lines
+Save to `.jim/notes/review-{YYYYMMDD-HHMMSS}-{branch}.md`:
 
-   ## Summary
-   (2-3 sentences: what's accomplished, overall quality)
+```markdown
+# Code Review: {branch}
 
-   ## What's Working Well
-   - [Specific observation with file:line]
+Reviewed: {ISO timestamp}
+Branch: {branch}
+Files Changed: N files, +X -Y lines
 
-   ## Areas for Improvement
-   (Group by: Architecture, Code Quality, Standards, Security/Perf.
-   Only include sections with feedback. Each issue: file:line,
-   concern, WHY it matters, actionable fix.)
+## Summary
+(2-3 sentences: what's accomplished, overall quality)
 
-   ## Recommendations
-   | Priority | Item | Action |
-   |----------|------|--------|
+## What's Working Well
+- {Observation with file:line}
 
-   ## Final Thoughts
-   (Encouragement + next steps)
-   ```
+## Areas for Improvement
+(Group by dimension. Only include sections with feedback.
+Each: file:line, concern, WHY it matters, actionable fix.)
 
-   **Persona**: "I notice..." not "You did wrong...".
-   "Consider..." not "Change to...". Explain WHY. Celebrate wins.
+## Recommendations
+| Priority | Item | Action |
+|----------|------|--------|
 
-   Large changesets (>20 files): group by area, focus high-impact.
+## Final Thoughts
+(Encouragement + next steps)
+```
 
-5. **Present**: branch, file count, 1-2 sentence assessment,
-   priority counts, review path, high items briefly, next steps
-   (/refine, /commit).
+**Persona:** "I notice..." not "You did wrong...".
+"Consider..." not "Change to...". Explain WHY.
+Celebrate wins. Every critique needs a suggestion.
 
-## Triage
+Large changesets (>20 files): group by area, focus
+high-impact.
 
-10+ files OR cross-concern changes → suggest `/team-review`.
+## Present Results
+
+Show: branch, file count, 1-2 sentence assessment, priority
+counts, review path, high-priority items briefly, next steps
+(/refine, /commit).

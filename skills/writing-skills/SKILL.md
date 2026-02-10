@@ -1,6 +1,9 @@
 ---
 name: writing-skills
-description: "Create new skills with proper structure. Triggers: 'new skill', 'create a skill', 'write a skill', 'add skill for'."
+description: >
+  Create new skills with proper structure + frontmatter.
+  Triggers: 'new skill', 'create a skill', 'write a skill',
+  'add skill for'.
 argument-hint: "<skill-name> <description>"
 user-invocable: true
 allowed-tools:
@@ -15,62 +18,73 @@ allowed-tools:
 
 # Writing Skills
 
-Create skill with proper frontmatter + structure.
+Create skill files with proper frontmatter + imperative
+step-by-step instructions.
 
-## Instructions
+## Steps
 
 ### 1. Parse Arguments
 
-Extract from `<arguments>`:
+Extract from `$ARGUMENTS`:
+
 - Skill name (kebab-case)
 - Brief description
 
-Ask user if missing.
+Ask user if either is missing.
 
 ### 2. Gather Requirements
 
-If unclear from description, ask user:
-- Trigger phrases?
+If unclear from description, ask:
+
+- Trigger phrases for description field
 - User-invocable? (default: yes)
-- Orchestrate (subagents) or direct (edit files)?
+- Orchestration (delegates to subagents) or direct (edits
+  files itself)?
 - Arguments accepted?
 
-### 3. Create Directory + File
+### 3. Create Skill File
 
 ```bash
 mkdir -p skills/{skill-name}
 ```
 
-Write `skills/{skill-name}/SKILL.md`:
+Write `skills/{skill-name}/SKILL.md` with this structure:
 
 ```markdown
 ---
 name: {skill-name}
-description: "{triggers + description}"
+description: >
+  {What it does + when to use.}
+  Triggers: '{trigger1}', '{trigger2}'.
 argument-hint: "{args}"
 user-invocable: true
 allowed-tools:
-  - {tools}
+  - {tool1}
+  - {tool2}
 ---
 
 # {Skill Title}
 
 {One-line summary.}
 
-## Instructions
+## Steps
 
-{Step-by-step instructions.}
+### 1. {First Step}
+
+{Imperative instructions.}
 ```
 
 ### 4. Verify
 
-- [ ] `name` matches directory
-- [ ] `description` includes triggers
-- [ ] `allowed-tools` minimal + appropriate
-- [ ] Instructions imperative + step-by-step
-- [ ] 80-char line wrapping for prose
+- `name` matches directory name
+- `description` includes trigger phrases
+- `allowed-tools` minimal for the task
+- Instructions use imperative voice
+- Prose wrapped at 80 characters
 
-### 5. Tool Selection
+### 5. Tool Selection Reference
+
+Pick minimal tool set based on skill type:
 
 | Type | Tools |
 |------|-------|
@@ -78,4 +92,4 @@ allowed-tools:
 | Direct-action | Read, Edit, Write, Glob, Grep, Bash, AskUserQuestion |
 | Team | + SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet, TeamCreate, TeamDelete |
 | Plan-mode | + EnterPlanMode, ExitPlanMode |
-| Git | Bash (git, gt, gh only) |
+| Git-only | Bash (git, gt, gh commands) |

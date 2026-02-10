@@ -1,22 +1,23 @@
 ---
 name: gt
-description: Basic Graphite operations for branch management
+description: >
+  Graphite branch management commands.
+  Triggers: /gt, "restack", "show stack", "gt log".
 allowed-tools: Bash
 argument-hint: "restack | log | up | down | checkout"
 ---
 
 # Graphite Operations
 
-Execute `gt` commands for branch management.
+Parse `$ARGUMENTS` and run corresponding command:
 
-## Commands
+| Arg        | Command              |
+|------------|----------------------|
+| restack    | `gt restack --only`  |
+| log        | `gt log`             |
+| up         | `gt up`              |
+| down       | `gt down`            |
+| checkout   | `gt checkout`        |
+| *(empty)*  | `gt log`             |
 
-- **restack**: `gt restack --only` (restack current branch)
-- **log**: `gt log` (show stack visually)
-- **up**: `gt up` (move to child branch)
-- **down**: `gt down` (move to parent branch)
-- **checkout**: `gt checkout` (interactive selection)
-
-Default: `gt log`
-
-Output result to user.
+Show output to user.
