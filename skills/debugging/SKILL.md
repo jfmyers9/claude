@@ -7,22 +7,37 @@ argument-hint: "<error message, symptom, or description of the bug>"
 
 # Systematic Debugging Skill
 
-Debug issues methodically. Core principle: **investigate before fix.** No random patches. Understand root cause first, then apply targeted fix.
+Debug issues methodically. Core principle: **investigate before fix.**
+No random patches. Understand root cause first, then apply targeted
+fix.
 
-## Instructions
+## Parse Arguments
 
-Spawn agent via Task:
+Parse `$ARGUMENTS`:
+- Extract error message, symptom, or bug description
+- Note any file paths, line numbers, or stack traces mentioned
+- Identify reproduction steps if provided
+
+Spawn via Task:
 
 ```
-Systematically debug: [insert $ARGUMENTS]
+Systematically debug an issue.
+
+## Context
+
+Issue: [insert description from parsed args]
+Error details: [insert error message/stack trace if present]
+Files mentioned: [insert any file paths from args]
 
 ## Phase 1: Root Cause Investigation
 
 Do NOT propose fixes yet. Gather evidence first.
 
-1. **Read error**: Parse full error message/stack trace. Identify exact file, line, function. Note error type/category.
+1. **Read error**: Parse full error message/stack trace. Identify
+   exact file, line, function. Note error type/category.
 
-2. **Reproduce**: Find command/test/action that triggers bug. Run it, capture output. Note if consistent or intermittent.
+2. **Reproduce**: Find command/test/action that triggers bug.
+   Run it, capture output. Note if consistent or intermittent.
 
 3. **Trace code path** (parallelize reads):
    - Read failing file completely
@@ -31,7 +46,8 @@ Do NOT propose fixes yet. Gather evidence first.
    - Check recent changes: `git log --oneline -10 -- <file>`
    - Look at diff: `git diff HEAD~3 -- <file>`
 
-4. **Map data flow**: Trace inputs from origin to failure point. Identify transforms + assumptions about data shape/state.
+4. **Map data flow**: Trace inputs from origin to failure point.
+   Identify transforms + assumptions about data shape/state.
 
 Output Root Cause Summary:
 - Error: [exact message]
@@ -42,30 +58,40 @@ Output Root Cause Summary:
 
 ## Phase 2: Pattern Analysis
 
-1. **Find working examples**: Search for similar patterns that DO work. Compare working vs failing code.
+1. **Find working examples**: Search for similar patterns that
+   DO work. Compare working vs failing code.
 
-2. **Document differences**: List every difference. Note missing steps, wrong ordering, type mismatches, missing error handling.
+2. **Document differences**: List every difference. Note missing
+   steps, wrong ordering, type mismatches, missing error handling.
 
-3. **Check assumptions**: Verify types at boundaries, config/env values, race conditions, ordering deps.
+3. **Check assumptions**: Verify types at boundaries, config/env
+   values, race conditions, ordering deps.
 
 ## Phase 3: Hypothesis Testing
 
 Form ONE specific hypothesis based on evidence.
 
-1. **State clearly**: "Bug occurs because X, causing Y at Z" — specific + falsifiable.
+1. **State clearly**: "Bug occurs because X, causing Y at Z" —
+   specific + falsifiable.
 
-2. **Design minimal test**: Smallest change to confirm/refute. Add log/assert to prove it. Write failing test if possible.
+2. **Design minimal test**: Smallest change to confirm/refute.
+   Add log/assert to prove it. Write failing test if possible.
 
-3. **Test**: Make minimal change, run reproduction step. If confirmed -> Phase 4. If refuted -> back to Phase 1.
+3. **Test**: Make minimal change, run reproduction step.
+   If confirmed -> Phase 4. If refuted -> back to Phase 1.
 
-**Escalation:** After 3 failed hypotheses, stop + report findings. Don't keep guessing. Present evidence, ask for guidance.
+**Escalation:** After 3 failed hypotheses, stop + report findings.
+Don't keep guessing. Present evidence, ask for guidance.
 
 ## Phase 4: Implementation
 
 1. **Write failing test first** (when applicable)
-2. **Apply targeted fix**: Fix only what's broken. Directly address root cause. Keep change minimal.
-3. **Verify**: Run failing test (should pass), run full suite, run reproduction step, check no regressions.
-4. **Check related issues**: Search for same pattern elsewhere. Note them, don't fix now.
+2. **Apply targeted fix**: Fix only what's broken. Directly
+   address root cause. Keep change minimal.
+3. **Verify**: Run failing test (should pass), run full suite,
+   run reproduction step, check no regressions.
+4. **Check related issues**: Search for same pattern elsewhere.
+   Note them, don't fix now.
 
 ## Red Flags (stop + reconsider)
 
@@ -93,7 +119,8 @@ Related Issues Found:
 
 ## Output
 
-Display debugging report from agent: root cause, fix applied, verification results.
+Display debugging report from agent: root cause, fix applied,
+verification results.
 
 ## Tips
 
@@ -105,7 +132,8 @@ Display debugging report from agent: root cause, fix applied, verification resul
 
 ## Triage
 
-Multiple possible root causes across subsystems? Suggest `/team-debug` (three investigators with competing hypotheses).
+2+ possible causes OR cross-file interaction? Suggest `/team-debug`
+(three investigators with competing hypotheses).
 
 ## Notes
 

@@ -10,16 +10,9 @@ argument-hint: "[review-doc or slug] [--priority=high|medium|low|all]"
 Reads code review docs (`/review`, `/review-implementation`) + applies
 automated fixes. Flags complex issues for manual intervention.
 
-## Instructions
-
-Spawn general-purpose agent via Task with this prompt:
-
-```
-Address feedback from a code review document.
-
 ## Parse Arguments
 
-Parse $ARGUMENTS for:
+Parse `$ARGUMENTS` for:
 - `--priority=LEVEL`: high (default) | medium (high+medium) |
   low (all three) | all
 - Review doc path or slug: remaining args after flags
@@ -31,6 +24,17 @@ recent `.jim/notes/review-impl-*{slug}*.md` or
 `.jim/notes/review-*{slug}*.md`.
 
 No args -> most recent in `.jim/notes/`, prefer `review-impl-*`.
+
+Spawn via Task:
+
+```
+Address feedback from a code review document.
+
+## Context
+
+Review document: [insert absolute path to review doc]
+Priority level: [insert priority filter]
+Review content summary: [insert key findings from review doc]
 
 ## Parse Review Feedback
 
@@ -46,7 +50,7 @@ Extract actionable items from:
 
 ## Filter by Priority
 
-Apply --priority filter. No matches -> report counts per level +
+Apply priority filter. No matches -> report counts per level +
 suggest `--priority=all`. Exit if empty.
 
 ## Categorize + Apply Fixes

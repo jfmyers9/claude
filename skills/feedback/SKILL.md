@@ -9,17 +9,12 @@ argument-hint: "<feedback> [--type=bug|quality|change]"
 
 Accepts user feedback on recent implementation + applies fixes.
 
-## Instructions
-
-Spawn general-purpose agent via Task with this prompt:
-
-```
-Process user feedback on recent implementation.
-
 ## Parse Arguments
 
+Parse `$ARGUMENTS`:
 - `--type=TYPE`: bug | quality | change (infer if absent)
-- Feedback text: remaining args (required, exit with examples if empty)
+- Feedback text: remaining args (required, exit with examples
+  if empty)
 
 ## Find Recent Implementation
 
@@ -30,18 +25,31 @@ Check in priority order (parallel):
 
 Extract: files changed, what was implemented, source doc.
 
+Spawn via Task:
+
+```
+Process user feedback on recent implementation.
+
+## Context
+
+Feedback: [insert feedback text from parsed args]
+Type: [insert --type value or "infer"]
+Implementation state: [insert path to state file found]
+Files changed: [insert list from state file]
+What was implemented: [insert summary from state file]
+
 ## Categorize + Analyze
 
-If --type absent, infer from content:
+If type absent, infer from content:
 - **Bug**: "doesn't work", "fails", "error", "broken", error messages
 - **Quality**: "naming", "readability", "confusing", "style", "convention"
 - **Change**: "add", "include", "should have", "instead", "feature"
 - Default: change
 
 ### Analysis by Type
-- Bug: identify symptom → read files → find cause → assess fix complexity
-- Quality: identify issues → read files → find patterns → assess improvements
-- Change: understand scope → read files → assess: small (inline), medium (context), large (→ /explore)
+- Bug: identify symptom -> read files -> find cause -> assess fix complexity
+- Quality: identify issues -> read files -> find patterns -> assess improvements
+- Change: understand scope -> read files -> assess: small (inline), medium (context), large (-> /explore)
 
 ## Apply Fixes
 
@@ -55,7 +63,7 @@ TaskCreate per fix (group by file). Per task:
 3. Check syntax; revert if broken
 
 Scope: fix feedback only, don't improve unrelated code,
-minimal changes, large scope → recommend /explore.
+minimal changes, large scope -> recommend /explore.
 
 ## Save Feedback Doc
 

@@ -10,23 +10,33 @@ argument-hint: "[state-file or slug]"
 Reviews code from `/implement` or `/next-phase` with clean context.
 Reads state files to compare plan vs. actual.
 
-## Instructions
-
-Spawn general-purpose agent via Task with this prompt:
-
-```
-Review implementation from recent /implement or /next-phase.
-
 ## Find State File
 
-$ARGUMENTS ending `.md` → direct path. Otherwise → slug, find most
-recent `.jim/states/*-implemented-*{slug}*.md`. No args → most
-recent `.jim/states/*-implemented-*.md` by timestamp.
+Parse `$ARGUMENTS`:
+- Path ending `.md` -> use directly
+- Otherwise -> slug, find most recent
+  `.jim/states/*-implemented-*{slug}*.md`
+- No args -> most recent `.jim/states/*-implemented-*.md` by
+  timestamp
 
 ## Extract Context
 
 From state file: source exploration doc, files changed, what was
 planned, what was implemented, tasks completed/failed, branch.
+
+Spawn via Task:
+
+```
+Review implementation against plan.
+
+## Context
+
+State file: [insert absolute path to state file]
+Source document: [insert absolute path to exploration doc]
+Files changed: [insert list from state file]
+Plan summary: [insert what was planned]
+Implementation summary: [insert what was implemented]
+Branch: [insert branch name]
 
 ## Read Source + Changed Files (parallel)
 
