@@ -79,8 +79,9 @@ Continue exploration based on user feedback.
 ## Instructions
 1. Parse feedback: more detail? answer question? new direction?
 2. Investigate further if needed (Glob, Grep, Read)
-3. Update document in place — no revision history
-4. Preserve valuable existing content — add, don't replace
+3. Update document in place, preserving structure
+4. Add/update Revision History section
+5. Preserve valuable existing content — add, don't replace
 
 Wrap prose at 80 chars. Preserve code blocks + URLs.
 ```
