@@ -22,268 +22,95 @@ allowed-tools:
 
 # Team Build Skill
 
-Spawn coordinated team: architect validates approach, implementer
-builds + tester writes specs in parallel, tester fills tests,
-reviewer reviews, issues loop back for fixes.
+Pipeline: architect validates → implementer + tester parallel →
+tester fills → reviewer → fix loop (max 1).
 
 ## Instructions
 
-### 1. Parse Feature Specification
+### 1. Parse Feature
 
-Parse `$ARGUMENTS`:
-- File path (ends `.md` or contains `/`) -> read exploration doc
-- Otherwise -> feature description
-
-No args -> check `.jim/plans/` for recent doc, confirm + use or
-ask for description.
+`$ARGUMENTS`: `.md` path or `/` → read exploration doc. Otherwise →
+feature description. No args → check `.jim/plans/` for recent doc.
 
 ### 2. Prepare Build Plan
 
-From exploration doc:
-- Extract Recommendation + Next Steps sections
-
-From description:
-- Break into concrete steps
-- Identify files to create/modify
-- Note tests needed
+From doc: extract Recommendation + Next Steps. From description:
+break into steps, identify files, note tests needed.
 
 ### 3. Create Team
 
-Generate timestamp `HHMMSS` format. TeamCreate: `feature-build-{HHMMSS}`
-(avoids collisions with concurrent builds).
-
-Report: "Team feature-build-{HHMMSS} created. Pipeline:
-architect -> implementer+tester -> tester fills -> reviewer."
+TeamCreate: `feature-build-{HHMMSS}`.
 
 ### 4. Create Tasks
 
-5 tasks via TaskCreate:
+5 tasks (all general-purpose subagent_type):
 
-1. **Architecture sanity check** (general-purpose): Design review before code.
-2. **Implement feature** (general-purpose): Build following plan.
-3. **Write test specs** (general-purpose): Test stubs from plan (not implementation).
-   Focus on what to test, not how.
-4. **Fill tests + run** (general-purpose): Complete bodies + run suite.
-5. **Review implementation** (general-purpose): Quality + correctness + conventions.
+1. **Architecture sanity check** — design review before code
+2. **Implement feature** — build following plan
+3. **Write test specs** — stubs from plan (not implementation)
+4. **Fill tests + run** — complete bodies + run suite
+5. **Review implementation** — quality + correctness
 
-Dependencies:
-- Task 2 blocked by 1
-- Task 3 blocked by 1
-- Task 4 blocked by 2 + 3
-- Task 5 blocked by 4
+Dependencies: 2←1, 3←1, 4←2+3, 5←4
 
-### 5. Spawn Architect
+### 5. Architect
 
-**arch-check** (general-purpose): 2-min sanity check on full plan:
-- Design flaws?
-- Missing edge cases?
-- File boundaries + structure reasonable?
-- Blocking concerns?
+Spawn **arch-check** (general-purpose): 2-min sanity check.
+Report "APPROVED" (with notes) or "CRITICAL CONCERN" (with details).
 
-Send: **"APPROVED"** (with notes) OR **"CRITICAL CONCERN"** (with details)
+Critical concern → pause, present to user (continue/adjust/abort).
+Architect fails → warn user, ask proceed without or abort.
 
-Wait. Gate check: if critical concern -> pause, present to user
-(continue/adjust/abort). No further agents until decided.
+### 6. Implementer + Tester (parallel)
 
-If approved -> update plan with architect notes.
+After approval, spawn both with `mode: "acceptEdits"`:
 
-If architect fails (error/timeout): warn user, ask whether to proceed
-without architecture check or abort. Default: proceed with caution note.
+**builder** (general-purpose): Full plan + architect notes. Report:
+implementation summary, files created/modified, remaining concerns.
 
-Report: "Architecture check complete. Spawning implementer + tester..."
+**spec-writer** (general-purpose): Feature description + plan (NOT
+implementation). Create test files with signatures, placeholder
+assertions, happy paths + edge cases + errors. Report: test files,
+scenarios covered.
 
-### 6. Spawn Implementer + Tester (parallel)
-
-After architect approval, spawn both with `mode: "acceptEdits"`:
-
-**builder** (general-purpose): Full plan + architect notes.
-Files to create/modify, behavior, constraints. Implement step-by-step,
-verify, message when done. Required output format:
-```
-## Implementation Summary
-[what was built + approach taken]
-## Files Created/Modified
-[absolute paths with description of changes]
-## Remaining Concerns
-[known issues or incomplete items, if any]
-```
-
-**spec-writer** (general-purpose): Feature description + plan (NOT implementation).
-- Create test files + imports
-- Function signatures + names
-- Comments on what to verify
-- Placeholder assertions (`expect(true).toBe(false)` or `assert False`)
-- Happy paths + edge cases + error handling
-- Message when done. Required output format:
-  ```
-  ## Test Files
-  [absolute paths with description]
-  ## Scenarios Covered
-  [list of test scenarios by category: happy path, edge case, error]
-  ```
-
-Wait both finish.
-
-**If builder fails**: Retry once -- shut down failed agent, spawn fresh
-**builder-retry** (general-purpose) with same prompt + "Previous attempt
-failed. Start fresh." Track active builder name = `builder-retry`.
-If retry fails, report to user and abort pipeline
-(no point testing without implementation).
-
-**If spec-writer fails**: Retry once -- spawn **spec-writer-retry**
-(general-purpose) with same prompt. Track active spec-writer name =
-`spec-writer-retry`. If retry fails, proceed without test specs
-(step 7 tester writes tests from scratch using implementation).
-
-Track active agent names throughout: `active_builder` (default:
-`builder`), `active_spec_writer` (default: `spec-writer`). Update
-when retry agents replace originals. Use active names in all
-subsequent steps.
-
-Report: "Implementation + test specs complete. Tester filling tests..."
+**Failure handling**: Track active agent names (`active_builder`,
+`active_spec_writer`). On failure → retry once with fresh agent
+(append `-retry` to name, update active name). Builder retry
+fails → abort pipeline. Spec-writer retry fails → tester writes
+from scratch in step 7. Use active names in all subsequent steps.
 
 ### 7. Tester Fills Tests
 
-Message **{active_spec_writer}** (the spec-writer or its retry replacement):
-- Implementer's file list
-- Read implementation -> understand interfaces
-- Replace placeholders + real assertions
-- Add tests suggested by implementation
-- Run full suite
-- Message results (locations + pass/fail + details)
+Message `{active_spec_writer}`: read implementation, replace
+placeholders, add tests from implementation, run suite, report
+results. Fails → retry once, then note "Tests incomplete".
 
-Wait.
+### 8. Reviewer
 
-**If tester fails during fill**: Retry once -- message {active_spec_writer}
-to try again from scratch. If retry fails, note "Tests incomplete" in
-report and continue to review.
+Spawn **code-reviewer** (general-purpose): review quality,
+error handling, test coverage, conventions, security. Report issues
+table (severity: Critical/High/Medium/Low + file + suggestion).
 
-Report: "Tests complete. Spawning reviewer..."
+Fails → note "Review skipped", suggest manual review.
 
-### 8. Spawn Reviewer
+### 9. Fix Loop (max 1)
 
-**code-reviewer** (general-purpose): Feature description + implementer files
-+ tester files + results. Review for:
-- Code quality + readability
-- Error handling + edge cases
-- Test coverage + quality
-- Project conventions
-- Security
+If critical/high issues: message `{active_builder}` to fix →
+`{active_spec_writer}` to re-run → **code-reviewer** to re-review.
+Issues remain after 1 fix → note in report.
 
-Message findings by severity. Required output format:
-```
-## Issues
-| Severity | File | Issue | Suggestion |
-|----------|------|-------|------------|
-| Critical | ... | ... | ... |
-| High | ... | ... | ... |
-| Medium | ... | ... | ... |
-| Low | ... | ... | ... |
-## Summary
-[overall quality assessment]
-```
-
-Severity definitions:
-- **Critical**: Must fix (bugs, security)
-- **High**: Should fix (design, missing handling)
-- **Medium**: Nice to have (style, naming, structure)
-- **Low**: Future improvement
-
-Wait.
-
-**If reviewer fails**: Note "Review skipped due to agent failure" in
-report. Proceed to synthesis. Suggest manual review.
-
-Report: "Review complete. Checking for issues..."
-
-### 9. Iteration Loop (max 1)
-
-If critical + high issues found:
-
-1. Message **{active_builder}**: Fix critical + high. Include file paths + suggestions.
-   Message when done (summary of changes).
-2. Wait.
-3. Message **{active_spec_writer}**: Re-run suite. Include modified files list.
-4. Wait.
-5. Message **code-reviewer**: Quick re-review changed files only.
-   Confirm resolved + new concerns?
-6. Wait.
-
-If issues remain after 1 fix -> note in report for manual fix.
-
-### 10. Synthesize Results
+### 10. Synthesize
 
 Save to `.jim/notes/team-build-{YYYYMMDD-HHMMSS}-{slug}.md`:
+Feature description, architecture result, implementation summary,
+files, test summary + results, review findings (priority table),
+iteration summary, failures, status (ready/needs fixes).
 
-```markdown
-# Feature Build: [name]
+### 11. Shutdown
 
-Built: [ISO timestamp]
-Branch: [current branch]
-Agents: architect, implementer, tester, reviewer
+Shutdown all teammates → TeamDelete.
 
-## Feature Description
+### 12. Present
 
-[What built]
-
-## Architecture Check
-
-[Architect summary: approved/concerns + notes]
-
-## Implementation Summary
-
-[Implementer: what done, approach]
-
-### Files Created/Modified
-
-- [path] - [description]
-
-## Test Summary
-
-[Tester: tests written, results]
-
-### Test Files
-
-- [path] - [what it tests]
-
-### Test Results
-
-[Pass/fail summary + failures]
-
-## Review Findings
-
-[Reviewer summary]
-
-### Issues Found
-
-| Priority | Issue | File | Status |
-|----------|-------|------|--------|
-| ... | ... | ... | Fixed/Open |
-
-## Iteration Summary
-
-[If happened: what fixed, re-test results, re-review outcome.
-Else: "No critical/high issues found."]
-
-## Failures
-
-[Agent failures, retries, degraded steps, or "None"]
-
-## Status
-
-[Ready to commit / needs manual fixes]
-```
-
-### 11. Shut Down Team
-
-Send shutdown requests to all teammates. After confirmed, call TeamDelete.
-
-### 12. Present Results
-
-- What built (1-2 sentences)
-- Architecture result
-- Files created/modified
-- Test results
-- Review summary
-- Report path
-- Next steps: fix open issues OR `/commit`
+What built, architecture result, files, test results, review
+summary, report path, next steps.

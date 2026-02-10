@@ -22,154 +22,59 @@ allowed-tools:
 
 # Team Review Skill
 
-Spawn 3 parallel specialists (reviewer, architect, devil) -> synthesize feedback into unified review.
+3 parallel specialists (reviewer, architect, devil) → unified review.
 
-## Process
+## Instructions
 
-### 1. Determine Review Scope
+### 1. Determine Scope
 
-Determine what to review:
-- `$ARGUMENTS` with files/pattern -> use that scope
-- Otherwise, determine from git state:
-  - Get current branch: `git branch --show-current`
-  - Feature branch -> review vs main: `git diff main...HEAD --name-only`
-  - Main + uncommitted -> `git diff --name-only` + `git diff --cached --name-only`
-- No changes found -> inform user + exit
+- `$ARGUMENTS` with files/pattern → use that
+- Feature branch → `git diff main...HEAD --name-only`
+- Main + uncommitted → `git diff --name-only` + `--cached`
+- No changes → inform + exit
 
-Collect changed files + summary diff for teammate prompts.
+Collect changed files + summary diff for prompts.
 
-### 2. Create Team
+### 2. Create Team + Tasks
 
-Generate timestamp `HHMMSS` format (e.g., `162345`). TeamCreate: `code-review-{HHMMSS}`. Prevents collisions when reviews run concurrently.
+TeamCreate: `code-review-{HHMMSS}`. TaskCreate 3 tasks:
+1. Code quality (reviewer)
+2. Architecture (architect)
+3. Adversarial (devil)
 
-Report: "Review team created. 3 reviewers analyzing {count} files..."
+### 3. Spawn Teammates
 
-### 3. Create Tasks
+All general-purpose, parallel:
 
-TaskCreate 3 tasks:
+- **reviewer-agent**: Code quality — readability, best practices,
+  error handling, style. Report findings by file + severity
+  (critical/important/suggestion).
 
-1. **Code quality** - reviewer agent: readability, best practices, error handling, naming, style
-2. **Architecture** - architect agent: design patterns, coupling, cohesion, abstraction, maintainability
-3. **Adversarial** - devil agent: edge cases, failure modes, security, incorrect assumptions
+- **architect-agent**: Design — patterns, coupling/cohesion,
+  abstraction, maintainability. Report with tradeoff analysis.
 
-### 4. Spawn Teammates
+- **devil-agent**: Stress-test — edge cases, failure modes,
+  security, bad assumptions. Report as scenarios
+  ("What happens when...").
 
-Task tool with `team_name` + `name`:
+Each prompt: branch, changed files (absolute paths), read files
+completely (not just diff), SendMessage instructions.
 
-- **reviewer-agent** (subagent_type: `general-purpose`): Review code quality. Read files completely, check diff. Focus: readability, best practices, error handling, style. Report by file + severity (critical/important/suggestion).
+**Failure handling**: Status check after 2 idle prompts. Failed →
+note missing perspective. Continue with remaining (min 1). Report
+completions as they arrive.
 
-- **architect-agent** (subagent_type: `general-purpose`): Review design. Read files, analyze structure. Focus: design patterns, coupling/cohesion, abstraction, maintainability. Report with tradeoff analysis.
+### 4. Synthesize
 
-- **devil-agent** (subagent_type: `general-purpose`): Stress-test changes. Read files, find edge cases, failure modes, security concerns, bad assumptions. Report as scenarios ("What happens when...").
+Save to `.jim/notes/team-review-{YYYYMMDD-HHMMSS}-{slug}.md`:
 
-Include in each prompt:
-- Branch name + review scope
-- Changed files (absolute paths)
-- Reminder to read files completely, not just diff
-- SendMessage instructions for results
-- Required output format per role:
+Summary (2-3 sentences), critical issues, architecture + design
+findings, code quality findings, edge cases + risks,
+recommendations table (priority, issue, source, action),
+consensus + disagreements, failures.
 
-  **reviewer-agent**:
-  ```
-  ## Findings
-  [issues organized by file, each with severity + description]
-  ## Summary
-  [overall code quality assessment]
-  | Severity | Count |
-  | Critical | N |
-  | Important | N |
-  | Suggestion | N |
-  ```
+### 5. Shutdown + Present
 
-  **architect-agent**:
-  ```
-  ## Design Assessment
-  [patterns, coupling, cohesion, abstraction evaluation]
-  ## Tradeoffs
-  [design tradeoffs identified + recommendations]
-  ## Summary
-  [overall architecture assessment]
-  ```
-
-  **devil-agent**:
-  ```
-  ## Edge Cases
-  [scenarios: "What happens when..." with file refs]
-  ## Security Concerns
-  [vulnerabilities or risks found]
-  ## Failure Modes
-  [how changes could break under stress]
-  ## Summary
-  [overall risk assessment]
-  ```
-
-### 5. Collect Results
-
-Wait for 3 reviews. Report completions as they arrive:
-"{agent} review complete ({done}/3)."
-
-**Failure handling**: If a reviewer fails (error message, idle
-without results after 2 prompts, reports cannot complete):
-1. Send status check: "Status update? What progress so far?"
-2. If no substantive response after second prompt, mark as failed
-3. Continue with remaining reviewers (min 1 must succeed)
-4. Note missing perspective in synthesis (e.g., "Architecture
-   review unavailable due to agent failure")
-
-After all: "All reviews in. Synthesizing unified feedback..."
-
-### 6. Synthesize
-
-Create unified review:
-
-```markdown
-# Team Code Review: [branch-name]
-
-Reviewed: [ISO timestamp]
-Branch: [branch-name]
-Files: [count]
-Reviewers: reviewer, architect, devil
-
-## Summary
-[2-3 sentences: combined assessment]
-
-## Critical Issues
-[Any critical/high-priority flags with sources]
-
-## Architecture & Design
-[Architect findings + related notes from others]
-
-## Code Quality
-[Reviewer findings + related notes from others]
-
-## Edge Cases & Risks
-[Devil findings + related notes from others]
-
-## Recommendations
-
-| Priority | Issue | Source | Action |
-|----------|-------|--------|--------|
-| High | ... | ... | ... |
-| Medium | ... | ... | ... |
-| Low | ... | ... | ... |
-
-## Consensus & Disagreements
-[Agreement + different perspectives]
-
-## Failures
-[Agent failures, or "None"]
-```
-
-Save to `.jim/notes/team-review-{YYYYMMDD-HHMMSS}-{slug}.md` (slug from branch name: `/` -> `-`).
-
-### 7. Shut Down Team
-
-Send shutdown requests to all teammates. After confirmed, call TeamDelete.
-
-### 8. Present Results
-
-Show user:
-- 2-3 sentence summary
-- Issue count by priority
-- Review document path
-- Next steps (address critical, then `/commit`)
+Shutdown all → TeamDelete. Show: 2-3 sentence summary, issue
+count by priority, review doc path, next steps (address critical
+→ `/commit`).

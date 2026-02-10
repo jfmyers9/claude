@@ -22,342 +22,121 @@ allowed-tools:
 
 # Team Skill
 
-Compose dynamic team of agents for any task. Auto-detects orchestration
-pattern based on agent capabilities.
+Compose dynamic team for any task. Auto-detects orchestration pattern.
 
 ## Instructions
 
 ### 1. Parse Arguments
 
-Extract task description + agent list from `$ARGUMENTS`.
+Extract task description + optional `--agents agent1,agent2,...`.
 
-**`--agents` flag:**
-- Look for `--agents` followed by comma-separated agent names (no spaces)
-- Valid: `researcher`, `reviewer`, `architect`, `implementer`, `tester`, `devil`
-- Strip `--agents ...` portion; remainder = task description
-- Remove surrounding quotes from task description
+**Valid agents**: researcher, reviewer, architect, implementer, tester, devil (max 6).
 
-**Auto-select if no `--agents`:**
+**Auto-select if no --agents**:
 
 | Keywords | Agents |
 |----------|--------|
 | explore, research, find, understand | researcher, architect, devil |
 | review, check, audit | reviewer, architect, devil |
-| debug, fix, investigate | researcher, researcher, researcher |
+| debug, fix, investigate | researcher ×3 |
 | build, implement, create, add | architect, implementer, tester, reviewer |
 | *(fallback)* | researcher, architect |
 
-Match first pattern. Use fallback if no keywords match.
-
-**Validate:**
-- Check names against valid set
-- If unknown: warn "Unknown agent: {name}. Valid: researcher, reviewer, architect, implementer, tester, devil." + exit
-- Max 6 agents; warn + exit if exceeded
-
-Exit if no task description found; ask user to provide one.
-
 ### 2. Classify + Choose Pattern
 
-All agents use subagent_type `general-purpose`. Role differentiation
-is via prompt only. Classify by write capability:
+All agents use subagent_type `general-purpose`. Role via prompt only.
 
-| Role | Write? |
-|------|--------|
-| researcher | No |
-| reviewer | No |
-| architect | No |
-| devil | No |
-| implementer | Yes |
-| tester | Yes |
+| Write-capable | Read-only |
+|---|---|
+| implementer, tester (mode: acceptEdits) | researcher, reviewer, architect, devil |
 
-Write-capable agents: spawn with `mode: "acceptEdits"` so they can
-use Edit/Write tools without permission prompts.
+- **Solo**: 1 agent
+- **Fan-out**: all read-only
+- **Pipeline**: ≥1 write-capable
 
-Patterns:
-- **Solo**: Exactly 1 agent
-- **Fan-out**: All read-only (no write agents)
-- **Pipeline**: ≥1 write-capable agent
+### 3. Create Team
 
-### 3. Generate Team Name
-
-Team name: `team-{HHMMSS}` (e.g., `team-143052`)
-
-### 4. Execute Pattern
-
-Follow instructions for pattern from step 2.
+TeamCreate: `team-{HHMMSS}`. Report pattern + agents to user.
 
 ---
 
 ## Failure Handling
 
-All patterns must handle agent failure/timeout. Apply these rules
-throughout.
+**Detecting**: error message, idle without results after 2 prompts,
+reports cannot complete.
 
-### Detecting Failure
+**Solo**: report failure + partial output, suggest re-run.
+**Fan-out**: continue with remaining (min 1), note gap in synthesis.
+**Pipeline**: retry builder once (fresh agent, same prompt +
+"Previous attempt failed. Start fresh."). If retry fails, proceed
+without. Implementer failure blocks tester.
 
-An agent has failed when:
-- It sends an error message instead of results
-- It goes idle without sending findings after being prompted twice
-- It reports it cannot complete the task
-
-### Timeout Protocol
-
-If an agent hasn't responded after spawning:
-1. Wait for idle notification (normal -- agents go idle between turns)
-2. Send a status check message: "Status update? What progress so far?"
-3. If no substantive response after second prompt, treat as failed
-
-### Handling Failed Agents
-
-**Solo**: If the single agent fails, report failure to user with
-whatever partial output was received. Suggest re-running or manual
-approach.
-
-**Fan-out**: Continue with remaining agents. Note the gap in the
-synthesis. Report which agent failed and what perspective is missing.
-Minimum 1 agent must succeed to produce a report.
-
-**Pipeline**: See retry logic in Pipeline Pattern section. Phase
-failures may block downstream phases.
-
-### Graceful Degradation
-
-Always prefer partial results over total failure:
-- If 2/3 analysts succeed in fan-out, synthesize from 2
-- If implementer succeeds but tester fails, report untested impl
-- If reviewer fails, note "Review skipped due to agent failure"
-- Include `## Failures` section in report listing what failed + why
+Always prefer partial results over total failure. Include
+`## Failures` section in report.
 
 ---
 
-## Progress Reporting
+## Solo Pattern
 
-During long operations, keep the user informed. Report status at
-these checkpoints:
-
-### When to Report
-
-- **Team created**: "Team {name} created with {N} agents ({list}).
-  Pattern: {pattern}."
-- **Phase transitions**: "Phase 1 complete ({N}/{total} agents
-  succeeded). Starting Phase 2..."
-- **Agent completion**: "Agent {name} finished. {remaining} agents
-  still working."
-- **Failures**: "Agent {name} failed. Retrying..." or
-  "Agent {name} failed. Continuing without."
-- **Final**: "All agents complete. Synthesizing report..."
-
-### Format
-
-Keep reports to 1 line. Use plain text, not markdown. Example:
-```
-[team-143052] 2/3 analysts complete. Waiting on architect-agent...
-[team-143052] Phase 1 done. Spawning implementer...
-[team-143052] Builder failed. Retrying (1/1)...
-```
-
-### Pipeline-Specific
-
-For pipeline pattern, report before each phase:
-1. "Starting analysis phase ({N} analysts)..."
-2. "Analysis complete. Starting build phase ({N} builders)..."
-3. "Build complete. Starting review..."
-4. "Review complete. Generating report..."
+1. TeamCreate → TaskCreate → spawn **solo-agent**
+2. Wait for completion. Present output directly.
+3. Save to `.jim/notes/team-{YYYYMMDD-HHMMSS}-{slug}.md`
+4. Shutdown → TeamDelete.
 
 ---
 
-## Solo Pattern (1 agent)
+## Fan-Out Pattern
 
-Minimal overhead. Spawn one agent directly.
+All agents work same task, own perspective, in parallel.
 
-1. TeamCreate with team name from step 3
-2. TaskCreate with full task description
-3. Spawn mate **solo-agent** (subagent_type: `general-purpose`)
-   - Give full task description
-   - Instruct to work thoroughly + send findings via SendMessage
-   - Wait for completion
-   - On failure: follow Failure Handling > Solo protocol
-4. Present agent output directly to user
-5. Save to `.jim/notes/team-{YYYYMMDD-HHMMSS}-{slug}.md`
-   - `{slug}` = short kebab-case summary (max 5 words)
-6. Send shutdown request to teammate. After confirmed, call TeamDelete.
-
----
-
-## Fan-Out Pattern (all read-only)
-
-Parallel analysis. All agents work same task, own perspective.
-Synthesize into unified report.
-
-1. TeamCreate with team name
-2. TaskCreate: 1 task per agent (independent, no dependencies)
-   - **researcher**: "Research + gather context for: {task}. Find relevant code,
-     trace dependencies, report w/ file paths + line numbers."
-   - **architect**: "Analyze architecture + design implications of: {task}.
-     Evaluate structure, patterns, coupling, tradeoffs."
-   - **devil**: "Challenge assumptions + find risks in: {task}. Identify
-     edge cases, failure modes, hidden problems."
-   - **reviewer**: "Review + assess quality aspects of: {task}. Focus:
-     readability, error handling, best practices, security."
-   - If duplicates (e.g. 3 researchers): differentiate by angle/area.
-     Number: "researcher-1", "researcher-2", etc.
-3. Spawn all mates parallel. Each:
-   - Name: `{agent-type}-agent` or `{agent-type}-agent-{N}` (duplicates)
-   - subagent_type: `general-purpose`
-   - Prompt: task description + framing + SendMessage instructions
-   - Required output format (include in prompt):
-     ```
-     ## Findings
-     [main discoveries with file paths + line numbers]
-     ## Assessment
-     [analysis from your perspective]
-     ## Recommendations
-     [actionable next steps]
-     ```
-4. Wait for ALL to complete
-   - If an agent fails: follow Failure Handling > Fan-out protocol
-   - Continue synthesis with successful agents (min 1 required)
-5. Synthesize findings into report:
-   ```markdown
-   # Team Report: [task summary]
-   Completed: [ISO timestamp]
-   Team: [comma-separated agent types]
-   Pattern: fan-out (parallel)
-   ## Task
-   [original task]
-   ## Findings
-   ### [Agent type]: [name]
-   [findings]
-   ## Synthesis
-   [Combined analysis from all perspectives. Agreements, disagreements, key insights.]
-   ## Recommendations
-   [Actionable next steps]
-   ```
-6. Save to `.jim/notes/team-{YYYYMMDD-HHMMSS}-{slug}.md`
-7. Present user:
-   - Brief summary (2-3 sentences)
-   - Key findings ea. agent (1-2 bullets)
-   - Recommendations + report path
-8. Send shutdown requests to all teammates. After confirmed, call TeamDelete.
+1. TeamCreate → TaskCreate 1 per agent (independent)
+   - Prompt framing by role: researcher (find code/deps),
+     architect (evaluate structure/patterns), devil (find risks/
+     edge cases), reviewer (assess quality/practices)
+   - Duplicates: number them, differentiate by angle
+   - Each reports: Findings, Assessment, Recommendations
+2. Wait ALL. Report completions as they arrive.
+3. Synthesize: combined analysis, agreements, disagreements,
+   recommendations.
+4. Save to `.jim/notes/team-{YYYYMMDD-HHMMSS}-{slug}.md`
+5. Present: brief summary, key findings per agent, recommendations.
+6. Shutdown all → TeamDelete.
 
 ---
 
-## Pipeline Pattern (mixed read/write)
+## Pipeline Pattern
 
-Read-only analyze parallel, then write-capable act sequential (>1),
-optional review pass after.
+Read-only analyze → write-capable build → optional review.
 
-### Classify Agent List
+### Classify Agents
 
-Split into 3 groups:
 1. **Analysts** (read-only): researcher, architect, devil
-2. **Builders** (write-capable): implementer, tester
-3. **Reviewers** (review-specific): reviewer
+2. **Builders** (write): implementer, tester
+3. **Reviewers**: reviewer
 
-Reviewer → Reviewers group. Other read-only → Analysts.
-No reviewer = skip review phase.
-Empty Analysts = skip Phase 1, go to Phase 2.
-
-### Create Team + Tasks
-
-TeamCreate with team name.
-
-**Phase 1 tasks** (1 per analyst, independent):
-- Use fan-out framing + add: "Your analysis informs implementation.
-  Focus on actionable insights."
-
-**Phase 2 tasks** (1 per builder, sequential if >1):
-- **implementer**: "Implement based on analysis: {task}.
-  Follow analysts' guidance + recommendations."
-- **tester**: "Write + run tests for: {task}. Use analysts'
-  findings to cover edge cases."
-- If both: tester task depends on implementer task
-
-**Phase 3 task** (if reviewer):
-- "Review implementation + tests for: {task}.
-  Assess quality, correctness, completeness."
-- Depends on all Phase 2 tasks
-
-Dependencies:
-- Phase 2 blocked by all Phase 1 tasks
-- Phase 3 blocked by all Phase 2 tasks
+Empty analysts → skip Phase 1. No reviewer → skip Phase 3.
 
 ### Phase 1: Analysis
 
-1. Spawn all analysts parallel (same as fan-out)
-2. Wait for ALL. Collect findings.
-   - Failed analysts: apply fan-out degradation (min 1 must succeed)
-   - If ALL fail: report to user, suggest manual analysis or re-run
-3. Compile analysis summary → pass to builders
+Spawn analysts parallel (fan-out). Compile summary for builders.
+Min 1 must succeed.
 
 ### Phase 2: Build
 
-1. If >1 builder: spawn sequential (implementer first → tester)
-   to avoid conflicts. If 1 builder: just spawn.
-2. Each builder prompt:
-   - Full task description
-   - Compiled Phase 1 analysis summary
-   - Builder-specific framing
-   - SendMessage instructions
-3. Wait for ALL. Collect results.
-   - Failed builder: attempt 1 retry with same prompt (see Retry
-     Logic below). If retry fails, note in report.
-   - Implementer failure blocks tester. Skip tester if impl failed.
+Spawn builders (sequential if >1: implementer → tester).
+Each gets: task + Phase 1 summary. Retry once on failure.
+Implementer failure blocks tester.
 
 ### Phase 3: Review (if reviewer)
 
-1. Spawn reviewer with:
-   - Full task description
-   - Phase 1 analysis summary
-   - Phase 2 build results
-   - Review for quality + correctness instructions
-2. Wait. Collect findings.
-   - Reviewer failure: note "Review skipped due to agent failure"
+Spawn reviewer with: task + Phase 1 summary + Phase 2 results.
+Failure → note "Review skipped".
 
-### Retry Logic (Pipeline Only)
+### Synthesize
 
-When a pipeline builder fails:
-1. Shut down the failed agent
-2. Spawn a fresh agent with same name + prompt + suffix note:
-   "Previous attempt failed. Start fresh."
-3. Max 1 retry per agent. If retry fails, proceed without.
-4. Log retry attempt + outcome in report
+Save to `.jim/notes/team-{YYYYMMDD-HHMMSS}-{slug}.md`:
+Task, Phase 1 findings, Phase 2 results (files, implementation,
+tests), Phase 3 review, failures, summary, recommendations.
 
-### Synthesize + Report
-
-```markdown
-# Team Report: [task summary]
-
-Completed: [ISO timestamp]
-Team: [comma-separated agent types]
-Pattern: pipeline (analysis → build → review)
-
-## Task
-[original task]
-
-## Phase 1: Analysis
-[Compiled analyst findings organized by agent]
-
-## Phase 2: Build
-[Builder results -- files created/modified, implementation summary, test results]
-
-## Phase 3: Review
-[Reviewer findings, or "No reviewer in team. Skipped."]
-
-## Failures
-[Agent failures + retries, or "None"]
-
-## Summary
-[Overall outcome. What analyzed, built, reviewed. Issues + status.]
-
-## Recommendations
-[Next steps based on pipeline outcome]
-```
-
-1. Save to `.jim/notes/team-{YYYYMMDD-HHMMSS}-{slug}.md`
-2. Present user:
-   - Accomplishment ea. phase (1-2 sentences)
-   - Files created/modified
-   - Review findings
-   - Report path + suggested next steps
-3. Send shutdown requests to all teammates. After confirmed, call TeamDelete.
+Present: accomplishment per phase, files changed, review findings,
+report path. Shutdown all → TeamDelete.

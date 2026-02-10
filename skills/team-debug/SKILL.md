@@ -22,147 +22,50 @@ allowed-tools:
 
 # Team Debug Skill
 
-Spawn 3 investigators pursuing different hypotheses → synthesize root cause.
+Spawn 3 investigators pursuing competing hypotheses → synthesize
+root cause.
 
 ## Instructions
 
-### 1. Parse Bug Description
+### 1. Parse Bug
 
-Extract from `$ARGUMENTS`. If missing, ask user + exit.
+Extract from `$ARGUMENTS`. Missing → ask user + exit.
 
-### 2. Formulate Hypotheses
+### 2. Formulate 3 Hypotheses
 
-Analyze bug + create 3 distinct hypotheses (tailor to specific bug):
+Tailor to specific bug:
+1. **Data/State** — incorrect data, unexpected state, race conditions
+2. **Logic/Control Flow** — wrong branching, missing conditions, algorithm errors
+3. **Integration/Environment** — external deps, config, API misuse, env differences
 
-1. **Data/State** - incorrect data, unexpected state, race conditions, data flow
-2. **Logic/Control Flow** - incorrect logic, wrong branching, missing conditions, algorithm errors
-3. **Integration/Environment** - external deps, config issues, API misuse, env differences
+### 3. Create Team + Tasks
 
-### 3. Create Team
+TeamCreate: `debug-squad-{HHMMSS}`. TaskCreate 1 per hypothesis.
 
-Generate timestamp (HHMMSS). Create team: `debug-squad-{HHMMSS}` (prevents collisions).
+### 4. Spawn Investigators
 
-Report: "Debug squad created. 3 investigators pursuing independent
-hypotheses..."
+3 parallel general-purpose agents (**investigator-1/2/3**):
 
-### 4. Create Tasks
+Each gets: bug description, their hypothesis, other 2 hypotheses
+(for cross-checking). Each must report:
+- Evidence for/against (with file:line refs)
+- Confidence (high/medium/low + reasoning)
+- Suggested fix (specific steps + file paths)
 
-3 tasks via TaskCreate (1 per hypothesis):
-- Investigate data/state hypothesis
-- Investigate logic/control flow hypothesis
-- Investigate integration/environment hypothesis
+**Failure handling**: Status check after 2 idle prompts. Failed →
+mark hypothesis "Not investigated". Continue with remaining
+(min 1 must succeed). Report completions as they arrive.
 
-### 5. Spawn Teammates
+### 5. Synthesize Root Cause
 
-3 teammates via Task tool (subagent_type: `general-purpose`):
+Save to `.jim/notes/team-debug-{YYYYMMDD-HHMMSS}-{slug}.md`:
 
-**investigator-1**: Data/state hypothesis
-- Search codebase for supporting/refuting evidence
-- Trace data flow, check state mutations, find race conditions, trace code paths
-- Report: evidence for/against, confidence, suggested fix
+Bug description, per-hypothesis verdict (evidence, confidence,
+supported/refuted/inconclusive), root cause assessment (most likely
+cause + confidence + evidence), recommended fix (specific steps +
+files), additional findings, failures.
 
-**investigator-2**: Logic/control flow hypothesis
-- Search logic errors, incorrect conditions, missing edge cases, algorithmic issues
-- Trace execution path, check branching, off-by-one errors, null checks
-- Report: evidence, confidence, suggested fix
+### 6. Shutdown + Present
 
-**investigator-3**: Integration/environment hypothesis
-- Check external deps, config files, API usage, version compatibility, env assumptions
-- Report: evidence, confidence, suggested fix
-
-Include in each prompt:
-- Full bug description
-- Their specific hypothesis
-- Other 2 hypotheses (for cross-checking)
-- SendMessage instructions for results
-- Required output format:
-  ```
-  ## Hypothesis: [name]
-  ## Evidence For
-  [supporting findings with file paths + line numbers]
-  ## Evidence Against
-  [refuting findings]
-  ## Confidence
-  [high/medium/low + reasoning]
-  ## Suggested Fix
-  [specific steps with file paths]
-  ```
-
-### 6. Coordinate + Collect
-
-Wait for 3 reports. Note overlapping evidence + contradictions.
-
-**Failure handling**: If an investigator fails (error message, idle
-without results after 2 prompts, reports cannot complete):
-1. Send status check: "Status update? What progress so far?"
-2. If no substantive response after second prompt, mark as failed
-3. Continue with remaining investigators (min 1 must succeed)
-4. Note failed hypothesis in synthesis as "Not investigated due to
-   agent failure"
-
-Report agent completions as they arrive:
-"Investigator-{N} complete ({N}/3). Hypothesis: {verdict}."
-
-After all: "All investigators complete. Synthesizing root cause..."
-
-### 7. Synthesize Root Cause Analysis
-
-```markdown
-# Debug Analysis: [bug title]
-
-Investigated: [ISO timestamp]
-Bug: [one-line summary]
-Hypotheses tested: 3
-
-## Bug Description
-
-[Full user description]
-
-## Hypotheses Investigated
-
-### Hypothesis 1: Data/State
-- **Investigator**: investigator-1
-- **Confidence**: high/medium/low
-- **Evidence for**: [list]
-- **Evidence against**: [list]
-- **Verdict**: supported/refuted/inconclusive
-
-### Hypothesis 2: Logic/Control Flow
-[Same structure]
-
-### Hypothesis 3: Integration/Environment
-[Same structure]
-
-## Root Cause Assessment
-
-**Most likely cause**: [description]
-**Confidence**: high/medium/low
-**Supporting evidence**: [key points]
-
-## Recommended Fix
-
-[Specific actionable steps, file paths + line numbers]
-
-## Additional Findings
-
-[Other issues, cross-hypothesis evidence, unexpected findings]
-
-## Failures
-
-[Agent failures + retries, or "None"]
-```
-
-Save to `.jim/notes/team-debug-{YYYYMMDD-HHMMSS}-{slug}.md` (slug from bug description).
-
-### 8. Shut Down Team
-
-Send shutdown requests to all teammates. After confirmed, call TeamDelete.
-
-### 9. Present Results
-
-Show user:
-- Most likely root cause (1-2 sentences)
-- Confidence level
-- Recommended fix (brief)
-- Path to full analysis
-- Suggest next steps
+Shutdown all → TeamDelete. Show: most likely root cause (1-2
+sentences), confidence, recommended fix, path to full analysis.
