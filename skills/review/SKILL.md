@@ -70,4 +70,4 @@ recommendations, balances critique with encouragement.
 
 ## Triage
 
-20+ files or multiple subsystems → suggest `/team-review`.
+10+ files OR cross-concern changes → suggest `/team-review`.

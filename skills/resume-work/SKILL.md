@@ -1,8 +1,7 @@
 ---
 name: resume-work
 description: Summarizes the current branch and PR state to help resume work on a changeset. Use when the user wants to understand the current state of their branch or resume work on a PR.
-disable-model-invocation: true
-allowed-tools: Bash
+allowed-tools: Bash, Write
 argument-hint: [optional: branch-name]
 ---
 
@@ -30,7 +29,9 @@ Analyzes branch + PR state to summarize changeset for resuming work.
    - If no remote: note as local-only branch
 
 3. **Gather context in parallel**:
-   - `gh pr view --json number,title,body,state,author,createdAt,updatedAt,additions,deletions,changedFiles,reviewDecision,comments,reviews`
+   - `gh pr view --json number,title,state,reviewDecision,additions,deletions,changedFiles,updatedAt --jq '{number,title,state,reviewDecision,additions,deletions,changedFiles,updatedAt}'`
+   - `gh pr view --json comments --jq '[.comments[-5:][] | {author:.author.login,body:.body[:200],createdAt}]'` (last 5 comments, truncated)
+   - `gh pr view --json reviews --jq '[.reviews[-5:][] | {author:.author.login,state,body:.body[:200]}]'` (last 5 reviews, truncated)
    - `git log main..HEAD --oneline --no-decorate`
    - `git log -1 --format=fuller`
    - `git rev-list --count main..HEAD`
@@ -84,5 +85,5 @@ Analyzes branch + PR state to summarize changeset for resuming work.
 ## Notes
 
 - Read-only (no repo changes)
-- No PR + ready commits → suggest `/ship`
-- Behind main → user can `/ship` to sync
+- No PR + ready commits → suggest `/submit`
+- Behind main → user can `/submit` to sync

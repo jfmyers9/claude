@@ -92,4 +92,4 @@ or `/explore <doc> <feedback>` to refine a specific one.
 
 ## Triage
 
-3+ subsystems or needs adversarial challenge → `/team-explore`.
+2+ subsystems OR complex architectural decision → `/team-explore`.
