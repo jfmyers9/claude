@@ -80,6 +80,14 @@ Include in each prompt:
 
 Wait for 3 reports. Note overlapping evidence + contradictions.
 
+**Failure handling**: If an investigator fails (error message, idle
+without results after 2 prompts, reports cannot complete):
+1. Send status check: "Status update? What progress so far?"
+2. If no substantive response after second prompt, mark as failed
+3. Continue with remaining investigators (min 1 must succeed)
+4. Note failed hypothesis in synthesis as "Not investigated due to
+   agent failure"
+
 Report agent completions as they arrive:
 "Investigator-{N} complete ({N}/3). Hypothesis: {verdict}."
 
@@ -126,13 +134,17 @@ Hypotheses tested: 3
 ## Additional Findings
 
 [Other issues, cross-hypothesis evidence, unexpected findings]
+
+## Failures
+
+[Agent failures + retries, or "None"]
 ```
 
 Save to `.jim/notes/debug-{timestamp}-{slug}.md` (slug from bug description).
 
 ### 8. Shut Down Team
 
-Send shutdown requests to all teammates. Delete team.
+Send shutdown requests to all teammates. After confirmed, call TeamDelete.
 
 ### 9. Present Results
 

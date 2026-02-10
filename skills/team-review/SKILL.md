@@ -73,6 +73,14 @@ Include in each prompt:
 Wait for 3 reviews. Report completions as they arrive:
 "{agent} review complete ({done}/3)."
 
+**Failure handling**: If a reviewer fails (error message, idle
+without results after 2 prompts, reports cannot complete):
+1. Send status check: "Status update? What progress so far?"
+2. If no substantive response after second prompt, mark as failed
+3. Continue with remaining reviewers (min 1 must succeed)
+4. Note missing perspective in synthesis (e.g., "Architecture
+   review unavailable due to agent failure")
+
 After all: "All reviews in. Synthesizing unified feedback..."
 
 ### 6. Synthesize
@@ -112,13 +120,16 @@ Reviewers: reviewer, architect, devil
 
 ## Consensus & Disagreements
 [Agreement + different perspectives]
+
+## Failures
+[Agent failures, or "None"]
 ```
 
 Save to `.jim/notes/team-review-{timestamp}-{branch}.md` (branch name: `/` -> `-`).
 
 ### 7. Shut Down Team
 
-Send shutdown requests to teammates + cleanup.
+Send shutdown requests to all teammates. After confirmed, call TeamDelete.
 
 ### 8. Present Results
 

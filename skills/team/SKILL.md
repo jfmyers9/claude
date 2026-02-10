@@ -180,7 +180,7 @@ Minimal overhead. Spawn one agent directly.
 4. Present agent output directly to user
 5. Save to `.jim/notes/team-{HHMMSS}-{slug}.md`
    - `{slug}` = short kebab-case summary (max 5 words)
-6. Shut down mate + cleanup team
+6. Send shutdown request to mate. After confirmed, call TeamDelete.
 
 ---
 
@@ -229,7 +229,7 @@ Synthesize into unified report.
    - Brief summary (2-3 sentences)
    - Key findings ea. agent (1-2 bullets)
    - Recommendations + report path
-8. Shutdown mates + cleanup
+8. Send shutdown requests to all mates. After confirmed, call TeamDelete.
 
 ---
 
@@ -351,4 +351,4 @@ Pattern: pipeline (analysis → build → review)
    - Files created/modified
    - Review findings
    - Report path + suggested next steps
-3. Shutdown mates + cleanup
+3. Send shutdown requests to all mates. After confirmed, call TeamDelete.

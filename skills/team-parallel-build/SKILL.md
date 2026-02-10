@@ -213,7 +213,7 @@ Status: {success/failed}
 
 ### 9. Shut Down Team
 
-Send shutdown requests to all agents. TeamDelete cleanup.
+Send shutdown requests to all agents. After confirmed, call TeamDelete.
 
 ### 10. Results to User
 

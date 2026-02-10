@@ -112,18 +112,25 @@ Wait both finish.
 
 **If builder fails**: Retry once -- shut down failed agent, spawn fresh
 **builder-retry** (general-purpose) with same prompt + "Previous attempt
-failed. Start fresh." If retry fails, report to user and abort pipeline
+failed. Start fresh." Track active builder name = `builder-retry`.
+If retry fails, report to user and abort pipeline
 (no point testing without implementation).
 
 **If spec-writer fails**: Retry once -- spawn **spec-writer-retry**
-(general-purpose) with same prompt. If retry fails, proceed without test specs
+(general-purpose) with same prompt. Track active spec-writer name =
+`spec-writer-retry`. If retry fails, proceed without test specs
 (step 7 tester writes tests from scratch using implementation).
+
+Track active agent names throughout: `active_builder` (default:
+`builder`), `active_spec_writer` (default: `spec-writer`). Update
+when retry agents replace originals. Use active names in all
+subsequent steps.
 
 Report: "Implementation + test specs complete. Tester filling tests..."
 
 ### 7. Tester Fills Tests
 
-Message **spec-writer**:
+Message **{active_spec_writer}** (the spec-writer or its retry replacement):
 - Implementer's file list
 - Read implementation -> understand interfaces
 - Replace placeholders + real assertions
@@ -133,8 +140,8 @@ Message **spec-writer**:
 
 Wait.
 
-**If tester fails during fill**: Retry once -- message spec-writer to
-try again from scratch. If retry fails, note "Tests incomplete" in
+**If tester fails during fill**: Retry once -- message {active_spec_writer}
+to try again from scratch. If retry fails, note "Tests incomplete" in
 report and continue to review.
 
 Report: "Tests complete. Spawning reviewer..."
@@ -166,10 +173,10 @@ Report: "Review complete. Checking for issues..."
 
 If critical + high issues found:
 
-1. Message **builder**: Fix critical + high. Include file paths + suggestions.
+1. Message **{active_builder}**: Fix critical + high. Include file paths + suggestions.
    Message when done (summary of changes).
 2. Wait.
-3. Message **spec-writer**: Re-run suite. Include modified files list.
+3. Message **{active_spec_writer}**: Re-run suite. Include modified files list.
 4. Wait.
 5. Message **code-reviewer**: Quick re-review changed files only.
    Confirm resolved + new concerns?
@@ -242,7 +249,7 @@ Else: "No critical/high issues found."]
 
 ### 11. Shut Down Team
 
-Send shutdown requests, cleanup.
+Send shutdown requests to all agents. After confirmed, call TeamDelete.
 
 ### 12. Present Results
 

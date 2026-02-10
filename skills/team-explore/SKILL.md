@@ -59,6 +59,14 @@ Include in each prompt:
 
 Wait for all three to report. Note connections between discoveries.
 
+**Failure handling**: If a specialist fails (error message, idle
+without results after 2 prompts, reports cannot complete):
+1. Send status check: "Status update? What progress so far?"
+2. If no substantive response after second prompt, mark as failed
+3. Continue with remaining specialists (min 1 must succeed)
+4. Note missing perspective in synthesis (e.g., "Architecture
+   analysis unavailable due to agent failure")
+
 Report agent completions as they arrive:
 "{agent} complete ({done}/3)."
 
@@ -155,7 +163,7 @@ Save to `.jim/plans/{timestamp}-{topic-slug}.md`.
 
 ### 7. Shut Down Team
 
-Send shutdown requests to all teammates. Clean up team.
+Send shutdown requests to all teammates. After confirmed, call TeamDelete.
 
 ### 8. Present Results
 
