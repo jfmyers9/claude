@@ -2,7 +2,7 @@
 name: explore
 description: "Investigate, research, plan, understand codebase, explore ideas, figure out feature approach before implementing."
 allowed-tools: Bash, Read, Task
-argument-hint: "<topic> or <existing-doc> <feedback>"
+argument-hint: "<topic> or [--continue] [<existing-doc>] <feedback>"
 ---
 
 # Explore Skill
@@ -13,6 +13,12 @@ both new explorations and continuing existing ones.
 ## Route: New vs Continue
 
 Parse `$ARGUMENTS`:
+- If `--continue` flag present → **continue mode**
+  - Strip `--continue` from args
+  - If remaining args match a file in `.jim/plans/` → use that doc
+  - Otherwise → use most recent `.jim/plans/*.md` by timestamp
+  - Remaining text after doc match → user feedback
+  - No remaining text → ask user what to refine
 - If first arg matches a file in `.jim/plans/` (partial match OK)
   AND has additional text → **continue mode** (refine existing doc)
 - Otherwise → **new exploration**
@@ -81,7 +87,8 @@ Return ONLY: file path + 2-3 sentence summary + recommendation.
 ## Output
 
 Display: file path + brief summary. Note user can read full doc
-or run `/explore <doc> <feedback>` to refine further.
+or run `/explore --continue` to refine the most recent exploration,
+or `/explore <doc> <feedback>` to refine a specific one.
 
 ## Triage
 
