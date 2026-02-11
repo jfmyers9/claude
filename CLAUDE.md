@@ -36,13 +36,6 @@ All plans, notes, and state live in beads — no filesystem documents.
 - **Task state**: tracked via beads `status` field
 - **View/edit**: `bd edit <id> --design`, `bd edit <id> --notes`
 
-## Archive Directory (Legacy, Read-Only)
-
-`.jim/archive/` contains historical documentation (67 files).
-
-**IMPORTANT:** Never read, write, or search in `.jim/archive/`
-unless the user explicitly asks to access archived content.
-
 ## Text Formatting
 
 When generating documentation or long-form text, ensure terminal
