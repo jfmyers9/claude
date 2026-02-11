@@ -35,7 +35,9 @@ Creates a new Graphite branch with optional beads issue linking.
 6. **Create beads issue (if no ID provided)**
    - Ask user: "Create beads issue for this branch?"
    - If yes:
-     - `bd create "<branch-name>" --type task --priority 2`
+     - `bd create "<branch-name>" --type task --priority 2 --description "## Acceptance Criteria
+- <what this branch work should accomplish>"`
+     - Validate: `bd lint <new-id>` — if it fails, `bd edit <new-id> --description` to fix violations
      - `bd update <new-id> --status in_progress`
 
 7. **Confirm completion**

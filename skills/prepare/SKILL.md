@@ -37,9 +37,15 @@ structure.
    - Phases with no detected dependency on prior phase → parallel
 
 4. **Create beads structure**
-   - Epic: `bd create "<plan-title>" --type epic --priority 1 --silent`
+   - Epic: `bd create "<plan-title>" --type epic --priority 1 --description "<desc>" --silent`
+     - `<desc>` = one-paragraph plan summary, then `## Success Criteria`
+       heading followed by 3-5 high-level outcomes extracted from the plan
+     - Validate: `bd lint <epic-id>` — if it fails, `bd edit <epic-id> --description` to fix violations
    - For each phase:
-     - `bd create "Phase N: <description>" --type task --parent <epic-id> --priority 2 --description "<task-list>" --silent`
+     - `bd create "Phase N: <description>" --type task --parent <epic-id> --priority 2 --description "<desc>" --silent`
+     - `<desc>` = `## Acceptance Criteria` heading followed by the
+       task-list items for that phase (one checklist item per task)
+     - Validate: `bd lint <phase-id>` — if it fails, `bd edit <phase-id> --description` to fix violations
    - Set dependencies between sequential phases:
      - `bd dep <phase-N> --blocks <phase-N+1>`
    - Skip dep for parallel phases

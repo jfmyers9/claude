@@ -31,8 +31,13 @@ bd update <id> --status in_progress
 
 **If no beads issue:**
 ```bash
-bd create "Debug: <problem>" --type bug --priority 1
+bd create "Debug: <problem>" --type bug --priority 1 --description "## Steps to Reproduce
+- <observed symptoms and error output>
+
+## Acceptance Criteria
+- Bug is fixed and verified by passing tests"
 ```
+Validate: `bd lint <id>` — if it fails, `bd edit <id> --description` to fix violations.
 
 ### 2. Gather Diagnostics (Parallel)
 

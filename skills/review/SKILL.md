@@ -29,7 +29,18 @@ All findings stored in beads design field — no filesystem plans.
    - Exclude: lock files, dist/, build/, coverage/, binaries
 
 2. **Create review bead**
-   - `bd create "Review: {branch}" --type task --priority 2`
+   - Create bead with description:
+     ```
+     bd create "Review: {branch}" --type task --priority 2 \
+       --description "$(cat <<'EOF'
+     ## Acceptance Criteria
+     - All changed files reviewed for critical issues, design, and testing gaps
+     - Findings stored in bead design field as phased structure
+     - Critical issues identified and actionable via /prepare
+     EOF
+     )"
+     ```
+   - Validate: `bd lint <id>` — if it fails, `bd edit <id> --description` to fix violations
    - `bd update <id> --status in_progress`
 
 3. **Determine review mode**

@@ -57,16 +57,17 @@ For each finding:
 ```bash
 bd create "<finding-title>" --type <bug|task|feature> --priority <0-4> --description "<details>"
 ```
+Validate each: `bd lint <id>` — if it fails, `bd edit <id> --description` to fix violations.
 
 **Title requirements:**
 - Brief, actionable (imperative form)
 - "Fix X", "Add Y", "Update Z"
 
-**Description requirements:**
+**Description requirements (must pass `bd lint`):**
 - Self-contained (implementer shouldn't need original feedback)
 - Reference specific files and line numbers when possible
-- Include expected behavior vs current behavior for bugs
-- Include acceptance criteria for features/tasks
+- **Bug type** must include `## Steps to Reproduce` and `## Acceptance Criteria` headings
+- **Task/feature type** must include `## Acceptance Criteria` heading
 
 ### 4. Report
 
@@ -90,8 +91,29 @@ Output format:
 "The login timeout is too short and the error message doesn't help"
 
 **Creates two beads:**
-1. `bd create "Increase login timeout duration" --type task --priority 2 --description "Current timeout is 5s. Increase to 30s in auth/config.ts:42"`
-2. `bd create "Fix unclear login timeout error" --type bug --priority 1 --description "Current: 'Error occurred'. Expected: 'Login timed out. Please try again.'"`
+1. Task (includes `## Acceptance Criteria`):
+   ```bash
+   bd create "Increase login timeout duration" --type task --priority 2 \
+     --description "Current timeout is 5s in auth/config.ts:42.
+
+   ## Acceptance Criteria
+   - Login timeout increased to 30s
+   - Timeout value is configurable"
+   ```
+2. Bug (includes `## Steps to Reproduce` and `## Acceptance Criteria`):
+   ```bash
+   bd create "Fix unclear login timeout error" --type bug --priority 1 \
+     --description "Error message says 'Error occurred' instead of explaining the timeout.
+
+   ## Steps to Reproduce
+   1. Open login page
+   2. Wait for timeout to expire
+   3. Observe generic 'Error occurred' message
+
+   ## Acceptance Criteria
+   - Error message reads 'Login timed out. Please try again.'
+   - Message appears within 1s of timeout"
+   ```
 
 ## Style Rules
 

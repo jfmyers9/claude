@@ -22,8 +22,19 @@ All findings stored in beads design field — no filesystem plans.
 
 ### New Exploration
 
-1. `bd create "Explore: <topic>" --type task --priority 2`
-2. `bd update <id> --status in_progress`
+1. Create bead with description:
+   ```
+   bd create "Explore: <topic>" --type task --priority 2 \
+     --description "$(cat <<'EOF'
+   ## Acceptance Criteria
+   - Findings stored in bead design field (not filesystem)
+   - Structured as Current State, Recommendation, and phased Next Steps
+   - Each phase is independently actionable
+   EOF
+   )"
+   ```
+2. Validate: `bd lint <id>` — if it fails, `bd edit <id> --description` to fix violations
+3. `bd update <id> --status in_progress`
 3. Spawn Explore agent (see below)
 4. Store findings: `bd update <id> --design "<full-findings>"`
 5. Report results
