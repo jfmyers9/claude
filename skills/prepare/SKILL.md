@@ -51,6 +51,7 @@ structure.
    - Skip dep for parallel phases
 
 5. **Validate and create swarm**
+   - `bd config set types.custom molecule` (idempotent guard — `bd swarm create` needs this custom type)
    - `bd swarm validate <epic-id> --verbose`
    - If swarmable: `bd swarm create <epic-id>`
    - Report validation results
