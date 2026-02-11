@@ -18,6 +18,24 @@ All findings stored in beads design field — no filesystem plans.
 - `<beads-id>` — continue existing exploration issue
 - `--continue` — resume most recent in_progress exploration
 
+## Step 0: Check Beads Initialization
+
+Before any workflow, verify beads is set up:
+
+```bash
+if [ ! -d .beads ]; then
+  echo "Error: beads not initialized in this repository."
+  echo ""
+  echo "Run:  bd init"
+  echo ""
+  echo "Then retry your /explore command."
+  exit 1
+fi
+```
+
+If `.beads` doesn't exist, show the error above and **stop** —
+do not create beads, spawn agents, or continue.
+
 ## Workflow
 
 ### New Exploration
