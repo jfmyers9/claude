@@ -42,6 +42,7 @@ Create conventional commits and sync beads issue tracking.
    - Use HEREDOC for multi-line messages
 
 6. **Sync Beads**
+   - Run `bd epic close-eligible` to auto-close epics with all children done
    - Run `bd sync` to export beads state
    - Report sync status
 
