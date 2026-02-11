@@ -27,29 +27,21 @@
 - When context is running low, prefer finishing current work over
   starting new tasks
 
-## Archive Directory
+## Beads as Single Source of Truth
 
-The `.jim/archive/` directory contains archived documentation.
+All plans, notes, and state live in beads — no filesystem documents.
 
-**IMPORTANT:** Never read, write, or search in `.jim/archive/` unless the
-user explicitly asks to access archived content.
+- **Exploration plans**: stored in beads `design` field
+- **Review summaries**: stored in beads `notes` field
+- **Task state**: tracked via beads `status` field
+- **View/edit**: `bd edit <id> --design`, `bd edit <id> --notes`
 
-When the user says "access archive" or "check the archive", you may read
-from `.jim/archive/`. Otherwise, treat it as if it doesn't exist.
+## Archive Directory (Legacy, Read-Only)
 
-## Documentation and Notes
+`.jim/archive/` contains historical documentation (67 files).
 
-When writing documentation (either through skills or user request), save
-it to the `.jim` directory structure unless otherwise specified:
-
-- `.jim/plans/` - Feature planning and exploration documents
-- `.jim/notes/` - Personal notes and observations
-- `.jim/scratch/` - Temporary working files
-- `.jim/states/` - State tracking files
-- `.jim/archive/` - Archived documentation (see Archive Directory section)
-
-These directories are git-ignored and meant for local, personal
-documentation that supports your development workflow.
+**IMPORTANT:** Never read, write, or search in `.jim/archive/`
+unless the user explicitly asks to access archived content.
 
 ## Text Formatting
 

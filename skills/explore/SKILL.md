@@ -4,30 +4,48 @@ description: |
   Research topics, investigate codebases, and create implementation plans.
   Triggers: 'explore', 'investigate', 'research'.
 allowed-tools: Bash, Read, Task
-argument-hint: "<topic or question>"
+argument-hint: "<topic or question> | <beads-id> | --continue"
 ---
 
 # Instructions
 
-You orchestrate exploration via beads workflow and Task delegation.
+Orchestrate exploration via beads workflow and Task delegation.
+All findings stored in beads design field — no filesystem plans.
+
+## Arguments
+
+- `<topic>` — new exploration on this topic
+- `<beads-id>` — continue existing exploration issue
+- `--continue` — resume most recent in_progress exploration
 
 ## Workflow
 
-1. **Create beads issue**: `bd create "Explore: <topic>" --type task --priority 2`
-2. **Claim it**: `bd update <id> --status in_progress`
-3. **Delegate to Explore agent**: Spawn Task agent (subagent_type=Explore, model=sonnet) with:
-   - Clear exploration objective
-   - Instructions to gather context in parallel (Glob, Grep, Read)
-   - Requirement to write findings to plan document in `.jim/plans/<topic>.md`
-4. **Update beads issue**: After agent returns, update design field with summary: `bd update <id> --design "<summary>"`
-5. **Close issue**: `bd update <id> --status done`
+### New Exploration
+
+1. `bd create "Explore: <topic>" --type task --priority 2`
+2. `bd update <id> --status in_progress`
+3. Spawn Explore agent (see below)
+4. Store findings: `bd update <id> --design "<full-findings>"`
+5. Report results
+
+### Continue Exploration
+
+1. Resolve issue ID:
+   - If `$ARGUMENTS` matches a beads ID → use it
+   - If `--continue` → `bd list --status=in_progress --type task`,
+     find first with title starting "Explore:"
+2. Load existing context: `bd show <id> --json` → extract design field
+3. Spawn Explore agent with existing findings + new instructions
+4. Update design: `bd update <id> --design "<updated-findings>"`
+5. Report results
 
 ## Task Agent Instructions
 
-When spawning the Explore agent, provide:
+Spawn Task (subagent_type=Explore, model=sonnet) with:
 
 ```
-Research <topic> thoroughly. Your findings should include:
+Research <topic> thoroughly. Return your COMPLETE findings as
+text output (do NOT write files). Structure:
 
 1. **Current State**: What exists now (files, patterns, architecture)
 2. **Recommendation**: Suggested approach with rationale
@@ -42,27 +60,28 @@ Research <topic> thoroughly. Your findings should include:
 4. Fourth step
 
 Aim for 3-7 phases. Each phase should be independently testable.
-
-Save complete findings to `.jim/plans/<sanitized-topic>.md`.
 ```
+
+For continuations, prepend: "Previous findings:\n<existing-design>\n\n
+Continue the exploration focusing on: <new-instructions>"
+
+After agent returns, store full findings:
+`bd update <id> --design "$(cat <<'EOF'\n<agent-output>\nEOF\n)"`
 
 ## Output Format
 
-After exploration completes:
-
 **Exploration Issue**: #<id>
-**Plan Document**: `.jim/plans/<topic>.md`
 
 **Key Findings**:
 - Bullet points of critical discoveries
 
 **Recommendation**: <one paragraph>
 
-**Next Steps**: See plan document for phased implementation.
+**Next**: `bd edit <id> --design` to review, `/prepare` to create tasks.
 
 ## Guidelines
 
-- Set thoroughness level based on scope: "quick" for targeted questions, "very thorough" for architecture
-- Keep your coordination messages concise
+- Set thoroughness based on scope: "quick" for targeted, "very thorough" for architecture
+- Keep coordination messages concise
 - Let the Task agent do the exploration work
 - Summarize agent findings, don't copy verbatim

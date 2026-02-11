@@ -4,24 +4,24 @@ description: >
   Convert exploration plan into beads epic + child issues + swarm.
   Triggers: /prepare, "prepare work", "create tasks from plan".
 allowed-tools: Bash, Read, Glob
-argument-hint: "[plan-file-path]"
+argument-hint: "[beads-issue-id]"
 ---
 
 # Prepare
 
-Read an exploration document and create beads work structure.
+Read plan from beads issue and create work structure.
 
 ## Steps
 
-1. **Find plan document**
-   - If `$ARGUMENTS` has a path → use it
-   - Otherwise → most recent `.jim/plans/*.md`
+1. **Find plan source**
+   - If `$ARGUMENTS` is a beads ID → `bd show <id> --json`, extract design field
+   - Otherwise → `bd list --status=in_progress --type task`, find first "Explore:" issue
    - No plan found → exit, suggest `/explore` first
 
 2. **Parse plan**
-   - Read the document fully
-   - Extract title from `# Exploration:` or first heading
-   - Find "Next Steps" section
+   - Read the design field content
+   - Extract title from first heading
+   - Find "Phases" or "Next Steps" section
    - Parse phases: `**Phase N: Description**` or `### Phase N:`
    - Extract tasks under each phase (numbered list items)
 

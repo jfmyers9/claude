@@ -50,8 +50,7 @@ Run `bd show <id>` to inspect the issue.
    - `subagent_type=general-purpose`
    - Worker prompt includes:
      - Task description from `bd show <task-id>`
-     - Parent epic context (title, recommendation)
-     - Plan document from `.jim/plans/` if referenced
+     - Parent epic context (title + design field from `bd show <epic-id> --json`)
    - Worker must: claim task (`bd update <id> --status in_progress`),
      implement, then close (`bd close <id>`)
 5. Monitor workers via teammate messages

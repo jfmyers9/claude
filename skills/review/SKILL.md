@@ -44,16 +44,16 @@ Perform senior engineer code review and file findings as beads issues.
    - Design issues → `bd create "<description>" --type task --priority <1-2>`
    - Priority: 3=critical, 2=important, 1=normal, 0=low
 
-7. **Write review summary**
-   - Path: `.jim/notes/review-{YYYY-MM-DD}-{branch}.md`
+7. **Store review summary in beads**
+   - Create review issue: `bd create "Review: {branch}" --type task --priority 1`
+   - Store summary in notes field: `bd update <id> --notes "<summary>"`
    - Include: files reviewed, commit summary, key findings, beads created
-   - Wrap at 80 chars
 
 8. **Report to user**
    - Number of files reviewed
    - Number of beads issues created
    - Summary of critical findings
-   - Path to detailed review notes
+   - Review issue ID for reference (`bd edit <id> --notes` to view)
 
 ## Review Criteria
 
