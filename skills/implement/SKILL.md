@@ -56,6 +56,7 @@ while true:
   Verify: bd swarm status <epic-id> --json → check completed count
 
 bd epic close-eligible
+bd close <molecule-id>   # molecule from bd swarm create
 Shutdown all teammates via SendMessage(type="shutdown_request")
 TeamDelete
 ```
