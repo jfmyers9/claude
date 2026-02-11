@@ -1,7 +1,8 @@
 ---
 name: prepare
 description: >
-  Convert exploration plan into beads epic + child issues + swarm.
+  Convert exploration or review findings into beads epic + child
+  issues + swarm.
   Triggers: /prepare, "prepare work", "create tasks from plan".
 allowed-tools: Bash, Read, Glob
 argument-hint: "[beads-issue-id]"
@@ -9,14 +10,16 @@ argument-hint: "[beads-issue-id]"
 
 # Prepare
 
-Read plan from beads issue and create work structure.
+Read plan or review findings from beads issue and create work
+structure.
 
 ## Steps
 
 1. **Find plan source**
    - If `$ARGUMENTS` is a beads ID → `bd show <id> --json`, extract design field
-   - Otherwise → `bd list --status=in_progress --type task`, find first "Explore:" issue
-   - No plan found → exit, suggest `/explore` first
+   - Otherwise → `bd list --status=in_progress --type task`, find
+     first issue with title starting "Explore:" or "Review:"
+   - No plan found → exit, suggest `/explore` or `/review` first
 
 2. **Parse plan**
    - Read the design field content
