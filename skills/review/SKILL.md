@@ -70,7 +70,7 @@ All findings stored in beads design field — no filesystem plans.
 
 ## Review Subagent Prompt
 
-Spawn Task (subagent_type=Explore, model=sonnet) with:
+Spawn Task (subagent_type=Explore, model=opus) with:
 
 ```
 You are a senior engineer performing a code review.

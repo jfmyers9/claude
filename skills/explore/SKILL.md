@@ -70,7 +70,7 @@ do not create beads, spawn agents, or continue.
 
 ## Task Agent Instructions
 
-Spawn Task (subagent_type=Explore, model=sonnet) with:
+Spawn Task (subagent_type=Explore, model=opus) with:
 
 ```
 Research <topic> thoroughly. Return your COMPLETE findings as
