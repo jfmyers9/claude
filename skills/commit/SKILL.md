@@ -35,7 +35,6 @@ Create conventional commits and sync beads issue tracking.
    - For `--fixup`: no message validation needed
 
 5. **Execute Commit**
-   - Set git author: `Jim Myers <jim.myers@jfmyers.dev>`
    - Normal: `git commit -m "message"`
    - Amend: `git commit --amend -m "message"`
    - Fixup: `git commit --fixup <hash>`
