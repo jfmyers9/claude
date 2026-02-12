@@ -96,8 +96,8 @@ After gathering context, summarize:
 Priority order:
 
 1. **CI failing** → "Fix failing checks: [check names]"
-2. **Changes requested** → "Address N review comments"
-3. **Unresolved comments** → "Respond to review feedback"
+2. **Changes requested** → "Run `/respond` to triage N review comments"
+3. **Unresolved comments** → "Run `/respond` to triage review feedback"
 4. **Beads in progress** → "Continue work on: [issue title]"
 5. **Draft PR, all passing** → "Mark PR ready for review"
 6. **Ready PR, approved, passing** → "Merge PR"
