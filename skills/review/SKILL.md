@@ -147,6 +147,35 @@ For each finding include: file, line(s), what's wrong, suggested fix.
 - Minor optimizations with negligible impact
 ```
 
+## Large Diff Handling
+
+Applies to both Team Mode and Perspective Mode when gathering
+diffs for subagents:
+
+If total diff exceeds 3000 lines: for each file with >200 lines
+of diff, truncate to first 50 + last 50 lines. Note truncations
+in the prompt so subagents know to `Read` full files if needed.
+
+## Team Mode Details
+
+When >15 files changed (no `--team` flag):
+
+Each subagent gets a subset of files. After all return,
+concatenate findings and deduplicate across phases.
+
+Apply Large Diff Handling (above) when gathering context.
+
+1. Split changed files into groups of ~8
+2. Spawn parallel Task subagents (one per group), all in a
+   single message for true parallel execution
+3. Each subagent reviews its file group using the prompt above
+4. Aggregate results:
+   - Merge Phase 1 findings from all subagents
+   - Merge Phase 2 findings from all subagents
+   - Merge Phase 3 findings from all subagents
+   - Deduplicate cross-file findings
+5. Store consolidated findings in design field
+
 ## Team Review Prompts
 
 When `--team` flag is provided, spawn 3 parallel Task subagents
@@ -375,9 +404,6 @@ For each finding include: file, line(s), what's wrong, suggested fix.
 - Performance optimizations unrelated to DoS resilience
 ```
 
-For team mode, each subagent gets a subset of files. After all
-return, concatenate findings and deduplicate across phases.
-
 For continuations, prepend: "Previous findings:\n<existing-design>
 \n\nContinue reviewing, focusing on: <new-instructions>"
 
@@ -389,109 +415,83 @@ reviewing from the <perspective-name> perspective, focusing on:
 After agent(s) return, store full findings:
 `bd update <id> --design "$(cat <<'EOF'\n<findings>\nEOF\n)"`
 
-## Perspective Mode Details
+## Perspective Mode Execution
 
-When `--team` flag is present:
+CRITICAL: All 3 Task calls MUST be in the SAME message/response.
+Do NOT spawn one, wait for it, then spawn the next. Sequential
+spawning causes 3x slower execution.
 
-1. **Gather context** from Step 1 (branch name, file list,
-   git log, git diff) — same data used for solo reviews
-2. **Spawn 3 parallel Task subagents** in a SINGLE message
-   (always exactly 3, even for large changesets >15 files — each
-   perspective gets the full changeset to avoid N×3 explosion):
-   - Architect: uses Architect Prompt from Team Review Prompts
-   - Code Quality: uses Code Quality Prompt from Team Review Prompts
-   - Devil's Advocate: uses Devil's Advocate Prompt from Team Review Prompts
-   - All three use `subagent_type=Explore, model=opus`
-   - Each gets the FULL changeset — all changed files and all
-     diffs (no file splitting between subagents)
-3. **Inject context** into each prompt's placeholders:
-   - `<branch-name>` → current branch from `git branch --show-current`
-   - `<git log main..HEAD --format="%h %s">` → actual commit log
-   - `<file list>` → changed file paths from `git diff main...HEAD --name-only`
-   - `<git diff main...HEAD for each file>` → full diff output
-4. **Collect results**: wait for all 3 subagents to return
-5. **Aggregate findings** (see Perspective Aggregation)
+When `--team` flag is present, execute EXACTLY these steps:
+
+**Step A: Gather context**
+```
+branch=$(git branch --show-current)
+log=$(git log main..HEAD --format="%h %s")
+files=$(git diff main...HEAD --name-only)
+diff=$(git diff main...HEAD)
+```
+
+Apply Large Diff Handling (above) when gathering context.
+
+**Step B: Spawn ALL THREE subagents in ONE message**
+Make exactly 3 Task tool calls in a single response:
+1. `Task(subagent_type=Explore, model=opus, prompt=<Architect Prompt with context>)`
+2. `Task(subagent_type=Explore, model=opus, prompt=<Code Quality Prompt with context>)`
+3. `Task(subagent_type=Explore, model=opus, prompt=<Devil's Advocate Prompt with context>)`
+
+Inject gathered context into each prompt's placeholders.
+
+**Step C: Handle failures**
+- If 1 subagent returns empty/error: note which perspective is
+  missing, proceed with 2 results
+- If 2+ subagents fail: fall back to Solo Mode, note that team
+  review was attempted
+- Tag partial results: "Note: <perspective> did not return results"
+
+**Step D: Aggregate findings** (see Perspective Aggregation)
 
 ## Perspective Aggregation
 
-After all 3 perspective subagents return, merge their findings
-into a unified output:
+After all subagents return (or 2 of 3 if one failed), merge
+findings:
 
-### Step 1: Tag findings by source
-
-Prefix each finding with its source perspective:
-- `[architect]` — from Architect reviewer
-- `[code-quality]` — from Code Quality reviewer
-- `[devil]` — from Devil's Advocate reviewer
-
-### Step 2: Detect consensus
-
-Compare findings across all 3 perspectives. Two findings match
-when they reference the **same file + same issue area** (e.g.,
-same function, same error path, same boundary condition).
-
-Consensus rules:
-- 2+ perspectives flag same file+issue → **consensus finding**
-- Consensus findings get **elevated priority** (listed first)
-- Tag consensus findings with all agreeing perspectives:
-  `[architect, code-quality]`, `[architect, devil]`, etc.
-- **Remove** consensus items from individual Phase sections to
-  avoid duplication
-
-### Step 3: Detect disagreements
-
-A disagreement exists when:
-- One perspective flags something as critical but another
-  perspective's "Don't flag" list explicitly covers it
-- Two perspectives reach opposite conclusions about the same
-  code (e.g., architect says "over-engineered" vs code-quality
-  says "needs more abstraction")
-
-Disagreements are **informational, not actionable** — they help
-the reviewer calibrate between perspectives.
-
-### Step 4: Build unified output
-
-Structure the aggregated findings for `bd update --design`:
+### Step 1: Concatenate with source headers
 
 ```
-**Consensus** (findings flagged by 2+ perspectives)
-- Finding description [perspective-a, perspective-b]
-- Finding description [perspective-a, perspective-b, perspective-c]
+--- ARCHITECT ---
+<architect findings>
+
+--- CODE QUALITY ---
+<code-quality findings>
+
+--- DEVIL'S ADVOCATE ---
+<devil findings>
+```
+
+### Step 2: Scan for consensus
+
+Compare findings across perspectives. Same file + same issue area
+flagged by 2+ perspectives = consensus finding. Tag with all
+agreeing sources: `[architect, code-quality]`.
+
+### Step 3: Build unified output
+
+```
+**Consensus** (2+ perspectives agree)
+- Finding [perspective-a, perspective-b]
 
 **Phase 1: Critical Issues**
-- Finding [source-perspective]
 - Finding [source-perspective]
 
 **Phase 2: Design Improvements**
 - Finding [source-perspective]
-- Finding [source-perspective]
 
 **Phase 3: Testing Gaps**
 - Finding [source-perspective]
-- Finding [source-perspective]
-
-**Disagreements** (conflicting assessments between perspectives)
-- perspective-a says X, perspective-b says Y (re: file:lines)
 ```
 
-Ordering within each section: most impactful findings first.
-Only include sections that have entries. Skip empty sections.
-
-## Team Mode Details
-
-When >15 files changed:
-
-1. Split changed files into groups of ~8
-2. Spawn parallel Task subagents (one per group), all in a
-   single message for true parallel execution
-3. Each subagent reviews its file group using the prompt above
-4. Aggregate results:
-   - Merge Phase 1 findings from all subagents
-   - Merge Phase 2 findings from all subagents
-   - Merge Phase 3 findings from all subagents
-   - Deduplicate cross-file findings
-5. Store consolidated findings in design field
+Consensus items listed first. Remove them from Phase sections
+to avoid duplication. Skip empty sections. Most impactful first.
 
 ## Output Format
 
@@ -521,8 +521,6 @@ team review>
 - <critical issues count> critical issues
 - <improvements count> design improvements
 - <testing gaps count> testing gaps
-
-**Disagreements**: <count> cross-perspective disagreements
 
 **Next**: `bd edit <id> --design` to review findings,
 `/prepare <id>` to create tasks.

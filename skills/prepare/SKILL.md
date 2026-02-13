@@ -55,9 +55,13 @@ structure.
    - `bd swarm validate <epic-id> --verbose`
    - If swarmable: `bd swarm create <epic-id>`
    - Report validation results
+   - `bd update <epic-id> --status in_progress`
+   - `bd close <source-bead-id> --reason "Converted to epic <epic-id>"`
+     (close source AFTER swarm creation succeeds — failures leave source open for retry)
 
 6. **Report**
    - Display epic ID and all child issue IDs
+   - Closed source issue #<source-id>
    - Show dependency graph
    - Show parallel work fronts from validation
    - Suggest: `/implement <epic-id>` to start execution

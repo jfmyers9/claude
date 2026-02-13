@@ -4,7 +4,7 @@ description: |
   Execute implementation plans from beads issues. Detects swarm
   epics and spawns teams for parallel work.
   Triggers: 'implement', 'build this', 'execute plan', 'start work'.
-allowed-tools: Bash, Read, Task
+allowed-tools: Bash, Read, Task, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet, TeamCreate, TeamDelete
 argument-hint: "[beads-issue-id] [--solo]"
 ---
 
@@ -21,8 +21,11 @@ execution when beads swarm has multiple ready tasks.
 ## Step 1: Find Work
 
 - If ID in `$ARGUMENTS` → use it
-- Else: `bd list --status=in_progress` → first result
-- Else: `bd ready` → first result
+- Else: `bd list --status=in_progress --type=epic` → first result (Swarm Mode)
+- Else: `bd list --status=open --type=epic` → check each for swarm molecule
+  (`bd swarm status <id>` succeeds) → first swarmable epic (Swarm Mode)
+- Else: `bd list --status=in_progress` → first result (Solo Mode)
+- Else: `bd ready` → first result (Solo Mode)
 - Nothing found → exit, suggest `/explore` then `/prepare`
 
 ## Step 2: Classify Issue
@@ -40,6 +43,14 @@ Run `bd show <id> --json` to inspect.
 1. `bd swarm validate <epic-id> --json` → parse waves
 2. `bd show <epic-id> --json` → extract title + design field as epic_context
 3. Create team: `TeamCreate(team_name="swarm-<epic-id>")`
+   If TeamCreate fails → fall back to sequential Solo Mode:
+     for each task in topological order (from bd swarm validate):
+       bd update <task-id> --claim
+       Spawn single Task agent, wait for completion
+       bd close <task-id>
+     Skip team cleanup (no team was created)
+4. Read team config: `~/.claude/teams/swarm-<epic-id>/config.json`
+   → extract the team lead's `name` field for injecting into worker prompts
 
 ### Wave Loop
 
@@ -54,6 +65,12 @@ while true:
 
   Wait for all workers to complete (messages + idle notifications)
   Verify: bd swarm status <epic-id> --json → check completed count
+
+  # Recover stuck tasks before next wave
+  stuck = bd list --status=in_progress --parent <epic-id>
+  for each stuck task not in just-completed set:
+    bd update <stuck-id> --status open  # release claim for retry
+    bd update <stuck-id> --notes "Released: worker failed in wave N"
 
 bd epic close-eligible
 bd close <molecule-id>   # molecule from bd swarm create
@@ -75,6 +92,9 @@ Task(
 ```
 
 ### Worker Prompt Template
+
+Before spawning, inject the team lead's actual name (from team
+config) into `<team-lead-name>` in the prompt template below.
 
 ```
 You are a swarm worker. Implement beads task <task-id>.
@@ -100,7 +120,7 @@ You are a swarm worker. Implement beads task <task-id>.
    bd close <task-id>
 
 5. Send completion message to team lead:
-   Use SendMessage(type="message", recipient="team-lead",
+   Use SendMessage(type="message", recipient="<team-lead-name>",
      content="Completed <task-id>: <brief summary>",
      summary="Completed <task-id>")
 
@@ -130,9 +150,10 @@ After spawning a wave of workers:
 
 ### Parallel Spawning
 
-When spawning multiple workers for a wave, spawn ALL of them
-in a single message using multiple Task tool calls. This ensures
-true parallel execution rather than sequential spawning.
+CRITICAL: When spawning multiple workers for a wave, spawn ALL
+of them in a SINGLE message using multiple Task tool calls. This
+ensures true parallel execution. Sequential spawning (one per
+message) makes waves run N× slower.
 
 ## Solo Mode
 
