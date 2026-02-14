@@ -1,6 +1,6 @@
 ---
 name: review
-description: >
+description: |
   Senior engineer code review, filing findings as beads issues.
   Triggers: 'review code', 'code review', 'review my changes'.
 allowed-tools: Bash, Read, Glob, Grep, Task
@@ -82,12 +82,32 @@ All findings stored in beads design field — no filesystem plans.
 6. Update design: `bd update <id> --design "<updated-findings>"`
 7. Report results
 
+## Review Scope
+
+Focus on **introduced code** and how it interacts with the
+existing codebase. The diff is the primary review surface.
+
+- **Always review**: new/modified code, new patterns, new
+  dependencies, changed interfaces, changed behavior
+- **Review if relevant**: existing code that the new code
+  calls into or depends on (interaction quality)
+- **Only flag existing code** if it has a truly critical flaw
+  (security vulnerability, data loss, crash) — not style,
+  not "while we're here" improvements
+
+This principle applies to all review modes and prompts below.
+
 ## Review Subagent Prompt
 
 Spawn Task (subagent_type=Explore, model=opus) with:
 
 ```
 You are a senior engineer performing a code review.
+
+## Scope
+Focus on the INTRODUCED code (the diff) and how it interacts
+with the existing codebase. Only flag pre-existing code if it
+has a truly critical flaw (security, data loss, crash).
 
 ## Branch
 <branch-name>
@@ -145,6 +165,8 @@ For each finding include: file, line(s), what's wrong, suggested fix.
 - Missing comments (code should be self-documenting)
 - Hypothetical edge cases with no realistic trigger
 - Minor optimizations with negligible impact
+- Pre-existing flaws in unchanged code (unless truly critical)
+- "While we're here" improvements to surrounding code
 ```
 
 ## Large Diff Handling
@@ -186,6 +208,12 @@ instead of the generic prompt above.
 
 ```
 You are a software architect performing a design-focused code review.
+
+## Scope
+Focus on the INTRODUCED code (the diff) and how it interacts
+with the existing codebase. Only flag pre-existing design flaws
+if they are truly critical (e.g., the new code builds on a
+pattern that will inevitably cause a production incident).
 
 ## Branch
 <branch-name>
@@ -251,6 +279,7 @@ For each finding include: file, line(s), what's wrong, suggested fix.
 - Individual error handling within functions
 - Security specifics (devil's-advocate reviewer handles this)
 - Test coverage for pure internal logic
+- Pre-existing design flaws in unchanged code (unless critical)
 ```
 
 ### Code Quality Prompt
@@ -258,6 +287,12 @@ For each finding include: file, line(s), what's wrong, suggested fix.
 ```
 You are a code quality specialist performing a readability and
 correctness review.
+
+## Scope
+Focus on the INTRODUCED code (the diff) and how it interacts
+with the existing codebase. Only flag pre-existing code quality
+issues if they are truly critical (e.g., a bug the new code
+will trigger or depend on).
 
 ## Branch
 <branch-name>
@@ -325,6 +360,7 @@ For each finding include: file, line(s), what's wrong, suggested fix.
 - Security threat modeling (devil's-advocate reviewer handles this)
 - Style preferences with no readability impact
 - Hypothetical performance issues without evidence
+- Pre-existing quality issues in unchanged code (unless critical)
 ```
 
 ### Devil's Advocate Prompt
@@ -333,6 +369,12 @@ For each finding include: file, line(s), what's wrong, suggested fix.
 You are a devil's advocate reviewer. Your job is to break things:
 find what can go wrong, what assumptions are incorrect, and what
 an adversary could exploit.
+
+## Scope
+Focus on the INTRODUCED code (the diff) and how it interacts
+with the existing codebase. Only flag pre-existing vulnerabilities
+if they are truly critical (e.g., a security hole the new code
+exposes or relies on).
 
 ## Branch
 <branch-name>
@@ -402,6 +444,7 @@ For each finding include: file, line(s), what's wrong, suggested fix.
 - Architecture or design patterns (architect reviewer handles this)
 - Theoretical attacks requiring physical access or compromised infra
 - Performance optimizations unrelated to DoS resilience
+- Pre-existing vulnerabilities in unchanged code (unless critical)
 ```
 
 For continuations, prepend: "Previous findings:\n<existing-design>

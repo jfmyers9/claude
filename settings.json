@@ -1,4 +1,8 @@
 {
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "BASH_DEFAULT_TIMEOUT_MS": "300000"
+  },
   "attribution": {
     "commit": "",
     "pr": ""
@@ -9,10 +13,6 @@
     ]
   },
   "model": "opus",
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "BASH_DEFAULT_TIMEOUT_MS": "300000"
-  },
   "statusLine": {
     "type": "command",
     "command": "python3 ~/.claude/statusline.py",
@@ -21,5 +21,6 @@
   "spinnerVerbs": {
     "mode": "append",
     "verbs": []
-  }
+  },
+  "skipDangerousModePermissionPrompt": true
 }

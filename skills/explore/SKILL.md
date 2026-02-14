@@ -7,7 +7,7 @@ allowed-tools: Bash, Read, Task
 argument-hint: "<topic or question> | <beads-id> | --continue | --team"
 ---
 
-# Instructions
+# Explore
 
 Orchestrate exploration via beads workflow and Task delegation.
 All findings stored in beads design field — no filesystem plans.
@@ -18,24 +18,6 @@ All findings stored in beads design field — no filesystem plans.
 - `<beads-id>` — continue existing exploration issue
 - `--continue` — resume most recent in_progress exploration
 - `--team` — force team mode for parallel multi-topic exploration
-
-## Step 0: Check Beads Initialization
-
-Before any workflow, verify beads is set up:
-
-```bash
-if [ ! -d .beads ]; then
-  echo "Error: beads not initialized in this repository."
-  echo ""
-  echo "Run:  bd init"
-  echo ""
-  echo "Then retry your /explore command."
-  exit 1
-fi
-```
-
-If `.beads` doesn't exist, show the error above and **stop** —
-do not create beads, spawn agents, or continue.
 
 ## Workflow
 
@@ -68,9 +50,6 @@ do not create beads, spawn agents, or continue.
    **a) Solo Mode** — spawn a single Task (subagent_type=Explore,
    model=opus). Use 3-7 phases in the prompt.
 
-   For continuations, prepend: "Previous findings:\n<existing-design>
-   \n\nContinue the exploration focusing on: <new-instructions>"
-
    **b) Team Mode** — spawn N parallel Task subagents in a **SINGLE
    message** (subagent_type=Explore, model=opus), one per topic.
    Cap at 5 agents; group excess topics together. Each prompt adds:
@@ -80,18 +59,9 @@ do not create beads, spawn agents, or continue.
    - Use 2-4 phases per topic instead of 3-7
 
 6. Store findings: `bd update <id> --design "<full-findings>"`
+   For Team Mode, run aggregation first (see Team Mode Aggregation).
 
-   **Team Mode aggregation** (before storing): after ALL subagents
-   return, combine their output:
-   - Prefix each topic's findings with **Topic N: <name>**
-   - Detect cross-topic connections (shared files, dependencies,
-     conflicts)
-   - Renumber phases globally across all topics (Phase 1-N
-     sequential) so /prepare can parse them
-   - If cross-topic connections found, add a **Cross-Topic
-     Connections** section at the top
-
-7. Report results
+7. Report results (see Output Format)
 
 ### Continue Exploration
 
@@ -100,7 +70,9 @@ do not create beads, spawn agents, or continue.
    - If `--continue` → `bd list --status=in_progress --type task`,
      find first with title starting "Explore:"
 2. Load existing context: `bd show <id> --json` → extract design field
-3. Spawn Explore agent with existing findings + new instructions
+3. Spawn Explore agent with previous findings prepended:
+   "Previous findings:\n<existing-design>\n\nContinue the
+   exploration focusing on: <new-instructions>"
 4. Update design: `bd update <id> --design "<updated-findings>"`
 5. Report results
 
@@ -110,7 +82,12 @@ All exploration agents (solo and team) use this structure:
 
 ```
 Research <topic> thoroughly. Return your COMPLETE findings as
-text output (do NOT write files). Structure:
+text output (do NOT write files).
+
+Set depth based on scope: skim for targeted lookups, dig deep
+for architecture and cross-cutting concerns.
+
+Structure:
 
 1. **Current State**: What exists now (files, patterns, architecture)
 2. **Recommendation**: Suggested approach with rationale
@@ -131,6 +108,18 @@ Aim for <N> phases. Each phase should be independently testable.
 - **Team**: `<N>` = 2-4 phases per topic; prepend topic/context
   headers (see step 5b)
 
+## Team Mode Aggregation
+
+After ALL subagents return, combine their output before storing:
+
+1. Prefix each topic's findings with **Topic N: <name>**
+2. Detect cross-topic connections (shared files, dependencies,
+   conflicts)
+3. Renumber phases globally across all topics (Phase 1-N
+   sequential) so /prepare can parse them
+4. If cross-topic connections found, add a **Cross-Topic
+   Connections** section at the top
+
 ## Output Format
 
 **Exploration Issue**: #<id>
@@ -141,10 +130,3 @@ Aim for <N> phases. Each phase should be independently testable.
 **Recommendation**: <one paragraph>
 
 **Next**: `bd edit <id> --design` to review, `/prepare` to create tasks.
-
-## Guidelines
-
-- Set thoroughness based on scope: "quick" for targeted, "very thorough" for architecture
-- Keep coordination messages concise
-- Let the Task agent(s) do the exploration work
-- Summarize agent findings, don't copy verbatim
