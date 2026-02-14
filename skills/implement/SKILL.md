@@ -1,6 +1,6 @@
 ---
 name: implement
-description: |
+description: >
   Execute implementation plans from beads issues. Detects swarm
   epics and spawns teams for parallel work.
   Triggers: 'implement', 'build this', 'execute plan', 'start work'.
@@ -66,6 +66,12 @@ while true:
   Wait for all workers to complete (messages + idle notifications)
   Verify: bd swarm status <epic-id> --json → check completed count
 
+  # Optional: for checkpoint reviews between waves, use
+  # `bd gate create --await 'human:...'` to pause execution.
+  #   gate_id = bd gate create --await "human:Review wave N results" --timeout 4h
+  #   bd gate list  # Show pending gates
+  #   (Pause until: bd gate approve $gate_id)
+
   # Recover stuck tasks before next wave
   stuck = bd list --status=in_progress --parent <epic-id>
   for each stuck task not in just-completed set:
@@ -73,7 +79,8 @@ while true:
     bd update <stuck-id> --notes "Released: worker failed in wave N"
 
 bd epic close-eligible
-bd close <molecule-id>   # molecule from bd swarm create
+molecule_id = bd swarm list --json | jq '.swarms[] | select(.epic_id=="<epic-id>") | .id'
+bd close $molecule_id
 Shutdown all teammates via SendMessage(type="shutdown_request")
 TeamDelete
 ```

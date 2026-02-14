@@ -39,3 +39,13 @@ Syncs branches and creates/updates PRs via Graphite with beads state integration
 
 7. **Show PR URLs**
    - Extract and display PR URLs prominently from output
+
+8. **Optional: Create PR gate**
+   If beads is initialized and a PR was created:
+   ```bash
+   PR_NUM=$(gh pr view --json number -q .number)
+   bd gate create --await "gh:pr:$PR_NUM" --timeout 48h
+   ```
+   This creates a gate that other beads workflows can wait on
+   (e.g., a deployment task blocked until PR merges).
+   Only create if there's a downstream workflow that needs it.

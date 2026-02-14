@@ -23,16 +23,10 @@ decides. NOT a /fix-family skill (user directs → agent executes).
 - `--continue` — resume most recent in_progress respond bead
 - (no args) — new respond session for current branch's PR
 
-## Step 0: Check Beads Initialization
-
-```bash
-if [ ! -d .beads ]; then
-  echo "Error: beads not initialized. Run: bd init"
-  exit 1
-fi
-```
-
 ## Workflow
+
+Before starting, verify `.beads` directory exists.
+If not → exit, suggest `bd init`.
 
 ### New Respond Session
 
@@ -72,7 +66,7 @@ fi
 
 4. **Create respond bead**
    ```bash
-   bd create "Respond: PR #$PR_NUM" --type task --priority 2 \
+   bd create "Respond: PR #$PR_NUM" --type task --priority 2 --ephemeral \
      --description "$(cat <<'EOF'
    ## Acceptance Criteria
    - All PR comments triaged with agree/disagree/question/already-done
@@ -92,6 +86,11 @@ fi
      `bd update <id> --notes "<replies>"`
 
 7. **Report results** (see Output Format — First Pass)
+   - If user wants `/prepare` on findings → `bd promote <id>`
+     (promotes wisp to persistent bead)
+   - If done (no follow-up) → bead stays ephemeral,
+     auto-excluded from JSONL export, cleaned up by
+     `bd mol wisp gc`
 
 ### Continue Respond Session
 
@@ -230,6 +229,7 @@ Store PR reply drafts in notes field:
 
 **Next**: `bd edit <id> --design` to review/override triage,
 then `/respond --continue` to finalize for `/prepare`.
+To persist findings: `bd promote <id>`.
 ```
 
 ## Output Format — Continuation
@@ -239,7 +239,7 @@ then `/respond --continue` to finalize for `/prepare`.
 
 **Finalized**: N items to action, N replies drafted
 
-**Next**: `/prepare <id>` to create tasks.
+**Next**: `bd promote <id>` then `/prepare <id>` to create tasks.
 Notes field has PR reply drafts — review with
 `bd edit <id> --notes`.
 ```

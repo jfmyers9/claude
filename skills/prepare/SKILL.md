@@ -51,13 +51,18 @@ structure.
    - Skip dep for parallel phases
 
 5. **Validate and create swarm**
-   - `bd config set types.custom molecule` (idempotent guard — `bd swarm create` needs this custom type)
    - `bd swarm validate <epic-id> --verbose`
    - If swarmable: `bd swarm create <epic-id>`
    - Report validation results
    - `bd update <epic-id> --status in_progress`
    - `bd close <source-bead-id> --reason "Converted to epic <epic-id>"`
      (close source AFTER swarm creation succeeds — failures leave source open for retry)
+
+   **Optional: Extract reusable template**
+   If this epic pattern is likely to repeat (e.g., feature-workflow,
+   bugfix-workflow), extract a proto: `bd mol distill <epic-id> --as "<template-name>"`
+   Future runs can then use `bd mol pour <proto-id>` instead of
+   manual epic creation.
 
 6. **Report**
    - Display epic ID and all child issue IDs

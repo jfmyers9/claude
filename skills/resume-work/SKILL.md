@@ -10,105 +10,105 @@ argument-hint: "[branch-name|PR#]"
 
 Gather context on current work and suggest next action.
 
-## Usage
+## Arguments
+
+- `<branch-name>` — checkout and resume specific branch
+- `<PR#>` — resolve branch from PR number
+- (no args) — use current branch
+
+## Steps
+
+### 1. Resolve Branch
+
+Parse `$ARGUMENTS`:
+- Empty → `git branch --show-current`
+- Numeric → resolve via
+  `gh pr view "$ARGUMENTS" --json headRefName -q .headRefName`,
+  then checkout
+- Otherwise → `git checkout "$ARGUMENTS"`
+
+Exit if branch can't be resolved.
+
+### 2. Gather Context
+
+Run in parallel:
 
 ```bash
-/resume-work              # Current branch
-/resume-work my-branch    # Specific branch
-/resume-work 123          # PR number
+git branch --show-current
+git log --oneline -10
+git status -sb
+
+gh pr view --json number,title,state,isDraft,reviewDecision,statusCheckRollup,url \
+  2>/dev/null || echo "No PR"
+gh pr checks 2>/dev/null || echo "No PR"
 ```
 
-## Implementation
+Fetch unresolved review comments (top-level only):
 
 ```bash
-# Parse arguments
-BRANCH="$ARGUMENTS"
-if [[ -z "$BRANCH" ]]; then
-  BRANCH=$(git branch --show-current)
-elif [[ "$BRANCH" =~ ^[0-9]+$ ]]; then
-  # PR number provided - get branch from PR
-  BRANCH=$(gh pr view "$BRANCH" --json headRefName -q .headRefName 2>/dev/null || echo "")
-  if [[ -z "$BRANCH" ]]; then
-    echo "Error: PR #$ARGUMENTS not found"
-    exit 1
-  fi
-  git checkout "$BRANCH" 2>/dev/null || true
-else
-  # Branch name provided - checkout
-  git checkout "$BRANCH" 2>/dev/null || true
+PR_NUM=$(gh pr view --json number -q .number 2>/dev/null)
+if [[ -n "$PR_NUM" ]]; then
+  REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+  gh api "repos/$REPO/pulls/$PR_NUM/comments" \
+    --jq '.[] | select(.in_reply_to_id == null) |
+      "- \(.path):\(.line) (@\(.user.login)): \(.body | split("\n")[0])"' \
+    2>/dev/null | head -20
 fi
-
-# Gather context in parallel
-{
-  echo "=== BRANCH ==="
-  git branch --show-current
-
-  echo -e "\n=== RECENT COMMITS ==="
-  git log --oneline -10
-
-  echo -e "\n=== STATUS ==="
-  git status -sb
-
-  echo -e "\n=== PR INFO ==="
-  gh pr view --json number,title,state,isDraft,reviewDecision,statusCheckRollup,url 2>/dev/null || echo "No PR found"
-
-  echo -e "\n=== CI CHECKS ==="
-  gh pr checks 2>/dev/null || echo "No PR found"
-
-  echo -e "\n=== REVIEW COMMENTS ==="
-  PR_NUM=$(gh pr view --json number -q .number 2>/dev/null)
-  if [[ -n "$PR_NUM" ]]; then
-    REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-    gh api "repos/$REPO/pulls/$PR_NUM/comments" --jq '.[] | select(.in_reply_to_id == null) | "- \(.path):\(.line) (@\(.user.login)): \(.body | split("\n")[0])"' 2>/dev/null | head -20 || echo "No unresolved comments"
-  else
-    echo "No PR found"
-  fi
-
-  echo -e "\n=== BEADS STATUS ==="
-  if command -v bd &>/dev/null; then
-    echo "In Progress:"
-    bd list --status=in_progress 2>/dev/null | head -10 || echo "None"
-    echo -e "\nReady to Work:"
-    bd ready 2>/dev/null | head -5 || echo "None"
-  else
-    echo "Beads not available"
-  fi
-}
-
-# Output is piped through to show raw data
-# Skill should then summarize and suggest next action
 ```
 
-## Summary Format
+Fetch beads state if `bd` is available:
 
-After gathering context, summarize:
+```bash
+bd list --status=in_progress 2>/dev/null | head -10
+bd swarm list 2>/dev/null | head -10
+bd ready 2>/dev/null | head -5
+```
 
+For active swarms, show wave progress:
+
+```bash
+for EPIC_ID in $(bd swarm list --json 2>/dev/null | python3 -c "
+import sys,json
+try:
+  d=json.load(sys.stdin)
+  for s in d.get('swarms',[]):
+    if s['status']=='open': print(s['epic_id'])
+except: pass
+" 2>/dev/null); do
+  bd swarm status "$EPIC_ID" 2>/dev/null | head -8
+done
+```
+
+### 3. Summarize
+
+Format gathered data as:
+
+```
 **Branch:** `branch-name`
 **Commits:** Last 3 commit messages
 **PR:** #123 (draft/ready) - title
 **Review:** Approved | Changes requested | Pending
-**CI:** ✓ Passing | ✗ Failing (list failures)
+**CI:** Passing | Failing (list failures)
 **Comments:** N unresolved (summarize key ones)
-**Beads:** N in progress, M ready
+**Beads:** N in progress, M ready, K active swarms
+```
 
-## Next Action Suggestions
+### 4. Suggest Next Action
 
-Priority order:
+Pick the first matching condition:
 
 1. **CI failing** → "Fix failing checks: [check names]"
-2. **Changes requested** → "Run `/respond` to triage N review comments"
-3. **Unresolved comments** → "Run `/respond` to triage review feedback"
-4. **Beads in progress** → "Continue work on: [issue title]"
-5. **Draft PR, all passing** → "Mark PR ready for review"
-6. **Ready PR, approved, passing** → "Merge PR"
-7. **No PR** → "Create PR with /submit"
-8. **All clear** → "Review changes with /review or wait for review"
+2. **Changes requested** → "`/respond` to triage N comments"
+3. **Unresolved comments** → "`/respond` to triage feedback"
+4. **Beads in progress** → "Continue: [issue title]"
+5. **Active swarm** → "`/implement` to continue swarm"
+6. **Draft PR, all passing** → "Mark PR ready for review"
+7. **Ready PR, approved** → "Merge PR"
+8. **No PR** → "`/submit` to create PR"
+9. **All clear** → "`/review` or wait for review"
 
 ## Notes
 
-- Checkout branch if specified and it exists
-- Handle both PR numbers and branch names as input
-- Limit output to prevent context overflow (head -N on long lists)
-- Show only top-level review comments (in_reply_to_id == null)
-- Skip beads if not installed
-- Use -sb for compact git status
+- Limit output with `head -N` to prevent context overflow
+- Only top-level comments (`in_reply_to_id == null`)
+- Skip beads commands if `bd` not installed
