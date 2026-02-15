@@ -28,6 +28,11 @@ consumable by `/prepare`.
 
 ## Workflow
 
+### 0. Verify Work Tracker
+
+Run `work list 2>/dev/null` — if it fails, run `work init`
+first.
+
 ### 1. Gather Context (Parallel)
 
 Run these in parallel to understand what was recently implemented:
@@ -55,8 +60,8 @@ Break feedback into individual findings:
 Create ONE issue containing all findings:
 
 ```bash
-work create "Fix: <brief-summary>" --priority 2 \
-  --labels feedback \
+work create "Fix: <brief-summary>" --type bug --priority 2 \
+  --labels fix \
   --description "$(cat <<'EOF'
 ## Feedback Analysis
 

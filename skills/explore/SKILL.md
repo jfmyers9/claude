@@ -21,11 +21,16 @@ All findings stored in issue description — no filesystem plans.
 
 ## Workflow
 
+### 0. Verify Work Tracker
+
+Run `work list 2>/dev/null` — if it fails, run `work init`
+first.
+
 ### New Exploration
 
 1. Create issue:
    ```
-   work create "Explore: <topic>" --priority 2 \
+   work create "Explore: <topic>" --type chore --priority 2 \
      --labels explore \
      --description "Exploration in progress..."
    ```
@@ -130,3 +135,9 @@ After ALL subagents return, combine their output before storing:
 
 **Next**: `work show <id>` to review, `/prepare` to create
 tasks.
+
+## Lifecycle
+
+Issue stays active until consumed. `/prepare` closes it when
+tasks are created. If exploration is abandoned, use
+`work cancel <id>`.

@@ -38,3 +38,10 @@ Syncs branches and creates/updates PRs via Graphite.
 
 6. **Show PR URLs**
    - Extract and display PR URLs prominently from output
+
+7. **Transition active issue to review**
+   - Run `work list --status=active --format=json 2>/dev/null`
+   - Find issue linked to current branch (match branch name or
+     check issue description)
+   - If found: `work review <id>` to signal code is in PR review
+   - If no active issue found → skip silently

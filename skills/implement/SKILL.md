@@ -2,11 +2,11 @@
 name: implement
 description: >
   Execute implementation plans from issues. Spawns teams for
-  parallel work when multiple issues share a label.
+  parallel work when issues share a parent or label.
   Triggers: 'implement', 'build this', 'execute plan',
   'start work'.
 allowed-tools: Bash, Read, Task, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet, TeamCreate, TeamDelete
-argument-hint: "[issue-id] [--label=<group>] [--solo]"
+argument-hint: "[issue-id] [--parent=<id>] [--label=<group>] [--solo]"
 ---
 
 # Implement
@@ -17,21 +17,32 @@ execution when multiple open issues share a group label.
 ## Arguments
 
 - `issue-id` — specific issue to implement (Solo Mode)
+- `--parent=<id>` — implement all open child issues of this
+  parent (Team Mode)
 - `--label=<group>` — implement all open issues with this label
-  (Team Mode)
+  (Team Mode, fallback)
 - `--solo` — force single-agent mode even for grouped issues
+
+## Step 0: Verify Work Tracker
+
+Run `work list 2>/dev/null` — if it fails, run `work init`
+first.
 
 ## Step 1: Find Work
 
 - If ID in `$ARGUMENTS` → use it (Solo Mode)
+- If `--parent=<id>` → `work list --status=open
+  --parent=<id> --sort=priority` → all child issues (Team Mode)
 - If `--label=<group>` → `work list --status=open
-  --label=<group>` → all matching issues (Team Mode)
-- Else: `work list --status=open` → first result (Solo Mode)
+  --label=<group> --sort=priority` → all matching issues
+  (Team Mode, fallback)
+- Else: `work list --status=open --sort=priority` → first
+  result (Solo Mode)
 - Nothing found → exit, suggest `/explore` then `/prepare`
 
 ## Step 2: Classify
 
-**Multiple issues with shared label?** → **Team Mode**
+**Multiple issues (via parent or label)?** → **Team Mode**
 (unless `--solo`)
 **Single issue?** → **Solo Mode**
 
@@ -40,9 +51,12 @@ execution when multiple open issues share a group label.
 ### Setup
 
 1. Gather issues:
-   `work list --status=open --label=<group> --format=json`
+   - If parent-based: `work list --status=open --parent=<id> --sort=priority --format=json`
+   - If label-based: `work list --status=open --label=<group> --sort=priority --format=json`
 2. Read each issue: `work show <id> --format=json`
 3. Create team: `TeamCreate(team_name="impl-<group-label>")`
+   (For parent-based, use the parent ID as team name suffix:
+   `TeamCreate(team_name="impl-<parent-id>")`)
    If TeamCreate fails → fall back to sequential Solo Mode:
      for each issue in order:
        work start <id>
@@ -56,17 +70,21 @@ execution when multiple open issues share a group label.
 ### Execution Loop
 
 ```
-open_issues = work list --status=open --label=<group> --format=json
+# Use parent-based or label-based listing depending on mode
+open_issues = work list --status=open --parent=<id> --sort=priority --format=json
+# Fallback: work list --status=open --label=<group> --sort=priority --format=json
 if empty → done
 
 for each issue in open_issues:
   issue_detail = work show <id> --format=json
+  work edit <id> --assignee=worker-<id>
   Spawn worker via Task tool (see Worker Spawn below)
 
 Wait for all workers to complete (messages + idle notifications)
 
 # Check for remaining work (phases may have been sequential)
-remaining = work list --status=open --label=<group>
+remaining = work list --status=open --parent=<id> --sort=priority
+# Fallback: work list --status=open --label=<group> --sort=priority
 if remaining → loop again
 
 Shutdown all teammates via SendMessage(type="shutdown_request")
@@ -123,6 +141,8 @@ You are a worker. Implement issue <issue-id>.
 - If you hit a file conflict or blocker, report it via
   SendMessage instead of forcing through
 - Do NOT work on other issues after completing yours
+- If you determine the issue is invalid or unimplementable,
+  use `work cancel <id>` and report why via SendMessage
 ```
 
 ### Completion Detection
@@ -133,6 +153,8 @@ After spawning workers:
 3. When completed_count == N → wave done
 4. If a worker goes idle WITHOUT sending completion:
    - Check `work show <id> --format=json`
+   - If status is cancelled → worker cancelled the issue
+     (treat as terminal — count toward completed)
    - If still active → worker is stuck/crashed
    - Log stuck issue, decrement expected count
 5. After completion: briefly report progress
@@ -166,5 +188,6 @@ parallel execution. Sequential spawning makes work run N× slower.
 
 **Reporting:**
 After all work complete (or abort), report:
-- Total issues: N completed, M stuck, K failed
+- Total issues: N completed, M cancelled, K stuck, J failed
+- Cancelled issue IDs (with reasons)
 - Stuck issue IDs (still active)

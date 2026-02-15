@@ -18,6 +18,11 @@ Gather context on current work and suggest next action.
 
 ## Steps
 
+### 0. Verify Work Tracker
+
+Run `work list 2>/dev/null` — if it fails, run `work init`
+first.
+
 ### 1. Resolve Branch
 
 Parse `$ARGUMENTS`:
@@ -56,11 +61,12 @@ if [[ -n "$PR_NUM" ]]; then
 fi
 ```
 
-Fetch issue state if `work` is available:
+Fetch issue state and recent activity if `work` is available:
 
 ```bash
-work list --status=active 2>/dev/null | head -10
-work list --status=open 2>/dev/null | head -5
+work list --status=active --roots --format=short 2>/dev/null | head -10
+work list --status=open --roots --format=short 2>/dev/null | head -5
+work history --since=yesterday 2>/dev/null | head -15
 ```
 
 ### 3. Summarize
@@ -75,6 +81,7 @@ Format gathered data as:
 **CI:** Passing | Failing (list failures)
 **Comments:** N unresolved (summarize key ones)
 **Issues:** N active, M open
+**Recent Activity:** Key changes since yesterday
 ```
 
 ### 4. Suggest Next Action
@@ -89,6 +96,14 @@ Pick the first matching condition:
 6. **Ready PR, approved** → "Merge PR"
 7. **No PR** → "`/submit` to create PR"
 8. **All clear** → "`/review` or wait for review"
+
+### 5. Maintenance
+
+Run periodic cleanup after showing the user their state:
+
+```bash
+work gc --days=30 2>/dev/null || true
+```
 
 ## Notes
 

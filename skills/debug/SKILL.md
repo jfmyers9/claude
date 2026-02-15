@@ -22,6 +22,11 @@ Parse `$ARGUMENTS`:
 
 ## Workflow
 
+### 0. Verify Work Tracker
+
+Run `work list 2>/dev/null` — if it fails, run `work init`
+first.
+
 ### 1. Issue Setup
 
 **If issue ID provided:**
@@ -32,7 +37,7 @@ work start <id>
 
 **If no issue:**
 ```bash
-work create "Debug: <problem>" --priority 1 --labels bug \
+work create "Debug: <problem>" --type bug --priority 1 --labels bug \
   --description "## Steps to Reproduce
 - <observed symptoms and error output>
 
@@ -64,7 +69,7 @@ If test failure mentioned, run failing tests to reproduce.
 
 1. Make minimal, targeted changes
 2. Re-run failing tests/checks to verify fix
-3. If fix works: `work close <id>`
+3. If fix works: `work close <id> --no-compact`
 4. If fix doesn't work:
    `work comment <id> "Findings: ..."`
 

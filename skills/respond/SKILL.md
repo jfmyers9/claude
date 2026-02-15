@@ -25,6 +25,11 @@ decides. NOT a /fix-family skill (user directs → agent executes).
 
 ## Workflow
 
+### 0. Verify Work Tracker
+
+Run `work list 2>/dev/null` — if it fails, run `work init`
+first.
+
 ### New Respond Session
 
 1. **Get PR context**
@@ -63,7 +68,7 @@ decides. NOT a /fix-family skill (user directs → agent executes).
 
 4. **Create respond issue**
    ```bash
-   work create "Respond: PR #$PR_NUM" --priority 2 \
+   work create "Respond: PR #$PR_NUM" --type chore --priority 2 \
      --labels respond \
      --description "Triage in progress..."
    ```
@@ -231,6 +236,17 @@ then `/respond --continue` to finalize for `/prepare`.
 **Next**: `/prepare <id>` to create tasks.
 Review reply drafts with `work log <id>`.
 ```
+
+## Issue Lifecycle
+
+When finalization produces agreed feedback items (Phase format):
+- Find the work issue associated with the PR's branch
+  (`work list --status=review --format=json` or check issue
+  linked to the PR)
+- If found: `work reject <id> "PR feedback: N items to address"`
+  to move back to active state, signaling more work needed
+- Only reject when there are actionable agreed items — skip if
+  all feedback was disagreed/already-done
 
 ## Guidelines
 

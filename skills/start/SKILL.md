@@ -13,6 +13,10 @@ Creates a new Graphite branch with optional issue linking.
 
 ## Steps
 
+0. **Verify work tracker**
+   Run `work list 2>/dev/null` — if it fails, run `work init`
+   first.
+
 1. **Parse arguments**
    - Extract branch name from `$ARGUMENTS`
    - Extract optional issue ID

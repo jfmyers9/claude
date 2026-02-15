@@ -22,6 +22,11 @@ All findings stored in issue description — no filesystem plans.
 
 ## Workflow
 
+### 0. Verify Work Tracker
+
+Run `work list 2>/dev/null` — if it fails, run `work init`
+first.
+
 ### New Review
 
 1. **Get branch context**
@@ -32,7 +37,7 @@ All findings stored in issue description — no filesystem plans.
 
 2. **Create review issue**
    ```
-   work create "Review: {branch}" --priority 2 \
+   work create "Review: {branch}" --type chore --priority 2 \
      --labels review \
      --description "Review in progress..."
    ```
@@ -598,6 +603,12 @@ team review>
 - Let the Task agent do the review work
 - Summarize agent findings, don't copy verbatim
 - Always read files before reviewing diffs (need full context)
+
+## Lifecycle
+
+Issue stays active until consumed. `/prepare` closes it when
+tasks are created. If review is abandoned, use
+`work cancel <id>`.
 
 ## Mode Selection Guide
 
