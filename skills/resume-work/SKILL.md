@@ -42,6 +42,7 @@ Run in parallel:
 git branch --show-current
 git log --oneline -10
 git status -sb
+git worktree list 2>/dev/null
 
 gh pr view --json number,title,state,isDraft,reviewDecision,statusCheckRollup,url \
   2>/dev/null || echo "No PR"
@@ -75,6 +76,7 @@ Format gathered data as:
 
 ```
 **Branch:** `branch-name`
+**Worktree:** /path/to/worktree (if not main worktree)
 **Commits:** Last 3 commit messages
 **PR:** #123 (draft/ready) - title
 **Review:** Approved | Changes requested | Pending

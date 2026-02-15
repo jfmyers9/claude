@@ -1,0 +1,14 @@
+{
+  "id": "489ff3",
+  "title": "Phase 1: Core worktree management",
+  "status": "done",
+  "type": "chore",
+  "priority": 2,
+  "labels": [
+    "worktree-skill"
+  ],
+  "parent_id": "f2d31b",
+  "created": "2026-02-15T23:08:56.102258Z",
+  "updated": "2026-02-15T23:15:01.522222Z",
+  "description": "## Acceptance Criteria"
+}

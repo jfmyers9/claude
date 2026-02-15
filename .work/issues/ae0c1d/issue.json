@@ -1,0 +1,13 @@
+{
+  "id": "ae0c1d",
+  "title": "Explore: git worktree skill for parallel development",
+  "status": "done",
+  "type": "chore",
+  "priority": 2,
+  "labels": [
+    "explore"
+  ],
+  "created": "2026-02-15T22:58:15.832495Z",
+  "updated": "2026-02-15T23:09:16.434265Z",
+  "description": "# Git Worktree Skill for Parallel Development"
+}

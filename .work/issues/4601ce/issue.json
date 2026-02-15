@@ -1,0 +1,14 @@
+{
+  "id": "4601ce",
+  "title": "Phase 2: Issue integration",
+  "status": "done",
+  "type": "chore",
+  "priority": 2,
+  "labels": [
+    "worktree-skill"
+  ],
+  "parent_id": "f2d31b",
+  "created": "2026-02-15T23:09:00.465432Z",
+  "updated": "2026-02-15T23:15:22.359141Z",
+  "description": "## Acceptance Criteria"
+}

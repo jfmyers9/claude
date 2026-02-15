@@ -4,3 +4,10 @@
 {"id":"526f5a","title":"Phase 3: Adopt review lifecycle states","type":"feature","status":"done","labels":["work-cli-audit"],"created":"2026-02-15T21:58:25.364112Z","closed":"2026-02-15T22:03:23.953914Z"}
 {"id":"0f0dc9","title":"Phase 5: Lifecycle closure and maintenance","type":"feature","status":"done","labels":["work-cli-audit"],"created":"2026-02-15T21:58:30.637848Z","closed":"2026-02-15T22:04:25.346428Z"}
 {"id":"c49709","title":"Phase 4: Improve context and sorting","type":"feature","status":"done","labels":["work-cli-audit"],"created":"2026-02-15T21:58:26.918567Z","closed":"2026-02-15T22:04:37.428485Z"}
+{"id":"ae0c1d","title":"Explore: git worktree skill for parallel development","type":"chore","status":"done","labels":["explore"],"created":"2026-02-15T22:58:15.832495Z","closed":"2026-02-15T23:09:16.434265Z"}
+{"id":"489ff3","title":"Phase 1: Core worktree management","type":"chore","status":"done","labels":["worktree-skill"],"created":"2026-02-15T23:08:56.102258Z","closed":"2026-02-15T23:15:01.522222Z"}
+{"id":"4601ce","title":"Phase 2: Issue integration","type":"chore","status":"done","labels":["worktree-skill"],"created":"2026-02-15T23:09:00.465432Z","closed":"2026-02-15T23:15:22.359141Z"}
+{"id":"b7ef8b","title":"Phase 3: Session handoff UX","type":"chore","status":"done","labels":["worktree-skill"],"created":"2026-02-15T23:09:04.534871Z","closed":"2026-02-15T23:15:22.384307Z"}
+{"id":"90cbf2","title":"Phase 4: Cleanup and safety","type":"chore","status":"done","labels":["worktree-skill"],"created":"2026-02-15T23:09:08.655607Z","closed":"2026-02-15T23:15:22.407981Z"}
+{"id":"41399e","title":"Phase 5: Documentation and integration","type":"chore","status":"done","labels":["worktree-skill"],"created":"2026-02-15T23:09:12.805659Z","closed":"2026-02-15T23:15:56.131396Z"}
+{"id":"f2d31b","title":"Plan: git worktree skill","type":"chore","status":"done","labels":["worktree-skill"],"created":"2026-02-15T23:08:50.046663Z","closed":"2026-02-15T23:16:00.043655Z"}
