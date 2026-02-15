@@ -107,43 +107,43 @@ Notes:
 - Team tools only needed for multi-agent swarm coordination
 - Most skills also include Glob and Grep for search
 
-## Beads Integration
+## Issues Integration
 
-Skills that create or track work should use the `bd` CLI
+Skills that create or track work should use the `work` CLI
 for state storage instead of filesystem documents.
 
 ### Common Patterns
 
-- **Create a tracking bead**: `bd create "<title>" --type task`
+- **Create a tracking issue**:
+  `work create "<title>" --priority 2 --labels <type>`
   with `--description` containing acceptance criteria
-- **Validate**: `bd lint <id>` after creation — fix with
-  `bd edit <id> --description` if lint fails
-- **Store findings**: `bd update <id> --design "<content>"`
+- **Store findings**: `work edit <id> --description "<content>"`
   for plans, exploration results, or review findings
-- **Store notes**: `bd update <id> --notes "<content>"`
+- **Store notes**: `work comment <id> "<content>"`
   for branch links, session notes, or metadata
-- **Track status**: `bd update <id> --status in_progress`
-  and `bd close <id>` when done
-- **Read context**: `bd show <id> --json` to extract fields
+- **Track status**: `work start <id>` and
+  `work close <id>` when done
+- **Read context**: `work show <id> --format=json`
 
-### When to Integrate Beads
+### When to Integrate Issues
 
-- Skill creates trackable work → create a bead
-- Skill produces structured output → store in design field
-- Skill needs to resume across sessions → use beads as
+- Skill creates trackable work → create an issue
+- Skill produces structured output → store in description
+- Skill needs to resume across sessions → use issues as
   state store
-- Skill is fire-and-forget (e.g., git-only) → skip beads
+- Skill is fire-and-forget (e.g., git-only) → skip issues
 
-### Bead Description Format
+### Issue Description Format
 
 Always include acceptance criteria in descriptions:
 
 ```
-bd create "Review: feature-branch" --type task --priority 2 \
+work create "Review: feature-branch" --priority 2 \
+  --labels review \
   --description "$(cat <<'EOF'
 ## Acceptance Criteria
 - Specific, testable outcomes
-- Stored in bead design field
+- Stored in issue description
 EOF
 )"
 ```

@@ -1,51 +1,46 @@
 ---
 name: explore
 description: |
-  Research topics, investigate codebases, and create implementation plans.
-  Triggers: 'explore', 'investigate', 'research'.
+  Research topics, investigate codebases, and create implementation
+  plans. Triggers: 'explore', 'investigate', 'research'.
 allowed-tools: Bash, Read, Task
-argument-hint: "<topic or question> | <beads-id> | --continue | --team"
+argument-hint: "<topic or question> | <issue-id> | --continue | --team"
 ---
 
 # Explore
 
-Orchestrate exploration via beads workflow and Task delegation.
-All findings stored in beads design field — no filesystem plans.
+Orchestrate exploration via work CLI and and Task delegation.
+All findings stored in issue description — no filesystem plans.
 
 ## Arguments
 
 - `<topic>` — new exploration on this topic
-- `<beads-id>` — continue existing exploration issue
-- `--continue` — resume most recent in_progress exploration
+- `<issue-id>` — continue existing exploration issue
+- `--continue` — resume most recent active exploration
 - `--team` — force team mode for parallel multi-topic exploration
 
 ## Workflow
 
 ### New Exploration
 
-1. Create bead with description:
+1. Create issue:
    ```
-   bd create "Explore: <topic>" --type task --priority 2 \
-     --description "$(cat <<'EOF'
-   ## Acceptance Criteria
-   - Findings stored in bead design field (not filesystem)
-   - Structured as Current State, Recommendation, and phased Next Steps
-   - Each phase is independently actionable
-   EOF
-   )"
+   work create "Explore: <topic>" --priority 2 \
+     --labels explore \
+     --description "Exploration in progress..."
    ```
-2. Validate: `bd lint <id>` — if it fails, `bd edit <id> --description` to fix violations
-3. `bd update <id> --status in_progress`
-4. Classify topics — parse $ARGUMENTS to determine mode:
-   - Numbered list items (`1.` / `2.` / `-` / `*`) → extract each as a topic
+2. `work start <id>`
+3. Classify topics — parse $ARGUMENTS to determine mode:
+   - Numbered list items (`1.` / `2.` / `-` / `*`) → extract
+     each as a topic
    - Comma-separated phrases with "and" → split on commas
    - Multiple sentences ending in `?` → each is a topic
    - `--team` flag present → force team mode
 
-   If 2+ topics detected OR `--team` flag → **Team Mode** (step 5b)
-   Otherwise → **Solo Mode** (step 5a)
+   If 2+ topics detected OR `--team` flag → **Team Mode** (step 4b)
+   Otherwise → **Solo Mode** (step 4a)
 
-5. Spawn exploration agent(s) using the subagent prompt template below.
+4. Spawn exploration agent(s) using the subagent prompt template.
 
    **a) Solo Mode** — spawn a single Task (subagent_type=Explore,
    model=opus). Use 3-7 phases in the prompt.
@@ -58,22 +53,25 @@ All findings stored in beads design field — no filesystem plans.
    - An `## Overall Context` section with the original user request
    - Use 2-4 phases per topic instead of 3-7
 
-6. Store findings: `bd update <id> --design "<full-findings>"`
+5. Store findings:
+   `work edit <id> --description "<full-findings>"`
    For Team Mode, run aggregation first (see Team Mode Aggregation).
 
-7. Report results (see Output Format)
+6. Report results (see Output Format)
 
 ### Continue Exploration
 
 1. Resolve issue ID:
-   - If `$ARGUMENTS` matches a beads ID → use it
-   - If `--continue` → `bd list --status=in_progress --type task`,
+   - If `$ARGUMENTS` matches an issue ID → use it
+   - If `--continue` → `work list --status=active --label=explore`,
      find first with title starting "Explore:"
-2. Load existing context: `bd show <id> --json` → extract design field
+2. Load existing context:
+   `work show <id> --format=json` → extract description
 3. Spawn Explore agent with previous findings prepended:
-   "Previous findings:\n<existing-design>\n\nContinue the
+   "Previous findings:\n<existing-description>\n\nContinue the
    exploration focusing on: <new-instructions>"
-4. Update design: `bd update <id> --design "<updated-findings>"`
+4. Update description:
+   `work edit <id> --description "<updated-findings>"`
 5. Report results
 
 ## Subagent Prompt Template
@@ -89,7 +87,8 @@ for architecture and cross-cutting concerns.
 
 Structure:
 
-1. **Current State**: What exists now (files, patterns, architecture)
+1. **Current State**: What exists now (files, patterns,
+   architecture)
 2. **Recommendation**: Suggested approach with rationale
 3. **Next Steps**: Implementation phases using format:
 
@@ -106,7 +105,7 @@ Aim for <N> phases. Each phase should be independently testable.
 
 - **Solo**: `<N>` = 3-7 phases
 - **Team**: `<N>` = 2-4 phases per topic; prepend topic/context
-  headers (see step 5b)
+  headers (see step 4b)
 
 ## Team Mode Aggregation
 
@@ -129,4 +128,5 @@ After ALL subagents return, combine their output before storing:
 
 **Recommendation**: <one paragraph>
 
-**Next**: `bd edit <id> --design` to review, `/prepare` to create tasks.
+**Next**: `work show <id>` to review, `/prepare` to create
+tasks.

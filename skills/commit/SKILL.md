@@ -1,14 +1,14 @@
 ---
 name: commit
 description: >
-  Create conventional commits with automatic beads sync. Triggers: /commit, "commit this".
+  Create conventional commits. Triggers: /commit, "commit this".
 allowed-tools: Bash
 argument-hint: "[--amend] [--fixup <commit>] [message]"
 ---
 
 # Commit
 
-Create conventional commits and sync beads issue tracking.
+Create conventional commits.
 
 ## Steps
 
@@ -40,10 +40,5 @@ Create conventional commits and sync beads issue tracking.
    - Fixup: `git commit --fixup <hash>`
    - Use HEREDOC for multi-line messages
 
-6. **Sync Beads**
-   - Run `bd epic close-eligible` to auto-close epics with all children done
-   - Run `bd sync` to export beads state
-   - Report sync status
-
-7. **Show Result**
+6. **Show Result**
    - Display final commit with `git log -1 --oneline`

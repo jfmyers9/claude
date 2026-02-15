@@ -1,23 +1,24 @@
 ---
 name: review
 description: |
-  Senior engineer code review, filing findings as beads issues.
+  Senior engineer code review, filing findings as issues.
   Triggers: 'review code', 'code review', 'review my changes'.
 allowed-tools: Bash, Read, Glob, Grep, Task
-argument-hint: "[file-pattern] [--team] | <beads-id> | --continue"
+argument-hint: "[file-pattern] [--team] | <issue-id> | --continue"
 ---
 
 # Code Review
 
-Orchestrate code review via beads workflow and Task delegation.
-All findings stored in beads design field — no filesystem plans.
+Orchestrate code review via work CLI and and Task delegation.
+All findings stored in issue description — no filesystem plans.
 
 ## Arguments
 
 - `<file-pattern>` — new review, optionally filtering files
-- `<beads-id>` — continue existing review issue
-- `--continue` — resume most recent in_progress review
-- `--team` — multi-perspective review (architect, code-quality, devil's-advocate)
+- `<issue-id>` — continue existing review issue
+- `--continue` — resume most recent active review
+- `--team` — multi-perspective review (architect, code-quality,
+  devil's-advocate)
 
 ## Workflow
 
@@ -29,57 +30,58 @@ All findings stored in beads design field — no filesystem plans.
    - Filter by `$ARGUMENTS` pattern if provided
    - Exclude: lock files, dist/, build/, coverage/, binaries
 
-2. **Create review bead**
-   - Create bead with description:
-     ```
-     bd create "Review: {branch}" --type task --priority 2 \
-       --description "$(cat <<'EOF'
-     ## Acceptance Criteria
-     - All changed files reviewed for critical issues, design, and testing gaps
-     - Findings stored in bead design field as phased structure
-     - Critical issues identified and actionable via /prepare
-     EOF
-     )"
-     ```
-   - Validate: `bd lint <id>` — if it fails, `bd edit <id> --description` to fix violations
-   - `bd update <id> --status in_progress`
+2. **Create review issue**
+   ```
+   work create "Review: {branch}" --priority 2 \
+     --labels review \
+     --description "Review in progress..."
+   ```
+   - `work start <id>`
 
 3. **Determine review mode**
-   - `--team` in arguments → **Perspective Mode**: 3 specialized reviewers
-     (always 3 subagents regardless of file count — no file splitting)
-   - ≤15 changed files (no --team) → **Solo Mode**: single Review subagent
-   - >15 changed files (no --team) → **Team Mode**: spawn parallel reviewers
+   - `--team` in arguments → **Perspective Mode**: 3 specialized
+     reviewers (always 3 subagents regardless of file count —
+     no file splitting)
+   - ≤15 changed files (no --team) → **Solo Mode**: single
+     Review subagent
+   - >15 changed files (no --team) → **Team Mode**: spawn
+     parallel reviewers
 
-4. **Solo Mode**: Spawn single Task subagent (see Review Subagent Prompt)
-5. **Perspective Mode**: Spawn 3 specialized Task subagents (see Perspective Mode Details)
+4. **Solo Mode**: Spawn single Task subagent
+   (see Review Subagent Prompt)
+5. **Perspective Mode**: Spawn 3 specialized Task subagents
+   (see Perspective Mode Details)
 6. **Team Mode**: Split files into groups of ~8, spawn one
    subagent per group, aggregate findings
 
 7. **Store findings**
-   - `bd update <id> --design "<phase-structured-findings>"`
-   - Leave bead open (in_progress)
+   - `work edit <id> --description "<phase-structured-findings>"`
+   - Leave issue open (active)
 
 8. **Report results** (see Output Format)
 
 ### Continue Review
 
 1. Resolve issue ID:
-   - If `$ARGUMENTS` matches a beads ID → use it
-   - If `--continue` → `bd list --status=in_progress --type task`,
+   - If `$ARGUMENTS` matches an issue ID → use it
+   - If `--continue` → `work list --status=active --label=review`,
      find first with title starting "Review:"
-2. Load existing context: `bd show <id> --json` → extract design
+2. Load existing context:
+   `work show <id> --format=json` → extract description
 3. Detect original review type:
-   - If design contains `[architect]` or `**Consensus**` tags →
-     was a team review → re-spawn in Perspective Mode
+   - If description contains `[architect]` or `**Consensus**`
+     tags → was a team review → re-spawn in Perspective Mode
    - Otherwise → re-spawn as Solo Mode
 4. Spawn subagent(s) with previous findings prepended:
-   - Solo continuation: single subagent with "Previous findings:\n<design>\n\nContinue reviewing..."
-   - Team continuation: 3 perspective subagents, each with
-     "Previous findings:\n<design>\n\nContinue reviewing from your
-     perspective (<architect|code-quality|devil's-advocate>)..."
-5. Aggregate new findings with previous (re-run Perspective Aggregation
-   if team continuation)
-6. Update design: `bd update <id> --design "<updated-findings>"`
+   - Solo: "Previous findings:\n<description>\n\nContinue
+     reviewing..."
+   - Team: 3 perspective subagents, each with
+     "Previous findings:\n<description>\n\nContinue reviewing
+     from your perspective (<perspective>)..."
+5. Aggregate new findings with previous (re-run Perspective
+   Aggregation if team continuation)
+6. Update description:
+   `work edit <id> --description "<updated-findings>"`
 7. Report results
 
 ## Review Scope
@@ -123,8 +125,10 @@ has a truly critical flaw (security, data loss, crash).
 
 Review each file for:
 - **Architecture**: patterns, complexity, simpler alternatives
-- **Code quality**: readability, edge cases, naming, error handling
-- **Security/Perf**: input validation, resource mgmt, async handling
+- **Code quality**: readability, edge cases, naming, error
+  handling
+- **Security/Perf**: input validation, resource mgmt, async
+  handling
 - **Testing**: coverage, edge cases, realistic failure modes
 
 Return COMPLETE findings as text (do NOT write files). Structure
@@ -140,7 +144,8 @@ findings as phases for downstream task creation:
 <missing tests, edge cases, failure modes — numbered list>
 
 Only include phases that have findings. Skip empty phases.
-For each finding include: file, line(s), what's wrong, suggested fix.
+For each finding include: file, line(s), what's wrong,
+suggested fix.
 
 ## Review Criteria
 
@@ -165,7 +170,7 @@ For each finding include: file, line(s), what's wrong, suggested fix.
 - Missing comments (code should be self-documenting)
 - Hypothetical edge cases with no realistic trigger
 - Minor optimizations with negligible impact
-- Pre-existing flaws in unchanged code (unless truly critical)
+- Pre-existing flaws in unchanged code (unless critical)
 - "While we're here" improvements to surrounding code
 ```
 
@@ -196,18 +201,19 @@ Apply Large Diff Handling (above) when gathering context.
    - Merge Phase 2 findings from all subagents
    - Merge Phase 3 findings from all subagents
    - Deduplicate cross-file findings
-5. Store consolidated findings in design field
+5. Store consolidated findings in description
 
 ## Team Review Prompts
 
 When `--team` flag is provided, spawn 3 parallel Task subagents
-(subagent_type=Explore, model=opus) using these specialized prompts
-instead of the generic prompt above.
+(subagent_type=Explore, model=opus) using these specialized
+prompts instead of the generic prompt above.
 
 ### Architect Prompt
 
 ```
-You are a software architect performing a design-focused code review.
+You are a software architect performing a design-focused code
+review.
 
 ## Scope
 Focus on the INTRODUCED code (the diff) and how it interacts
@@ -228,16 +234,17 @@ pattern that will inevitably cause a production incident).
 <git diff main...HEAD for each file>
 
 Review each file strictly through an architectural lens:
-- **System boundaries**: Are module/service boundaries clean? Any
-  leaky abstractions or inappropriate cross-layer dependencies?
-- **Coupling/cohesion**: Are components loosely coupled with high
-  cohesion? Any god objects or shotgun surgery patterns?
-- **Abstraction levels**: Are abstractions at the right level? Any
-  over-engineering or under-abstraction?
-- **Scalability**: Will this hold up under growth? Any bottlenecks
-  baked into the design?
-- **Simpler alternatives**: Could the same goal be achieved with
-  less complexity? Any unnecessary indirection?
+- **System boundaries**: Are module/service boundaries clean?
+  Any leaky abstractions or inappropriate cross-layer
+  dependencies?
+- **Coupling/cohesion**: Are components loosely coupled with
+  high cohesion? Any god objects or shotgun surgery patterns?
+- **Abstraction levels**: Are abstractions at the right level?
+  Any over-engineering or under-abstraction?
+- **Scalability**: Will this hold up under growth? Any
+  bottlenecks baked into the design?
+- **Simpler alternatives**: Could the same goal be achieved
+  with less complexity? Any unnecessary indirection?
 
 Return COMPLETE findings as text (do NOT write files). Structure
 findings as phases for downstream task creation:
@@ -246,13 +253,16 @@ findings as phases for downstream task creation:
 <design flaws that will cause real problems — numbered list>
 
 **Phase 2: Design Improvements**
-<architectural simplifications and better patterns — numbered list>
+<architectural simplifications and better patterns — numbered
+list>
 
 **Phase 3: Testing Gaps**
-<missing integration/contract tests at boundaries — numbered list>
+<missing integration/contract tests at boundaries — numbered
+list>
 
 Only include phases that have findings. Skip empty phases.
-For each finding include: file, line(s), what's wrong, suggested fix.
+For each finding include: file, line(s), what's wrong,
+suggested fix.
 
 ## Review Criteria
 
@@ -275,9 +285,9 @@ For each finding include: file, line(s), what's wrong, suggested fix.
 - No tests for failure cascading between layers
 
 **Don't flag:**
-- Code-level style or naming (code-quality reviewer handles this)
+- Code-level style or naming (code-quality reviewer handles)
 - Individual error handling within functions
-- Security specifics (devil's-advocate reviewer handles this)
+- Security specifics (devil's-advocate reviewer handles)
 - Test coverage for pure internal logic
 - Pre-existing design flaws in unchanged code (unless critical)
 ```
@@ -307,10 +317,11 @@ will trigger or depend on).
 <git diff main...HEAD for each file>
 
 Review each file strictly through a code quality lens:
-- **Readability**: Can a new team member understand this quickly?
-  Are names precise? Is control flow clear?
-- **Error handling**: Are errors caught, propagated, and reported
-  correctly? Any swallowed exceptions or silent failures?
+- **Readability**: Can a new team member understand this
+  quickly? Are names precise? Is control flow clear?
+- **Error handling**: Are errors caught, propagated, and
+  reported correctly? Any swallowed exceptions or silent
+  failures?
 - **Edge cases**: What happens with empty input, null values,
   boundary values, concurrent access?
 - **Consistency**: Does new code follow existing patterns and
@@ -322,7 +333,8 @@ Return COMPLETE findings as text (do NOT write files). Structure
 findings as phases for downstream task creation:
 
 **Phase 1: Critical Issues**
-<bugs, incorrect error handling, data loss risks — numbered list>
+<bugs, incorrect error handling, data loss risks — numbered
+list>
 
 **Phase 2: Design Improvements**
 <readability, naming, simplification — numbered list>
@@ -331,7 +343,8 @@ findings as phases for downstream task creation:
 <untested edge cases and error paths — numbered list>
 
 Only include phases that have findings. Skip empty phases.
-For each finding include: file, line(s), what's wrong, suggested fix.
+For each finding include: file, line(s), what's wrong,
+suggested fix.
 
 ## Review Criteria
 
@@ -356,25 +369,26 @@ For each finding include: file, line(s), what's wrong, suggested fix.
 - Missing tests for recently fixed edge cases
 
 **Don't flag:**
-- Architecture or system design (architect reviewer handles this)
-- Security threat modeling (devil's-advocate reviewer handles this)
+- Architecture or system design (architect reviewer handles)
+- Security threat modeling (devil's-advocate reviewer handles)
 - Style preferences with no readability impact
 - Hypothetical performance issues without evidence
-- Pre-existing quality issues in unchanged code (unless critical)
+- Pre-existing quality issues in unchanged code (unless
+  critical)
 ```
 
 ### Devil's Advocate Prompt
 
 ```
-You are a devil's advocate reviewer. Your job is to break things:
-find what can go wrong, what assumptions are incorrect, and what
-an adversary could exploit.
+You are a devil's advocate reviewer. Your job is to break
+things: find what can go wrong, what assumptions are incorrect,
+and what an adversary could exploit.
 
 ## Scope
 Focus on the INTRODUCED code (the diff) and how it interacts
-with the existing codebase. Only flag pre-existing vulnerabilities
-if they are truly critical (e.g., a security hole the new code
-exposes or relies on).
+with the existing codebase. Only flag pre-existing
+vulnerabilities if they are truly critical (e.g., a security
+hole the new code exposes or relies on).
 
 ## Branch
 <branch-name>
@@ -389,14 +403,14 @@ exposes or relies on).
 <git diff main...HEAD for each file>
 
 Review each file by trying to break it:
-- **Failure modes**: What happens when dependencies fail? Network
-  down, disk full, service unavailable, timeout?
+- **Failure modes**: What happens when dependencies fail?
+  Network down, disk full, service unavailable, timeout?
 - **Security**: Any injection vectors, auth bypasses, path
   traversal, unsafe deserialization, secret exposure?
-- **Bad assumptions**: What does this code assume that might not
-  hold? Data format, ordering, uniqueness, availability?
-- **Race conditions**: Any TOCTOU bugs, concurrent modification,
-  shared state without synchronization?
+- **Bad assumptions**: What does this code assume that might
+  not hold? Data format, ordering, uniqueness, availability?
+- **Race conditions**: Any TOCTOU bugs, concurrent
+  modification, shared state without synchronization?
 - **Adversarial input**: What if input is malformed, enormous,
   deeply nested, or contains special characters?
 
@@ -414,12 +428,14 @@ numbered list>
 <missing adversarial and failure-mode tests — numbered list>
 
 Only include phases that have findings. Skip empty phases.
-For each finding include: file, line(s), what's wrong, suggested fix.
+For each finding include: file, line(s), what's wrong,
+suggested fix.
 
 ## Review Criteria
 
 **Flag as critical (Phase 1):**
-- Input that can trigger injection (SQL, command, XSS, template)
+- Input that can trigger injection (SQL, command, XSS,
+  template)
 - Authentication or authorization bypasses
 - Secrets in code, logs, or error messages
 - Unvalidated redirects or path traversal
@@ -440,23 +456,26 @@ For each finding include: file, line(s), what's wrong, suggested fix.
 - Missing tests for permission/authorization boundaries
 
 **Don't flag:**
-- Code style or readability (code-quality reviewer handles this)
-- Architecture or design patterns (architect reviewer handles this)
-- Theoretical attacks requiring physical access or compromised infra
+- Code style or readability (code-quality reviewer handles)
+- Architecture or design patterns (architect reviewer handles)
+- Theoretical attacks requiring physical access or compromised
+  infra
 - Performance optimizations unrelated to DoS resilience
-- Pre-existing vulnerabilities in unchanged code (unless critical)
+- Pre-existing vulnerabilities in unchanged code (unless
+  critical)
 ```
 
-For continuations, prepend: "Previous findings:\n<existing-design>
-\n\nContinue reviewing, focusing on: <new-instructions>"
-
-For team continuations, prepend to each perspective's prompt:
-"Previous team review findings:\n<existing-design>\n\nContinue
-reviewing from the <perspective-name> perspective, focusing on:
+For continuations, prepend: "Previous findings:\n<existing-
+description>\n\nContinue reviewing, focusing on:
 <new-instructions>"
 
+For team continuations, prepend to each perspective's prompt:
+"Previous team review findings:\n<existing-description>
+\n\nContinue reviewing from the <perspective-name> perspective,
+focusing on: <new-instructions>"
+
 After agent(s) return, store full findings:
-`bd update <id> --design "$(cat <<'EOF'\n<findings>\nEOF\n)"`
+`work edit <id> --description "<findings>"`
 
 ## Perspective Mode Execution
 
@@ -478,9 +497,12 @@ Apply Large Diff Handling (above) when gathering context.
 
 **Step B: Spawn ALL THREE subagents in ONE message**
 Make exactly 3 Task tool calls in a single response:
-1. `Task(subagent_type=Explore, model=opus, prompt=<Architect Prompt with context>)`
-2. `Task(subagent_type=Explore, model=opus, prompt=<Code Quality Prompt with context>)`
-3. `Task(subagent_type=Explore, model=opus, prompt=<Devil's Advocate Prompt with context>)`
+1. `Task(subagent_type=Explore, model=opus,
+   prompt=<Architect Prompt with context>)`
+2. `Task(subagent_type=Explore, model=opus,
+   prompt=<Code Quality Prompt with context>)`
+3. `Task(subagent_type=Explore, model=opus,
+   prompt=<Devil's Advocate Prompt with context>)`
 
 Inject gathered context into each prompt's placeholders.
 
@@ -489,7 +511,8 @@ Inject gathered context into each prompt's placeholders.
   missing, proceed with 2 results
 - If 2+ subagents fail: fall back to Solo Mode, note that team
   review was attempted
-- Tag partial results: "Note: <perspective> did not return results"
+- Tag partial results: "Note: <perspective> did not return
+  results"
 
 **Step D: Aggregate findings** (see Perspective Aggregation)
 
@@ -513,9 +536,9 @@ findings:
 
 ### Step 2: Scan for consensus
 
-Compare findings across perspectives. Same file + same issue area
-flagged by 2+ perspectives = consensus finding. Tag with all
-agreeing sources: `[architect, code-quality]`.
+Compare findings across perspectives. Same file + same issue
+area flagged by 2+ perspectives = consensus finding. Tag with
+all agreeing sources: `[architect, code-quality]`.
 
 ### Step 3: Build unified output
 
@@ -547,7 +570,7 @@ to avoid duplication. Skip empty sections. Most impactful first.
 - <improvements count> design improvements
 - <testing gaps count> testing gaps
 
-**Next**: `bd edit <id> --design` to review findings,
+**Next**: `work show <id>` to review findings,
 `/prepare <id>` to create tasks.
 
 For `--team` reviews, the output includes additional sections:
@@ -565,7 +588,7 @@ team review>
 - <improvements count> design improvements
 - <testing gaps count> testing gaps
 
-**Next**: `bd edit <id> --design` to review findings,
+**Next**: `work show <id>` to review findings,
 `/prepare <id>` to create tasks.
 
 ## Guidelines

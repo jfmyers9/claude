@@ -4,7 +4,7 @@ description: >
   Triage PR review feedback — analyze validity, recommend actions.
   Triggers: /respond, "respond to PR", "address feedback".
 allowed-tools: Bash, Read, Glob, Grep, Task
-argument-hint: "[pr-number] | <beads-id> | --continue"
+argument-hint: "[pr-number] | <issue-id> | --continue"
 ---
 
 # Respond
@@ -19,25 +19,22 @@ decides. NOT a /fix-family skill (user directs → agent executes).
 ## Arguments
 
 - `<pr-number>` — new respond session for specific PR
-- `<beads-id>` — continue existing respond bead
-- `--continue` — resume most recent in_progress respond bead
+- `<issue-id>` — continue existing respond issue
+- `--continue` — resume most recent active respond issue
 - (no args) — new respond session for current branch's PR
 
 ## Workflow
 
-Before starting, verify `.beads` directory exists.
-If not → exit, suggest `bd init`.
-
 ### New Respond Session
 
 1. **Get PR context**
-   - If PR number provided: `gh pr view <number> --json number,title,url`
+   - If PR number provided:
+     `gh pr view <number> --json number,title,url`
    - Else: `gh pr view --json number,title,url` (current branch)
    - Exit if no PR found — suggest `/submit` first
 
 2. **Fetch comments** (parallel)
    ```bash
-   # Repo identifier
    REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
    PR_NUM=<number>
 
@@ -64,53 +61,46 @@ If not → exit, suggest `bd init`.
    - Exclude the PR author's own comments
    - Group by file path
 
-4. **Create respond bead**
+4. **Create respond issue**
    ```bash
-   bd create "Respond: PR #$PR_NUM" --type task --priority 2 --ephemeral \
-     --description "$(cat <<'EOF'
-   ## Acceptance Criteria
-   - All PR comments triaged with agree/disagree/question/already-done
-   - Rationale provided for each classification
-   - Findings stored in design field for user review
-   EOF
-   )"
+   work create "Respond: PR #$PR_NUM" --priority 2 \
+     --labels respond \
+     --description "Triage in progress..."
    ```
-   Validate: `bd lint <id>` — fix violations if needed.
-   `bd update <id> --status in_progress`
+   `work start <id>`
 
 5. **Spawn analysis subagent** (see Triage Subagent Prompt)
 
 6. **Store findings**
-   - Triage → design field: `bd update <id> --design "<triage>"`
-   - PR reply drafts for disagree/already-done → notes field:
-     `bd update <id> --notes "<replies>"`
+   - Triage → description:
+     `work edit <id> --description "<triage>"`
+   - PR reply drafts → comment:
+     `work comment <id> "<replies>"`
 
 7. **Report results** (see Output Format — First Pass)
-   - If user wants `/prepare` on findings → `bd promote <id>`
-     (promotes wisp to persistent bead)
-   - If done (no follow-up) → bead stays ephemeral,
-     auto-excluded from JSONL export, cleaned up by
-     `bd mol wisp gc`
 
 ### Continue Respond Session
 
 1. Resolve issue ID:
-   - If `$ARGUMENTS` matches a beads ID → use it
-   - If `--continue` → `bd list --status=in_progress --type task`,
+   - If `$ARGUMENTS` matches an issue ID → use it
+   - If `--continue` →
+     `work list --status=active --label=respond`,
      find first with title starting "Respond:"
-2. Load existing context: `bd show <id> --json` → extract design
-3. **Detect state** from design field content:
-   - Contains `**Agree**` / `**Disagree**` sections → raw triage
-     (first pass complete, user may have edited)
+2. Load existing context:
+   `work show <id> --format=json` → extract description
+3. **Detect state** from description content:
+   - Contains `**Agree**` / `**Disagree**` sections → raw
+     triage (first pass complete, user may have edited)
    - Contains `**Phase N:**` sections → already finalized
 4. **If raw triage** → Finalize:
    - Read user's edits (they may have flipped classifications)
    - Rewrite agreed items into /prepare-compatible phase format
    - Draft PR reply text for disagree/already-done items
-   - Update design with phase format
-   - Update notes with PR reply drafts
-5. **If already finalized** → Spawn subagent with previous findings
-   prepended: "Previous findings:\n<design>\n\nContinue..."
+   - Update description with phase format
+   - Store PR reply drafts as comment
+5. **If already finalized** → Spawn subagent with previous
+   findings prepended: "Previous findings:\n<description>
+   \n\nContinue..."
 6. Report results (see Output Format — Continuation)
 
 ## Triage Subagent Prompt
@@ -118,9 +108,9 @@ If not → exit, suggest `bd init`.
 Spawn Task (subagent_type=Explore, model=opus) with:
 
 ```
-You are a senior engineer triaging PR review feedback. Your job is
-to analyze each reviewer comment, check whether it's valid against
-the actual code, and recommend an action.
+You are a senior engineer triaging PR review feedback. Your job
+is to analyze each reviewer comment, check whether it's valid
+against the actual code, and recommend an action.
 
 ## PR
 <pr-title> (#<pr-number>)
@@ -182,7 +172,7 @@ Return COMPLETE findings as text (do NOT write files). Structure:
 
 ## Finalization Logic
 
-When continuing a bead that has raw triage (agree/disagree
+When continuing an issue that has raw triage (agree/disagree
 sections), convert agreed items to /prepare-compatible format:
 
 ```
@@ -194,7 +184,7 @@ sections), convert agreed items to /prepare-compatible format:
 Group related fixes into a single phase. If fixes span multiple
 unrelated areas, use multiple phases.
 
-Store PR reply drafts in notes field:
+Store PR reply drafts as a comment:
 
 ```
 ## PR Replies
@@ -227,9 +217,8 @@ Store PR reply drafts in notes field:
 **Disagree**:
 - [file:line] reason to push back
 
-**Next**: `bd edit <id> --design` to review/override triage,
+**Next**: `work show <id>` to review/override triage,
 then `/respond --continue` to finalize for `/prepare`.
-To persist findings: `bd promote <id>`.
 ```
 
 ## Output Format — Continuation
@@ -239,9 +228,8 @@ To persist findings: `bd promote <id>`.
 
 **Finalized**: N items to action, N replies drafted
 
-**Next**: `bd promote <id>` then `/prepare <id>` to create tasks.
-Notes field has PR reply drafts — review with
-`bd edit <id> --notes`.
+**Next**: `/prepare <id>` to create tasks.
+Review reply drafts with `work log <id>`.
 ```
 
 ## Guidelines

@@ -1,99 +1,87 @@
 ---
 name: implement
 description: >
-  Execute implementation plans from beads issues. Detects swarm
-  epics and spawns teams for parallel work.
-  Triggers: 'implement', 'build this', 'execute plan', 'start work'.
+  Execute implementation plans from issues. Spawns teams for
+  parallel work when multiple issues share a label.
+  Triggers: 'implement', 'build this', 'execute plan',
+  'start work'.
 allowed-tools: Bash, Read, Task, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet, TeamCreate, TeamDelete
-argument-hint: "[beads-issue-id] [--solo]"
+argument-hint: "[issue-id] [--label=<group>] [--solo]"
 ---
 
 # Implement
 
-Execute work from beads issues. Spawns Claude teams for parallel
-execution when beads swarm has multiple ready tasks.
+Execute work from issues. Spawns Claude teams for parallel
+execution when multiple open issues share a group label.
 
 ## Arguments
 
-- `beads-issue-id` — epic or task ID (optional)
-- `--solo` — force single-agent mode even for swarms
+- `issue-id` — specific issue to implement (Solo Mode)
+- `--label=<group>` — implement all open issues with this label
+  (Team Mode)
+- `--solo` — force single-agent mode even for grouped issues
 
 ## Step 1: Find Work
 
-- If ID in `$ARGUMENTS` → use it
-- Else: `bd list --status=in_progress --type=epic` → first result (Swarm Mode)
-- Else: `bd list --status=open --type=epic` → check each for swarm molecule
-  (`bd swarm status <id>` succeeds) → first swarmable epic (Swarm Mode)
-- Else: `bd list --status=in_progress` → first result (Solo Mode)
-- Else: `bd ready` → first result (Solo Mode)
+- If ID in `$ARGUMENTS` → use it (Solo Mode)
+- If `--label=<group>` → `work list --status=open
+  --label=<group>` → all matching issues (Team Mode)
+- Else: `work list --status=open` → first result (Solo Mode)
 - Nothing found → exit, suggest `/explore` then `/prepare`
 
-## Step 2: Classify Issue
+## Step 2: Classify
 
-Run `bd show <id> --json` to inspect.
+**Multiple issues with shared label?** → **Team Mode**
+(unless `--solo`)
+**Single issue?** → **Solo Mode**
 
-**Epic?** → issue_type is "epic" → **Swarm Mode** (unless `--solo`)
-**Task with parent?** → has parent → read parent for context, **Solo Mode**
-**Standalone task?** → **Solo Mode**
-
-## Swarm Mode
+## Team Mode
 
 ### Setup
 
-1. `bd swarm validate <epic-id> --json` → parse waves
-2. `bd show <epic-id> --json` → extract title + design field as epic_context
-3. Create team: `TeamCreate(team_name="swarm-<epic-id>")`
+1. Gather issues:
+   `work list --status=open --label=<group> --format=json`
+2. Read each issue: `work show <id> --format=json`
+3. Create team: `TeamCreate(team_name="impl-<group-label>")`
    If TeamCreate fails → fall back to sequential Solo Mode:
-     for each task in topological order (from bd swarm validate):
-       bd update <task-id> --claim
+     for each issue in order:
+       work start <id>
        Spawn single Task agent, wait for completion
-       bd close <task-id>
+       work close <id>
      Skip team cleanup (no team was created)
-4. Read team config: `~/.claude/teams/swarm-<epic-id>/config.json`
-   → extract the team lead's `name` field for injecting into worker prompts
+4. Read team config:
+   `~/.claude/teams/impl-<group-label>/config.json`
+   → extract the team lead's `name` field
 
-### Wave Loop
+### Execution Loop
 
 ```
-while true:
-  ready_tasks = bd ready --parent <epic-id> --json
-  if empty → break
+open_issues = work list --status=open --label=<group> --format=json
+if empty → done
 
-  for each task in ready_tasks:
-    task_detail = bd show <task-id> --json → description
-    Spawn worker via Task tool (see Worker Spawn below)
+for each issue in open_issues:
+  issue_detail = work show <id> --format=json
+  Spawn worker via Task tool (see Worker Spawn below)
 
-  Wait for all workers to complete (messages + idle notifications)
-  Verify: bd swarm status <epic-id> --json → check completed count
+Wait for all workers to complete (messages + idle notifications)
 
-  # Optional: for checkpoint reviews between waves, use
-  # `bd gate create --await 'human:...'` to pause execution.
-  #   gate_id = bd gate create --await "human:Review wave N results" --timeout 4h
-  #   bd gate list  # Show pending gates
-  #   (Pause until: bd gate approve $gate_id)
+# Check for remaining work (phases may have been sequential)
+remaining = work list --status=open --label=<group>
+if remaining → loop again
 
-  # Recover stuck tasks before next wave
-  stuck = bd list --status=in_progress --parent <epic-id>
-  for each stuck task not in just-completed set:
-    bd update <stuck-id> --status open  # release claim for retry
-    bd update <stuck-id> --notes "Released: worker failed in wave N"
-
-bd epic close-eligible
-molecule_id = bd swarm list --json | jq '.swarms[] | select(.epic_id=="<epic-id>") | .id'
-bd close $molecule_id
 Shutdown all teammates via SendMessage(type="shutdown_request")
 TeamDelete
 ```
 
 ### Worker Spawn
 
-For each ready task, spawn via Task tool:
+For each issue, spawn via Task tool:
 
 ```
 Task(
   subagent_type="general-purpose",
-  team_name="swarm-<epic-id>",
-  name="worker-<task-id>",
+  team_name="impl-<group-label>",
+  name="worker-<issue-id>",
   prompt=<WORKER_PROMPT>
 )
 ```
@@ -104,32 +92,28 @@ Before spawning, inject the team lead's actual name (from team
 config) into `<team-lead-name>` in the prompt template below.
 
 ```
-You are a swarm worker. Implement beads task <task-id>.
+You are a worker. Implement issue <issue-id>.
 
 ## Your Task
-<task description from bd show>
-
-## Epic Context
-<epic title + design field summary>
+<issue description from work show>
 
 ## Protocol
 
-1. FIRST: Claim your task atomically:
-   bd update <task-id> --claim
-   If claim fails, someone else took it. Report and stop.
+1. FIRST: Claim your issue:
+   work start <issue-id>
 
 2. Read full context:
-   bd show <task-id> --json
+   work show <issue-id>
 
-3. Implement the work described in the task.
+3. Implement the work described in the issue.
 
-4. When done, close the task:
-   bd close <task-id>
+4. When done, close the issue:
+   work close <issue-id>
 
 5. Send completion message to team lead:
    Use SendMessage(type="message", recipient="<team-lead-name>",
-     content="Completed <task-id>: <brief summary>",
-     summary="Completed <task-id>")
+     content="Completed <issue-id>: <brief summary>",
+     summary="Completed <issue-id>")
 
 6. Wait for shutdown request from team lead.
    When received, approve it.
@@ -138,60 +122,49 @@ You are a swarm worker. Implement beads task <task-id>.
 - Only modify files described in your task
 - If you hit a file conflict or blocker, report it via
   SendMessage instead of forcing through
-- Do NOT work on other tasks after completing yours
+- Do NOT work on other issues after completing yours
 ```
 
-### Wave Completion Detection
+### Completion Detection
 
-After spawning a wave of workers:
+After spawning workers:
 1. Track: spawned_count = N, completed_count = 0
 2. As each worker sends completion message → completed_count++
-3. When completed_count == N → wave done, proceed to next
+3. When completed_count == N → wave done
 4. If a worker goes idle WITHOUT sending completion:
-   - Check `bd swarm status <epic-id> --json`
-   - If task still in_progress → worker is stuck/crashed
-   - Log stuck task, decrement expected count
-   - If all non-stuck workers done → proceed to next wave
-5. Between waves: briefly report progress
-   ("Wave N complete: M/N tasks done, K stuck")
+   - Check `work show <id> --format=json`
+   - If still active → worker is stuck/crashed
+   - Log stuck issue, decrement expected count
+5. After completion: briefly report progress
 
 ### Parallel Spawning
 
-CRITICAL: When spawning multiple workers for a wave, spawn ALL
-of them in a SINGLE message using multiple Task tool calls. This
-ensures true parallel execution. Sequential spawning (one per
-message) makes waves run N× slower.
+CRITICAL: When spawning multiple workers, spawn ALL of them in a
+SINGLE message using multiple Task tool calls. This ensures true
+parallel execution. Sequential spawning makes work run N× slower.
 
 ## Solo Mode
 
-1. `bd update <id> --claim`
-2. Read scope from description and/or design field
-3. If parent epic: `bd show <parent> --json` for context
-4. Spawn single Task agent (`subagent_type=general-purpose`)
-   - Pass task description + parent context
+1. `work start <id>`
+2. Read scope from description
+3. Spawn single Task agent (`subagent_type=general-purpose`)
+   - Pass issue description
    - Worker claims, implements, closes
-5. On completion: verify `bd show <id>` is closed
-6. Report results
+4. On completion: verify `work show <id>` shows done
+5. Report results
 
 ## Error Handling
 
 **No work found:**
-- No issue → suggest `/explore` then `/prepare`
-- Epic has no children → suggest `/prepare`
+- No issues → suggest `/explore` then `/prepare`
+- Label has no open issues → all done
 
 **Worker failures:**
-- Claim fails (`bd update --claim` errors) → skip task, report
-- Worker goes idle without closing task → mark as stuck
-- Worker reports file conflict → log in beads notes, skip
-
-**Wave-level recovery:**
-- If some tasks in a wave fail but others succeed,
-  still check `bd ready` — downstream tasks may be unblocked
-  by the successful ones
-- Only abort entirely if ALL tasks in a wave fail
+- Start fails → skip issue, report
+- Worker goes idle without closing issue → mark as stuck
+- Worker reports file conflict → log as comment, skip
 
 **Reporting:**
-After all waves complete (or abort), report:
-- Total tasks: N completed, M stuck, K failed
-- Stuck task IDs (still in_progress in beads)
-- Whether epic was closed or left open
+After all work complete (or abort), report:
+- Total issues: N completed, M stuck, K failed
+- Stuck issue IDs (still active)

@@ -1,21 +1,22 @@
 ---
 name: debug
 description: >
-  Systematically diagnose and fix bugs, CI failures, and test failures.
-  Triggers: /debug, debugging issues, test failures, CI errors
+  Systematically diagnose and fix bugs, CI failures, and test
+  failures. Triggers: /debug, debugging issues, test failures,
+  CI errors
 allowed-tools: Bash, Read, Glob, Grep, Edit
-argument-hint: "[beads-id|error-description]"
+argument-hint: "[issue-id|error-description]"
 ---
 
 # Debug Skill
 
-Systematically diagnose and fix bugs, CI failures, and test failures.
-Integrates with beads for issue tracking.
+Systematically diagnose and fix bugs, CI failures, and test
+failures. Integrates with issues for tracking.
 
 ## Argument Parsing
 
 Parse `$ARGUMENTS`:
-- Beads issue ID (e.g., `claude-xyz`) → debug that specific issue
+- Issue ID (6-char hex or prefix) → debug that specific issue
 - Error message or description → debug that problem
 - No args → check for failing tests/CI on current branch
 
@@ -23,21 +24,21 @@ Parse `$ARGUMENTS`:
 
 ### 1. Issue Setup
 
-**If beads issue provided:**
+**If issue ID provided:**
 ```bash
-bd show <id>
-bd update <id> --status in_progress
+work show <id>
+work start <id>
 ```
 
-**If no beads issue:**
+**If no issue:**
 ```bash
-bd create "Debug: <problem>" --type bug --priority 1 --description "## Steps to Reproduce
+work create "Debug: <problem>" --priority 1 --labels bug \
+  --description "## Steps to Reproduce
 - <observed symptoms and error output>
 
 ## Acceptance Criteria
 - Bug is fixed and verified by passing tests"
 ```
-Validate: `bd lint <id>` — if it fails, `bd edit <id> --description` to fix violations.
 
 ### 2. Gather Diagnostics (Parallel)
 
@@ -63,8 +64,9 @@ If test failure mentioned, run failing tests to reproduce.
 
 1. Make minimal, targeted changes
 2. Re-run failing tests/checks to verify fix
-3. If fix works: `bd close <id>`
-4. If fix doesn't work: `bd update <id> --notes "Findings: ..."`
+3. If fix works: `work close <id>`
+4. If fix doesn't work:
+   `work comment <id> "Findings: ..."`
 
 ### 5. Report
 

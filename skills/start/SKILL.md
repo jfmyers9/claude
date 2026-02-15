@@ -1,22 +1,23 @@
 ---
 name: start
 description: >
-  Create a new Graphite branch and optionally link to a beads issue.
+  Create a new Graphite branch and optionally link to an issue.
   Triggers: /start, "start new branch", "begin work on".
 allowed-tools: Bash
-argument-hint: "<branch-name> [beads-issue-id]"
+argument-hint: "<branch-name> [issue-id]"
 ---
 
 # Start New Branch Workflow
 
-Creates a new Graphite branch with optional beads issue linking.
+Creates a new Graphite branch with optional issue linking.
 
 ## Steps
 
 1. **Parse arguments**
    - Extract branch name from `$ARGUMENTS`
-   - Extract optional beads issue ID
-   - If no branch name → tell user: `/start <branch-name> [issue-id]`, stop
+   - Extract optional issue ID
+   - If no branch name → tell user: `/start <branch-name>
+     [issue-id]`, stop
 
 2. **Normalize branch name**
    - Prefix with `jm/` if not already prefixed
@@ -28,18 +29,20 @@ Creates a new Graphite branch with optional beads issue linking.
 4. **Create Graphite branch**
    - Run `gt create <branch-name>`
 
-5. **Link beads issue (if ID provided)**
-   - `bd update <id> --status in_progress`
-   - `bd update <id> --notes "Branch: <branch-name>"`
+5. **Link issue (if ID provided)**
+   - `work start <id>`
+   - `work comment <id> "Branch: <branch-name>"`
 
-6. **Create beads issue (if no ID provided)**
-   - Ask user: "Create beads issue for this branch?"
+6. **Create issue (if no ID provided)**
+   - Ask user: "Create issue for this branch?"
    - If yes:
-     - `bd create "<branch-name>" --type task --priority 2 --description "## Acceptance Criteria
-- <what this branch work should accomplish>"`
-     - Validate: `bd lint <new-id>` — if it fails, `bd edit <new-id> --description` to fix violations
-     - `bd update <new-id> --status in_progress`
+     ```
+     work create "<branch-name>" --priority 2 \
+       --description "<what this branch work should accomplish>"
+     ```
+     - `work start <new-id>`
 
 7. **Confirm completion**
    - Report branch created + issue linked/created
-   - Suggest: `/explore` to plan work or `/implement` to start building
+   - Suggest: `/explore` to plan work or `/implement` to start
+     building

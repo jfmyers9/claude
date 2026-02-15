@@ -27,14 +27,16 @@
 - When context is running low, prefer finishing current work over
   starting new tasks
 
-## Beads as Single Source of Truth
+## Work as Single Source of Truth
 
-All plans, notes, and state live in beads — no filesystem documents.
+All plans, notes, and state live in work issues — no filesystem
+documents.
 
-- **Exploration plans**: stored in beads `design` field
-- **Review summaries**: stored in beads `notes` field
-- **Task state**: tracked via beads `status` field
-- **View/edit**: `bd edit <id> --design`, `bd edit <id> --notes`
+- **Exploration plans**: stored in issue description
+- **Notes/findings**: stored as issue comments
+- **Task state**: tracked via issue status
+- **View/edit**: `work show <id>`,
+  `work edit <id> --description`
 
 ## Text Formatting
 
