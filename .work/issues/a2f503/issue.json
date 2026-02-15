@@ -1,0 +1,13 @@
+{
+  "id": "a2f503",
+  "title": "Explore: work CLI usage audit across skills",
+  "status": "done",
+  "type": "feature",
+  "priority": 2,
+  "labels": [
+    "explore"
+  ],
+  "created": "2026-02-15T21:54:03.106064Z",
+  "updated": "2026-02-15T21:58:34.750038Z",
+  "description": "# Work CLI Usage Audit"
+}

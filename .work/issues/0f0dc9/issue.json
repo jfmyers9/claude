@@ -1,0 +1,13 @@
+{
+  "id": "0f0dc9",
+  "title": "Phase 5: Lifecycle closure and maintenance",
+  "status": "done",
+  "type": "feature",
+  "priority": 2,
+  "labels": [
+    "work-cli-audit"
+  ],
+  "created": "2026-02-15T21:58:30.637848Z",
+  "updated": "2026-02-15T22:04:25.346428Z",
+  "description": "## Acceptance Criteria"
+}

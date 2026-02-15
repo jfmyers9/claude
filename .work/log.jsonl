@@ -1,0 +1,6 @@
+{"id":"a2f503","title":"Explore: work CLI usage audit across skills","type":"feature","status":"done","labels":["explore"],"created":"2026-02-15T21:54:03.106064Z","closed":"2026-02-15T21:58:34.750038Z"}
+{"id":"91074c","title":"Phase 1: Fix inconsistencies and error handling","type":"feature","status":"done","labels":["work-cli-audit"],"created":"2026-02-15T21:58:22.021884Z","closed":"2026-02-15T22:02:02.649815Z"}
+{"id":"98d8e7","title":"Phase 2: Adopt parent/child linking","type":"feature","status":"done","labels":["work-cli-audit"],"created":"2026-02-15T21:58:23.519287Z","closed":"2026-02-15T22:03:11.687997Z"}
+{"id":"526f5a","title":"Phase 3: Adopt review lifecycle states","type":"feature","status":"done","labels":["work-cli-audit"],"created":"2026-02-15T21:58:25.364112Z","closed":"2026-02-15T22:03:23.953914Z"}
+{"id":"0f0dc9","title":"Phase 5: Lifecycle closure and maintenance","type":"feature","status":"done","labels":["work-cli-audit"],"created":"2026-02-15T21:58:30.637848Z","closed":"2026-02-15T22:04:25.346428Z"}
+{"id":"c49709","title":"Phase 4: Improve context and sorting","type":"feature","status":"done","labels":["work-cli-audit"],"created":"2026-02-15T21:58:26.918567Z","closed":"2026-02-15T22:04:37.428485Z"}
