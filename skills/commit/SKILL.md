@@ -16,6 +16,16 @@ Create conventional commits.
 - `--amend` — amend the previous commit
 - `--fixup <commit>` — create fixup commit for specified hash
 
+## Autonomy
+
+Default to acting without prompting. Only ask for user input when:
+- Changed files span clearly unrelated features with no common theme
+- Sensitive files (.env, credentials) are in the diff
+- There is literally nothing to commit
+
+In all other cases, proceed silently. The user will provide
+instructions if they want commits shaped differently.
+
 ## Steps
 
 1. **Parse Arguments**
@@ -31,7 +41,8 @@ Create conventional commits.
 3. **Validate Staged Changes**
    - If nothing staged:
      - Check `git diff --name-only` for tracked changes
-     - If tracked changes exist: ask user to stage all or pick files
+     - If tracked changes exist: stage all with `git add -u` (tracked only)
+     - Only ask user if changed files span clearly unrelated features/modules
      - If nothing at all: report "nothing to commit" and stop
 
 4. **Handle Commit Message**
