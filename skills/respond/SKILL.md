@@ -3,18 +3,13 @@ name: respond
 description: >
   Triage PR review feedback — analyze validity, recommend actions.
   Triggers: /respond, "respond to PR", "address feedback".
-allowed-tools: Bash, Read, Write, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
+allowed-tools: Bash, Read, Write, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
 argument-hint: "[pr-number] | <task-id> | --continue"
 ---
 
 # Respond
 
-Analyze PR review feedback, triage each comment's validity, and
-recommend actions. The agent exercises judgment — user reviews and
-confirms/overrides before proceeding.
-
-This is a /review-family skill: agent analyzes → recommends → user
-decides. NOT a /fix-family skill (user directs → agent executes).
+Triage PR review feedback and recommend actions.
 
 ## Arguments
 
@@ -73,7 +68,7 @@ decides. NOT a /fix-family skill (user directs → agent executes).
    - PR reply drafts → notes: TaskUpdate(taskId, metadata: {notes: "<replies>"})
    - Write plan file (after finalization, not first pass):
      ```
-     Write("~/.claude/plans/respond-pr-<number>.md", <frontmatter + phased findings>)
+     Write("~/.claude/plans/<project>/respond-pr-<number>.md", <frontmatter + phased findings>)
      ```
      Frontmatter:
      ```yaml
@@ -242,6 +237,7 @@ Notes field has PR reply drafts — review with `TaskGet(<id>)`.
 
 ## Guidelines
 
+- Review-family skill: agent analyzes → recommends → user decides
 - Let the subagent do the analysis — don't pre-judge
 - Subagent type: Explore, model: opus
 - Keep coordination messages concise

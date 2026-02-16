@@ -9,16 +9,7 @@ argument-hint: "[feedback-text]"
 
 # Fix
 
-Convert user feedback on recent implementations into structured
-tasks. Does NOT implement fixes — creates actionable work items for
-later scheduling via `/prepare` or `/implement`.
-
-## Key Principle
-
-This skill is a **feedback → task converter**. User says "this is
-wrong, that needs changing, this should be different" and the skill
-creates a single task with all findings structured as phases in the
-metadata design field — directly consumable by `/prepare`.
+Convert user feedback into structured tasks.
 
 ## Arguments
 

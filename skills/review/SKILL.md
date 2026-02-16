@@ -3,15 +3,13 @@ name: review
 description: >
   Senior engineer code review, filing findings as tasks.
   Triggers: 'review code', 'code review', 'review my changes'.
-allowed-tools: Bash, Read, Write, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
+allowed-tools: Bash, Read, Write, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
 argument-hint: "[file-pattern] [--team] | <task-id> | --continue"
 ---
 
-# Code Review
+# Review
 
-Orchestrate code review via task workflow and Task delegation.
-Findings stored in `~/.claude/plans/<project>/review-<branch>.md` for
-cross-session persistence and `$EDITOR` access.
+Orchestrate code review via tasks and Task delegation.
 
 ## Arguments
 

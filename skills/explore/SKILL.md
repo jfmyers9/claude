@@ -11,8 +11,6 @@ argument-hint: "<topic or question> | <task-id> | --continue | --discard | --tea
 # Explore
 
 Orchestrate exploration via native tasks and Task delegation.
-Findings stored in `~/.claude/plans/<project>/<slug>.md` for
-cross-session persistence and `$EDITOR` access.
 
 ## Arguments
 

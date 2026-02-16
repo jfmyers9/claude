@@ -13,6 +13,11 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 Create skill files with proper frontmatter + imperative
 step-by-step instructions.
 
+## Arguments
+
+- `<skill-name>` — name for the new skill (kebab-case)
+- `<description>` — what the skill does
+
 ## Steps
 
 ### 1. Parse Arguments

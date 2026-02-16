@@ -10,8 +10,7 @@ argument-hint: "[task-id] [--solo]"
 
 # Implement
 
-Execute work from tasks. Spawns Claude teams for parallel execution
-when an epic has multiple ready child tasks.
+Execute work from tasks, spawning teams for parallel epics.
 
 ## Arguments
 
