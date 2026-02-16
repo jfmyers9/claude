@@ -81,12 +81,17 @@ argument-hint: "{args}"
 ### 5. Verify
 
 - `name` matches directory name
+- `description` uses `>` (folded scalar), not `|`
 - `description` includes trigger phrases
-- `allowed-tools` is comma-separated on one line (current
-  convention), minimal for the task
+- `allowed-tools` is comma-separated on one line, minimal
+  for the task
+- Title is the skill name only — no suffixes ("Workflow",
+  "Skill") or elaboration
+- One-line summary uses imperative voice ("Create...", not
+  "Creates...")
+- `## Arguments` section present when `argument-hint` exists
 - Instructions use imperative voice
 - Prose wrapped at 80 characters
-- No `user-invocable` field (removed from convention)
 
 ### 6. Tool Selection Reference
 

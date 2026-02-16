@@ -1,6 +1,6 @@
 ---
 name: review
-description: |
+description: >
   Senior engineer code review, filing findings as tasks.
   Triggers: 'review code', 'code review', 'review my changes'.
 allowed-tools: Bash, Read, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskGet, TaskList

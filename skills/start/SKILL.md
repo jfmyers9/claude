@@ -7,9 +7,13 @@ allowed-tools: Bash
 argument-hint: "<branch-name>"
 ---
 
-# Start New Branch Workflow
+# Start
 
-Creates a new Graphite branch.
+Create a new Graphite branch.
+
+## Arguments
+
+- `<branch-name>` — name for the new branch
 
 ## Steps
 

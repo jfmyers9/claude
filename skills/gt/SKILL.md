@@ -1,46 +1,43 @@
 ---
 name: gt
 description: >
-  Wrap common Graphite CLI operations for branch management and stacking.
-  Triggers: /gt
+  Wrap common Graphite CLI operations for branch management
+  and stacking. Triggers: /gt
 allowed-tools: Bash
 argument-hint: "[log|restack|sync|info|amend|up|down|top|bottom] [flags]"
 ---
 
-Parse `$ARGUMENTS` for Graphite subcommand and flags.
+# Gt
 
-**Supported operations:**
-- `log` → show branch stack
-- `restack` → rebase stack
-- `sync` → sync with remote
-- `info` → show current branch info
-- `amend` → amend current branch commit
-- `up`/`down`/`top`/`bottom` → navigate stack
-- No args or `help` → list commands
+Wrap Graphite CLI operations for branch management.
 
-**Implementation:**
+## Arguments
 
-```bash
-cmd="${ARGUMENTS%% *}"
-[ -z "$cmd" ] && cmd="help"
+- `<command>` — Graphite subcommand
+- `[flags]` — passed through to gt
 
-case "$cmd" in
-  log|restack|sync|info|amend|up|down|top|bottom)
-    gt $ARGUMENTS
-    ;;
-  help|*)
-    echo "Usage: /gt [command] [flags]"
-    echo ""
-    echo "Commands:"
-    echo "  log      Show branch stack"
-    echo "  restack  Rebase stack"
-    echo "  sync     Sync with remote"
-    echo "  info     Show current branch info"
-    echo "  amend    Amend current branch commit"
-    echo "  up       Move up in stack"
-    echo "  down     Move down in stack"
-    echo "  top      Jump to top of stack"
-    echo "  bottom   Jump to bottom of stack"
-    ;;
-esac
-```
+Supported commands: log, restack, sync, info, amend, up,
+down, top, bottom.
+
+## Steps
+
+### 1. Parse Command
+
+Extract first word from `$ARGUMENTS`. Default to "help"
+if empty.
+
+### 2. Execute
+
+For supported commands: run `gt $ARGUMENTS`.
+
+For unknown commands or no args: display usage listing.
+
+| Command | Action |
+|---------|--------|
+| log | Show branch stack |
+| restack | Rebase stack |
+| sync | Sync with remote |
+| info | Show current branch info |
+| amend | Amend current branch commit |
+| up/down | Navigate stack |
+| top/bottom | Jump to stack endpoints |

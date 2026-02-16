@@ -7,9 +7,15 @@ allowed-tools: Bash
 argument-hint: "[--stack] [--sync-only] [--ready]"
 ---
 
-# Submit Workflow
+# Submit
 
-Syncs branches and creates/updates PRs via Graphite.
+Sync branches and create/update PRs via Graphite.
+
+## Arguments
+
+- `--stack` — submit entire stack, not just current branch
+- `--sync-only` — restack only, skip PR creation
+- `--ready` — mark PR as ready (not draft)
 
 ## Steps
 

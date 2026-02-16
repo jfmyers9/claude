@@ -10,6 +10,12 @@ argument-hint: "[--amend] [--fixup <commit>] [message]"
 
 Create conventional commits.
 
+## Arguments
+
+- `[message]` — commit message (generated if omitted)
+- `--amend` — amend the previous commit
+- `--fixup <commit>` — create fixup commit for specified hash
+
 ## Steps
 
 1. **Parse Arguments**

@@ -10,7 +10,12 @@ argument-hint: "[task-id]"
 
 # Prepare
 
-Read plan or review findings from a task and create work structure.
+Read plan or review findings from a task and create work
+structure.
+
+## Arguments
+
+- `[task-id]` — source task containing plan or review findings
 
 ## Steps
 

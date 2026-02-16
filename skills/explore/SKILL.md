@@ -1,7 +1,8 @@
 ---
 name: explore
-description: |
-  Research topics, investigate codebases, and create implementation plans.
+description: >
+  Research topics, investigate codebases, and create
+  implementation plans.
   Triggers: 'explore', 'investigate', 'research'.
 allowed-tools: Bash, Read, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
 argument-hint: "<topic or question> | <task-id> | --continue | --team"

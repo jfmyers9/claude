@@ -2,7 +2,7 @@
 name: resume-work
 description: >
   Resume work on a branch/PR after a break. Triggers: /resume-work, /resume
-allowed-tools: Bash, TaskList, TaskGet
+allowed-tools: Bash, Read, TaskList, TaskGet
 argument-hint: "[branch-name|PR#]"
 ---
 

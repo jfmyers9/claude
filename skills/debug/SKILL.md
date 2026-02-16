@@ -7,17 +7,16 @@ allowed-tools: Bash, Read, Glob, Grep, Edit, TaskCreate, TaskUpdate, TaskGet
 argument-hint: "[task-id|error-description]"
 ---
 
-# Debug Skill
+# Debug
 
-Systematically diagnose and fix bugs, CI failures, and test failures.
-Integrates with native tasks for issue tracking.
+Systematically diagnose and fix bugs, CI failures, and
+test failures.
 
-## Argument Parsing
+## Arguments
 
-Parse `$ARGUMENTS`:
-- Task ID → debug that specific issue
-- Error message or description → debug that problem
-- No args → check for failing tests/CI on current branch
+- `<task-id>` — debug that specific issue
+- `<error-description>` — debug that problem
+- (no args) — check for failing tests/CI on current branch
 
 ## Workflow
 
