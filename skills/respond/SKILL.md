@@ -3,7 +3,7 @@ name: respond
 description: >
   Triage PR review feedback — analyze validity, recommend actions.
   Triggers: /respond, "respond to PR", "address feedback".
-allowed-tools: Bash, Read, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
+allowed-tools: Bash, Read, Write, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
 argument-hint: "[pr-number] | <task-id> | --continue"
 ---
 
@@ -71,6 +71,19 @@ decides. NOT a /fix-family skill (user directs → agent executes).
 6. **Store findings**
    - Triage → design: TaskUpdate(taskId, metadata: {design: "<triage>"})
    - PR reply drafts → notes: TaskUpdate(taskId, metadata: {notes: "<replies>"})
+   - Write plan file (after finalization, not first pass):
+     ```
+     Write("~/.claude/plans/respond-pr-<number>.md", <frontmatter + phased findings>)
+     ```
+     Frontmatter:
+     ```yaml
+     ---
+     topic: "Respond: PR #<number>"
+     project: <absolute path to cwd>
+     created: <ISO 8601 timestamp>
+     status: draft
+     ---
+     ```
 
 7. **Report results** (see Output Format — First Pass)
 
@@ -209,7 +222,7 @@ Store PR reply drafts in notes field:
 **Disagree**:
 - [file:line] reason to push back
 
-**Next**: `TaskGet(<id>)` to review triage,
+**Next**: `TaskGet(<id>)` to review triage in-session,
 then `/respond --continue` to finalize for `/prepare`.
 ```
 
@@ -220,9 +233,11 @@ then `/respond --continue` to finalize for `/prepare`.
 
 **Finalized**: N items to action, N replies drafted
 
-**Next**: `/prepare <id>` to create tasks.
-Notes field has PR reply drafts — review with
-`TaskGet(<id>)`.
+**Plan**: `~/.claude/plans/<project>/respond-pr-<N>.md` — review/edit
+in `$EDITOR` before `/prepare`.
+
+**Next**: `/prepare` to create tasks, or edit the plan file first.
+Notes field has PR reply drafts — review with `TaskGet(<id>)`.
 ```
 
 ## Guidelines

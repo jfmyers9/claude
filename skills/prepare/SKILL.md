@@ -5,28 +5,52 @@ description: >
   child tasks and dependency chains.
   Triggers: /prepare, "prepare work", "create tasks from plan".
 allowed-tools: Bash, Read, Glob, TaskCreate, TaskUpdate, TaskGet, TaskList
-argument-hint: "[task-id]"
+argument-hint: "[plan-slug | task-id]"
 ---
 
 # Prepare
 
-Read plan or review findings from a task and create work
-structure.
+Read plan from a plan file or task and create work structure.
 
 ## Arguments
 
-- `[task-id]` — source task containing plan or review findings
+- `[plan-slug]` — plan file name or slug in
+  `~/.claude/plans/<project>/`
+- `[task-id]` — source task containing plan in metadata.design
+- (no args) — auto-discover most recent plan file, fall back to
+  in-progress Explore/Review/Fix/Respond task
+
+## Plan Directory
+
+`<project>` = `basename` of git root (or cwd if not in a repo).
+Plans live at `~/.claude/plans/<project>/<slug>.md`.
 
 ## Steps
 
 1. **Find plan source**
-   - If `$ARGUMENTS` is a task ID → `TaskGet(taskId)`, extract `metadata.design`
-   - Otherwise → `TaskList()`, find first in_progress task with
-     subject starting "Explore:" or "Review:"
-   - No plan found → exit, suggest `/explore` or `/review` first
+
+   Try in order:
+   Determine `<project>`: `basename $(git rev-parse --show-toplevel 2>/dev/null || pwd)`
+
+   a. If `$ARGUMENTS` matches a file in `~/.claude/plans/<project>/`:
+      - Try `~/.claude/plans/<project>/$ARGUMENTS` (exact match)
+      - Try `~/.claude/plans/<project>/$ARGUMENTS.md` (append .md)
+      - Try glob `~/.claude/plans/<project>/*$ARGUMENTS*` (partial)
+      - Read the matched file
+   b. If `$ARGUMENTS` is a task ID → `TaskGet(taskId)`, extract
+      `metadata.design`
+   c. If no args → scan for most recent plan file:
+      `ls -t ~/.claude/plans/<project>/*.md 2>/dev/null | head -1`
+      If found, read the file.
+   d. If no plan file → fall back to unscoped:
+      `ls -t ~/.claude/plans/*.md 2>/dev/null | head -1`
+   e. If still none → `TaskList()`, find first in_progress task
+      with subject starting "Explore:", "Review:", "Fix:", or
+      "Respond:"
+   f. No plan found → exit, suggest `/explore` or `/review` first
 
 2. **Parse plan**
-   - Read the design field content
+   - If from plan file: skip YAML frontmatter (between `---` lines)
    - Extract title from first heading
    - Find "Phases" or "Next Steps" section
    - Parse phases: `**Phase N: Description**` or `### Phase N:`
@@ -65,13 +89,16 @@ structure.
 
 5. **Finalize**
    - `TaskUpdate(epicId, status: "in_progress")`
-   - Close source task: `TaskUpdate(sourceId, status: "completed")`
+   - If source was a plan file: delete it
+     `rm ~/.claude/plans/<project>/<filename>` (via Bash)
+   - If source was a task: close it
+     `TaskUpdate(sourceId, status: "completed")`
      (close source AFTER epic creation succeeds — failures leave
      source open for retry)
 
 6. **Report**
    - Display epic ID and all child task IDs
-   - Closed source task #<source-id>
+   - Note source consumed (deleted plan file or closed task)
    - Show dependency graph
    - Show parallel work fronts
    - Suggest: `/implement <epic-id>` to start execution

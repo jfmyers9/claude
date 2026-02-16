@@ -4,21 +4,55 @@ description: >
   Research topics, investigate codebases, and create
   implementation plans.
   Triggers: 'explore', 'investigate', 'research'.
-allowed-tools: Bash, Read, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
-argument-hint: "<topic or question> | <task-id> | --continue | --team"
+allowed-tools: Bash, Read, Write, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
+argument-hint: "<topic or question> | <task-id> | --continue | --discard | --team"
 ---
 
 # Explore
 
 Orchestrate exploration via native tasks and Task delegation.
-All findings stored in task metadata.design field — no filesystem plans.
+Findings stored in `~/.claude/plans/<project>/<slug>.md` for
+cross-session persistence and `$EDITOR` access.
 
 ## Arguments
 
 - `<topic>` — new exploration on this topic
 - `<task-id>` — continue existing exploration task
-- `--continue` — resume most recent in_progress exploration
+- `--continue` — resume most recent exploration (checks task list
+  first, then falls back to most recent plan file)
+- `--discard [slug]` — delete the most recent (or specified) plan
+  file without preparing it
 - `--team` — force team mode for parallel multi-topic exploration
+
+## Plan Directory
+
+Plans are scoped by project to avoid collisions across repos:
+`~/.claude/plans/<project>/` where `<project>` is the `basename`
+of the git root directory (or cwd if not in a repo).
+
+Create the directory on first write: `mkdir -p ~/.claude/plans/<project>/`
+
+## Slug Generation
+
+Generate a slug from the topic for the plan filename:
+- Lowercase, replace spaces/special chars with hyphens
+- Strip articles (a, an, the) and filler words
+- Max 50 chars, no trailing hyphens
+- Examples: "login timeout fix" → `login-timeout-fix`,
+  "refactor auth module for OAuth2" → `refactor-auth-module-oauth2`
+
+## Plan File Format
+
+```markdown
+---
+topic: <original topic text>
+project: <absolute path to current working directory>
+created: <ISO 8601 timestamp>
+status: draft
+---
+
+<full exploration findings in standard structure>
+```
 
 ## Workflow
 
@@ -28,7 +62,7 @@ All findings stored in task metadata.design field — no filesystem plans.
    ```
    TaskCreate(
      subject: "Explore: <topic>",
-     description: "## Acceptance Criteria\n- Findings stored in task metadata.design (not filesystem)\n- Structured as Current State, Recommendation, and phased Next Steps\n- Each phase is independently actionable",
+     description: "## Acceptance Criteria\n- Findings written to ~/.claude/plans/<project>/<slug>.md\n- Structured as Current State, Recommendation, and phased Next Steps\n- Each phase is independently actionable",
      activeForm: "Exploring <topic>",
      metadata: { type: "task", priority: 2 }
    )
@@ -56,23 +90,41 @@ All findings stored in task metadata.design field — no filesystem plans.
    - An `## Overall Context` section with the original user request
    - Use 2-4 phases per topic instead of 3-7
 
-5. Store findings: `TaskUpdate(taskId, metadata: { design: "<full-findings>" })`
+5. Store findings:
+   a. Write plan file: `Write("~/.claude/plans/<project>/<slug>.md", <frontmatter + findings>)`
+   b. Store in task: `TaskUpdate(taskId, metadata: { design: "<findings>", plan_file: "<slug>.md" })`
    For Team Mode, run aggregation first (see Team Mode Aggregation).
 
 6. Report results (see Output Format)
 
 ### Continue Exploration
 
-1. Resolve task ID:
-   - If `$ARGUMENTS` matches a task ID → use it
-   - If `--continue` → `TaskList()`,
-     find first in_progress task with subject starting "Explore:"
-2. Load existing context: `TaskGet(taskId)` → read `metadata.design`
+1. Resolve source:
+   - If `$ARGUMENTS` matches a task ID → `TaskGet(taskId)`
+   - If `--continue` → `TaskList()`, find first in_progress
+     "Explore:" task. If none found, find most recent plan file
+     in `~/.claude/plans/<project>/` via
+     `ls -t ~/.claude/plans/<project>/*.md | head -1`
+2. Load existing context:
+   - From task: read `metadata.design`
+   - From plan file: `Read` the file content (skip frontmatter)
 3. Spawn Explore agent with previous findings prepended:
    "Previous findings:\n<existing-design>\n\nContinue the
    exploration focusing on: <new-instructions>"
-4. Update design: `TaskUpdate(taskId, metadata: { design: "<updated-findings>" })`
+4. Update both stores:
+   a. `Write` updated findings to plan file
+   b. `TaskUpdate(taskId, metadata: { design: "<updated>" })`
 5. Report results
+
+### Discard Plan
+
+1. Determine `<project>`: `basename $(git rev-parse --show-toplevel 2>/dev/null || pwd)`
+2. If slug provided after `--discard`:
+   - Delete `~/.claude/plans/<project>/<slug>.md` (try with/without
+     .md extension, partial glob match)
+3. If no slug → delete most recent:
+   `ls -t ~/.claude/plans/<project>/*.md | head -1` → delete it
+4. Report: "Discarded plan: `<filename>`"
 
 ## Subagent Prompt Template
 
@@ -127,4 +179,8 @@ After ALL subagents return, combine their output before storing:
 
 **Recommendation**: <one paragraph>
 
-**Next**: View findings with `TaskGet(<id>)`, `/prepare` to create tasks.
+**Plan**: `~/.claude/plans/<project>/<slug>.md` — review/edit in `$EDITOR`
+before `/prepare`.
+
+**Next**: `/prepare` to create tasks, edit the plan file first,
+or `/explore --discard` if not needed.

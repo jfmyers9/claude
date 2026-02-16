@@ -3,14 +3,15 @@ name: review
 description: >
   Senior engineer code review, filing findings as tasks.
   Triggers: 'review code', 'code review', 'review my changes'.
-allowed-tools: Bash, Read, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
+allowed-tools: Bash, Read, Write, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
 argument-hint: "[file-pattern] [--team] | <task-id> | --continue"
 ---
 
 # Code Review
 
 Orchestrate code review via task workflow and Task delegation.
-All findings stored in task metadata design field — no filesystem plans.
+Findings stored in `~/.claude/plans/<project>/review-<branch>.md` for
+cross-session persistence and `$EDITOR` access.
 
 ## Arguments
 
@@ -48,8 +49,23 @@ All findings stored in task metadata design field — no filesystem plans.
    subagent per group, aggregate findings
 
 7. **Store findings**
-   - TaskUpdate(taskId, metadata: {design: "<phase-structured-findings>"})
-   - Leave task in_progress
+   a. Generate slug from branch name (e.g. branch `feat/login-flow`
+      → slug `login-flow`)
+   b. Write plan file:
+      ```
+      Write("~/.claude/plans/<project>/review-<slug>.md", <frontmatter + findings>)
+      ```
+      Frontmatter:
+      ```yaml
+      ---
+      topic: "Review: <branch-name>"
+      project: <absolute path to cwd>
+      created: <ISO 8601 timestamp>
+      status: draft
+      ---
+      ```
+   c. Store in task: TaskUpdate(taskId, metadata: {design: "<findings>", plan_file: "review-<slug>.md"})
+   d. Leave task in_progress
 
 8. **Report results** (see Output Format)
 
@@ -539,26 +555,15 @@ to avoid duplication. Skip empty sections. Most impactful first.
 - <improvements count> design improvements
 - <testing gaps count> testing gaps
 
-**Next**: `TaskGet(<id>)` to review findings,
-`/prepare <id>` to create tasks.
+**Plan**: `~/.claude/plans/<project>/review-<slug>.md` — review/edit in
+`$EDITOR` before `/prepare`.
 
-For `--team` reviews, the output includes additional sections:
+**Next**: `/prepare` to create tasks, or edit the plan file first.
 
-**Review Task**: #<id>
-
-**Summary**: <files reviewed, commits covered, 3-perspective
-team review>
+For `--team` reviews, add before **Plan**:
 
 **Consensus Findings** (flagged by multiple perspectives):
 - <count> consensus findings
-
-**Key Findings**:
-- <critical issues count> critical issues
-- <improvements count> design improvements
-- <testing gaps count> testing gaps
-
-**Next**: `TaskGet(<id>)` to review findings,
-`/prepare <id>` to create tasks.
 
 ## Guidelines
 

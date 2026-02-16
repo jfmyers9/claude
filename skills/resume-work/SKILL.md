@@ -2,7 +2,7 @@
 name: resume-work
 description: >
   Resume work on a branch/PR after a break. Triggers: /resume-work, /resume
-allowed-tools: Bash, Read, TaskList, TaskGet
+allowed-tools: Bash, Read, Glob, TaskList, TaskGet
 argument-hint: "[branch-name|PR#]"
 ---
 
@@ -56,10 +56,13 @@ if [[ -n "$PR_NUM" ]]; then
 fi
 ```
 
-Fetch task and team state:
+Fetch task, team, and plan state:
 
 - `TaskList()` for in_progress/pending tasks
 - Read `~/.claude/teams/*/config.json` for active teams
+- Determine `<project>`: `basename $(git rev-parse --show-toplevel 2>/dev/null || pwd)`
+- `ls -t ~/.claude/plans/<project>/*.md 2>/dev/null | head -5`
+  for pending plan files
 
 ### 3. Summarize
 
@@ -72,6 +75,7 @@ Format gathered data as:
 **Review:** Approved | Changes requested | Pending
 **CI:** Passing | Failing (list failures)
 **Comments:** N unresolved (summarize key ones)
+**Plans:** N pending plan files (list filenames)
 **Tasks:** N in progress, M pending, K active teams
 ```
 
@@ -82,12 +86,14 @@ Pick the first matching condition:
 1. **CI failing** → "Fix failing checks: [check names]"
 2. **Changes requested** → "`/respond` to triage N comments"
 3. **Unresolved comments** → "`/respond` to triage feedback"
-4. **Tasks in progress** → "Continue: [task subject]"
-5. **Active team** → "`/implement` to continue team work"
-6. **Draft PR, all passing** → "Mark PR ready for review"
-7. **Ready PR, approved** → "Merge PR"
-8. **No PR** → "`/submit` to create PR"
-9. **All clear** → "`/review` or wait for review"
+4. **Pending plan files** → "`/prepare` to create tasks from
+   [filename], or edit in `$EDITOR` first"
+5. **Tasks in progress** → "Continue: [task subject]"
+6. **Active team** → "`/implement` to continue team work"
+7. **Draft PR, all passing** → "Mark PR ready for review"
+8. **Ready PR, approved** → "Merge PR"
+9. **No PR** → "`/submit` to create PR"
+10. **All clear** → "`/review` or wait for review"
 
 ## Notes
 

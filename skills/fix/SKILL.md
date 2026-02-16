@@ -3,7 +3,7 @@ name: fix
 description: >
   Convert user feedback on recent implementations into tasks.
   Triggers: /fix, "fix this", "create issues from feedback"
-allowed-tools: Bash, Read, Glob, Grep, TaskCreate, TaskUpdate, TaskGet
+allowed-tools: Bash, Read, Write, Glob, Grep, TaskCreate, TaskUpdate, TaskGet
 argument-hint: "[feedback-text]"
 ---
 
@@ -61,9 +61,25 @@ Create ONE task containing all findings:
   - metadata: {type: "task", priority: 2}
 - TaskUpdate(taskId, status: "in_progress")
 
-Then structure findings as phases in the metadata design field:
+Then structure findings as phases and store in both plan file and
+task metadata:
 
-- TaskUpdate(taskId, metadata: {design: "<phased-findings>"})
+a. Generate slug from feedback summary (lowercase, hyphens, max
+   50 chars, e.g. "login-timeout-error-ux")
+b. Write plan file:
+   ```
+   Write("~/.claude/plans/<project>/fix-<slug>.md", <frontmatter + findings>)
+   ```
+   Frontmatter:
+   ```yaml
+   ---
+   topic: "Fix: <brief-summary>"
+   project: <absolute path to cwd>
+   created: <ISO 8601 timestamp>
+   status: draft
+   ---
+   ```
+c. Store in task: TaskUpdate(taskId, metadata: {design: "<phased-findings>", plan_file: "fix-<slug>.md"})
 
 Design field format:
 ```
@@ -96,37 +112,10 @@ Output format:
 
 **Findings**: N items (X bugs, Y tasks, Z features)
 
-**Next**: `TaskGet(<id>)` to review findings,
-`/prepare <id>` to create epic with tasks.
-```
+**Plan**: `~/.claude/plans/<project>/fix-<slug>.md` — review/edit in
+`$EDITOR` before `/prepare`.
 
-## Examples
-
-**User feedback:**
-"The login timeout is too short and the error message doesn't help"
-
-**Creates one task with phased design:**
-
-1. TaskCreate(subject: "Fix: login timeout and error UX",
-   description: "All feedback items addressed. Findings stored
-   in task metadata design field. Consumable by /prepare.",
-   metadata: {type: "task", priority: 2})
-2. TaskUpdate(taskId, status: "in_progress")
-3. TaskUpdate(taskId, metadata: {design: "## Feedback Analysis\n\n
-   **Phase 1: Bug Fixes**\n1. Fix unclear login timeout error
-   in auth/login.ts:87 — shows generic 'Error occurred' instead
-   of timeout message\n\n**Phase 2: Improvements**\n2. Increase
-   login timeout duration in auth/config.ts:42 — current 5s
-   timeout is too short, make configurable"})
-
-**Output:**
-```
-## Fix Task: #<id>
-
-**Findings**: 2 items (1 bug, 1 task)
-
-**Next**: `TaskGet(<id>)` to review findings,
-`/prepare <id>` to create epic with tasks.
+**Next**: `/prepare` to create tasks, or edit the plan file first.
 ```
 
 ## Style Rules
