@@ -18,34 +18,28 @@ Syncs branches and creates/updates PRs via Graphite.
    - If output is non-empty → warn user about uncommitted changes
      and stop
 
-2. **Worktree detection**
-   - Run `git rev-parse --git-common-dir` and `git rev-parse --git-dir`
-   - If they differ → working in a worktree
-   - Run `gt track 2>/dev/null` to ensure Graphite tracks this
-     worktree's branch
-
-3. **Restack branches**
+2. **Restack branches**
    - Run `gt restack --only`
    - If exit code is non-zero → show error and stop
 
-4. **Check for sync-only mode**
+3. **Check for sync-only mode**
    - If `$ARGUMENTS` contains `--sync-only` → stop here
      (restack complete)
 
-5. **Build submit command**
+4. **Build submit command**
    - Base: `gt submit`
    - If `$ARGUMENTS` contains `--stack` → add `--stack`
    - If `$ARGUMENTS` contains `--ready` → add `--no-draft`
    - Default: creates draft PR (no additional flags)
 
-6. **Execute submit**
+5. **Execute submit**
    - Run the constructed command
    - Capture and display output
 
-7. **Show PR URLs**
+6. **Show PR URLs**
    - Extract and display PR URLs prominently from output
 
-8. **Transition active issue to review**
+7. **Transition active issue to review**
    - Run `work list --status=active --format=json 2>/dev/null`
    - Find issue linked to current branch (match branch name or
      check issue description)
