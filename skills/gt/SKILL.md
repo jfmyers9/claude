@@ -18,8 +18,6 @@ Parse `$ARGUMENTS` for Graphite subcommand and flags.
 - `up`/`down`/`top`/`bottom` → navigate stack
 - No args or `help` → list commands
 
-**After state-changing ops** (restack, sync, amend): run `bd sync`
-
 **Implementation:**
 
 ```bash
@@ -29,13 +27,6 @@ cmd="${ARGUMENTS%% *}"
 case "$cmd" in
   log|restack|sync|info|amend|up|down|top|bottom)
     gt $ARGUMENTS
-    case "$cmd" in
-      restack|sync|amend)
-        echo ""
-        echo "Syncing beads..."
-        bd sync
-        ;;
-    esac
     ;;
   help|*)
     echo "Usage: /gt [command] [flags]"

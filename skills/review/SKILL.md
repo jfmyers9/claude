@@ -1,21 +1,21 @@
 ---
 name: review
 description: |
-  Senior engineer code review, filing findings as beads issues.
+  Senior engineer code review, filing findings as tasks.
   Triggers: 'review code', 'code review', 'review my changes'.
-allowed-tools: Bash, Read, Glob, Grep, Task
-argument-hint: "[file-pattern] [--team] | <beads-id> | --continue"
+allowed-tools: Bash, Read, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
+argument-hint: "[file-pattern] [--team] | <task-id> | --continue"
 ---
 
 # Code Review
 
-Orchestrate code review via beads workflow and Task delegation.
-All findings stored in beads design field — no filesystem plans.
+Orchestrate code review via task workflow and Task delegation.
+All findings stored in task metadata design field — no filesystem plans.
 
 ## Arguments
 
 - `<file-pattern>` — new review, optionally filtering files
-- `<beads-id>` — continue existing review issue
+- `<task-id>` — continue existing review task
 - `--continue` — resume most recent in_progress review
 - `--team` — multi-perspective review (architect, code-quality, devil's-advocate)
 
@@ -29,20 +29,12 @@ All findings stored in beads design field — no filesystem plans.
    - Filter by `$ARGUMENTS` pattern if provided
    - Exclude: lock files, dist/, build/, coverage/, binaries
 
-2. **Create review bead**
-   - Create bead with description:
-     ```
-     bd create "Review: {branch}" --type task --priority 2 \
-       --description "$(cat <<'EOF'
-     ## Acceptance Criteria
-     - All changed files reviewed for critical issues, design, and testing gaps
-     - Findings stored in bead design field as phased structure
-     - Critical issues identified and actionable via /prepare
-     EOF
-     )"
-     ```
-   - Validate: `bd lint <id>` — if it fails, `bd edit <id> --description` to fix violations
-   - `bd update <id> --status in_progress`
+2. **Create review task**
+   - TaskCreate:
+     - subject: "Review: {branch}"
+     - description: "All changed files reviewed for critical issues, design, and testing gaps. Findings stored in task metadata design field as phased structure. Critical issues identified and actionable via /prepare."
+     - metadata: {type: "task", priority: 2}
+   - TaskUpdate(taskId, status: "in_progress")
 
 3. **Determine review mode**
    - `--team` in arguments → **Perspective Mode**: 3 specialized reviewers
@@ -56,18 +48,18 @@ All findings stored in beads design field — no filesystem plans.
    subagent per group, aggregate findings
 
 7. **Store findings**
-   - `bd update <id> --design "<phase-structured-findings>"`
-   - Leave bead open (in_progress)
+   - TaskUpdate(taskId, metadata: {design: "<phase-structured-findings>"})
+   - Leave task in_progress
 
 8. **Report results** (see Output Format)
 
 ### Continue Review
 
-1. Resolve issue ID:
-   - If `$ARGUMENTS` matches a beads ID → use it
-   - If `--continue` → `bd list --status=in_progress --type task`,
-     find first with title starting "Review:"
-2. Load existing context: `bd show <id> --json` → extract design
+1. Resolve task ID:
+   - If `$ARGUMENTS` matches a task ID → use it
+   - If `--continue` → TaskList(), find first in_progress task
+     with subject starting "Review:"
+2. Load existing context: TaskGet(taskId) → extract metadata.design
 3. Detect original review type:
    - If design contains `[architect]` or `**Consensus**` tags →
      was a team review → re-spawn in Perspective Mode
@@ -79,7 +71,7 @@ All findings stored in beads design field — no filesystem plans.
      perspective (<architect|code-quality|devil's-advocate>)..."
 5. Aggregate new findings with previous (re-run Perspective Aggregation
    if team continuation)
-6. Update design: `bd update <id> --design "<updated-findings>"`
+6. Update design: TaskUpdate(taskId, metadata: {design: "<updated-findings>"})
 7. Report results
 
 ## Review Scope
@@ -456,7 +448,7 @@ reviewing from the <perspective-name> perspective, focusing on:
 <new-instructions>"
 
 After agent(s) return, store full findings:
-`bd update <id> --design "$(cat <<'EOF'\n<findings>\nEOF\n)"`
+TaskUpdate(taskId, metadata: {design: "<findings>"})
 
 ## Perspective Mode Execution
 
@@ -538,7 +530,7 @@ to avoid duplication. Skip empty sections. Most impactful first.
 
 ## Output Format
 
-**Review Issue**: #<id>
+**Review Task**: #<id>
 
 **Summary**: <files reviewed, commits covered>
 
@@ -547,12 +539,12 @@ to avoid duplication. Skip empty sections. Most impactful first.
 - <improvements count> design improvements
 - <testing gaps count> testing gaps
 
-**Next**: `bd edit <id> --design` to review findings,
+**Next**: `TaskGet(<id>)` to review findings,
 `/prepare <id>` to create tasks.
 
 For `--team` reviews, the output includes additional sections:
 
-**Review Issue**: #<id>
+**Review Task**: #<id>
 
 **Summary**: <files reviewed, commits covered, 3-perspective
 team review>
@@ -565,7 +557,7 @@ team review>
 - <improvements count> design improvements
 - <testing gaps count> testing gaps
 
-**Next**: `bd edit <id> --design` to review findings,
+**Next**: `TaskGet(<id>)` to review findings,
 `/prepare <id>` to create tasks.
 
 ## Guidelines

@@ -3,19 +3,19 @@ name: debug
 description: >
   Systematically diagnose and fix bugs, CI failures, and test failures.
   Triggers: /debug, debugging issues, test failures, CI errors
-allowed-tools: Bash, Read, Glob, Grep, Edit
-argument-hint: "[beads-id|error-description]"
+allowed-tools: Bash, Read, Glob, Grep, Edit, TaskCreate, TaskUpdate, TaskGet
+argument-hint: "[task-id|error-description]"
 ---
 
 # Debug Skill
 
 Systematically diagnose and fix bugs, CI failures, and test failures.
-Integrates with beads for issue tracking.
+Integrates with native tasks for issue tracking.
 
 ## Argument Parsing
 
 Parse `$ARGUMENTS`:
-- Beads issue ID (e.g., `claude-xyz`) → debug that specific issue
+- Task ID → debug that specific issue
 - Error message or description → debug that problem
 - No args → check for failing tests/CI on current branch
 
@@ -23,21 +23,15 @@ Parse `$ARGUMENTS`:
 
 ### 1. Issue Setup
 
-**If beads issue provided:**
-```bash
-bd show <id>
-bd update <id> --status in_progress
-```
+**If task ID provided:**
+- TaskGet(taskId) to load context
+- TaskUpdate(taskId, status: "in_progress")
 
-**If no beads issue:**
-```bash
-bd create "Debug: <problem>" --type bug --priority 1 --description "## Steps to Reproduce
-- <observed symptoms and error output>
-
-## Acceptance Criteria
-- Bug is fixed and verified by passing tests"
-```
-Validate: `bd lint <id>` — if it fails, `bd edit <id> --description` to fix violations.
+**If no task ID:**
+- TaskCreate:
+  - subject: "Debug: <problem>"
+  - description: "Steps to Reproduce: <observed symptoms and error output>. Acceptance Criteria: Bug is fixed and verified by passing tests."
+  - metadata: {type: "bug", priority: 1}
 
 ### 2. Gather Diagnostics (Parallel)
 
@@ -63,8 +57,8 @@ If test failure mentioned, run failing tests to reproduce.
 
 1. Make minimal, targeted changes
 2. Re-run failing tests/checks to verify fix
-3. If fix works: `bd close <id>`
-4. If fix doesn't work: `bd update <id> --notes "Findings: ..."`
+3. If fix works: TaskUpdate(taskId, status: "completed")
+4. If fix doesn't work: TaskUpdate(taskId, metadata: {notes: "Findings: ..."})
 
 ### 5. Report
 

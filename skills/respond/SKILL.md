@@ -3,8 +3,8 @@ name: respond
 description: >
   Triage PR review feedback — analyze validity, recommend actions.
   Triggers: /respond, "respond to PR", "address feedback".
-allowed-tools: Bash, Read, Glob, Grep, Task
-argument-hint: "[pr-number] | <beads-id> | --continue"
+allowed-tools: Bash, Read, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
+argument-hint: "[pr-number] | <task-id> | --continue"
 ---
 
 # Respond
@@ -19,14 +19,9 @@ decides. NOT a /fix-family skill (user directs → agent executes).
 ## Arguments
 
 - `<pr-number>` — new respond session for specific PR
-- `<beads-id>` — continue existing respond bead
-- `--continue` — resume most recent in_progress respond bead
+- `<task-id>` — continue existing respond task
+- `--continue` — resume most recent in_progress respond task
 - (no args) — new respond session for current branch's PR
-
-## Workflow
-
-Before starting, verify `.beads` directory exists.
-If not → exit, suggest `bd init`.
 
 ### New Respond Session
 
@@ -64,41 +59,28 @@ If not → exit, suggest `bd init`.
    - Exclude the PR author's own comments
    - Group by file path
 
-4. **Create respond bead**
-   ```bash
-   bd create "Respond: PR #$PR_NUM" --type task --priority 2 --ephemeral \
-     --description "$(cat <<'EOF'
-   ## Acceptance Criteria
-   - All PR comments triaged with agree/disagree/question/already-done
-   - Rationale provided for each classification
-   - Findings stored in design field for user review
-   EOF
-   )"
-   ```
-   Validate: `bd lint <id>` — fix violations if needed.
-   `bd update <id> --status in_progress`
+4. **Create respond task**
+   - TaskCreate:
+     - subject: "Respond: PR #$PR_NUM"
+     - description: "All PR comments triaged with agree/disagree/question/already-done. Rationale provided for each classification. Findings stored in task metadata for user review."
+     - metadata: {type: "task", priority: 2}
+   - TaskUpdate(taskId, status: "in_progress")
 
 5. **Spawn analysis subagent** (see Triage Subagent Prompt)
 
 6. **Store findings**
-   - Triage → design field: `bd update <id> --design "<triage>"`
-   - PR reply drafts for disagree/already-done → notes field:
-     `bd update <id> --notes "<replies>"`
+   - Triage → design: TaskUpdate(taskId, metadata: {design: "<triage>"})
+   - PR reply drafts → notes: TaskUpdate(taskId, metadata: {notes: "<replies>"})
 
 7. **Report results** (see Output Format — First Pass)
-   - If user wants `/prepare` on findings → `bd promote <id>`
-     (promotes wisp to persistent bead)
-   - If done (no follow-up) → bead stays ephemeral,
-     auto-excluded from JSONL export, cleaned up by
-     `bd mol wisp gc`
 
 ### Continue Respond Session
 
-1. Resolve issue ID:
-   - If `$ARGUMENTS` matches a beads ID → use it
-   - If `--continue` → `bd list --status=in_progress --type task`,
-     find first with title starting "Respond:"
-2. Load existing context: `bd show <id> --json` → extract design
+1. Resolve task ID:
+   - If `$ARGUMENTS` matches a task ID → use it
+   - If `--continue` → TaskList(), find first in_progress task
+     with subject starting "Respond:"
+2. Load existing context: TaskGet(taskId) → extract metadata.design
 3. **Detect state** from design field content:
    - Contains `**Agree**` / `**Disagree**` sections → raw triage
      (first pass complete, user may have edited)
@@ -182,7 +164,7 @@ Return COMPLETE findings as text (do NOT write files). Structure:
 
 ## Finalization Logic
 
-When continuing a bead that has raw triage (agree/disagree
+When continuing a task that has raw triage (agree/disagree
 sections), convert agreed items to /prepare-compatible format:
 
 ```
@@ -212,7 +194,7 @@ Store PR reply drafts in notes field:
 ## Output Format — First Pass
 
 ```
-**Respond Issue**: #<id>
+**Respond Task**: #<id>
 **PR**: #<number> — <title>
 
 **Triage Summary**:
@@ -227,21 +209,20 @@ Store PR reply drafts in notes field:
 **Disagree**:
 - [file:line] reason to push back
 
-**Next**: `bd edit <id> --design` to review/override triage,
+**Next**: `TaskGet(<id>)` to review triage,
 then `/respond --continue` to finalize for `/prepare`.
-To persist findings: `bd promote <id>`.
 ```
 
 ## Output Format — Continuation
 
 ```
-**Respond Issue**: #<id>
+**Respond Task**: #<id>
 
 **Finalized**: N items to action, N replies drafted
 
-**Next**: `bd promote <id>` then `/prepare <id>` to create tasks.
+**Next**: `/prepare <id>` to create tasks.
 Notes field has PR reply drafts — review with
-`bd edit <id> --notes`.
+`TaskGet(<id>)`.
 ```
 
 ## Guidelines

@@ -1,24 +1,24 @@
 ---
 name: fix
 description: >
-  Convert user feedback on recent implementations into beads issues.
+  Convert user feedback on recent implementations into tasks.
   Triggers: /fix, "fix this", "create issues from feedback"
-allowed-tools: Bash, Read, Glob, Grep
+allowed-tools: Bash, Read, Glob, Grep, TaskCreate, TaskUpdate, TaskGet
 argument-hint: "[feedback-text]"
 ---
 
 # Fix
 
-Convert user feedback on recent implementations into structured beads
-issues. Does NOT implement fixes — creates actionable work items for
+Convert user feedback on recent implementations into structured
+tasks. Does NOT implement fixes — creates actionable work items for
 later scheduling via `/prepare` or `/implement`.
 
 ## Key Principle
 
-This skill is a **feedback → beads converter**. User says "this is
+This skill is a **feedback → task converter**. User says "this is
 wrong, that needs changing, this should be different" and the skill
-creates a single bead with all findings structured as phases in the
-design field — directly consumable by `/prepare`.
+creates a single task with all findings structured as phases in the
+metadata design field — directly consumable by `/prepare`.
 
 ## Arguments
 
@@ -51,28 +51,22 @@ Break feedback into individual findings:
   - P4: Low priority, future consideration
 - Group findings by type for phase structure
 
-### 3. Create Single Bead with Phased Design
+### 3. Create Single Task with Phased Design
 
-Create ONE task bead containing all findings:
+Create ONE task containing all findings:
 
-```bash
-bd create "Fix: <brief-summary-of-feedback>" --type task --priority 2 \
-  --description "$(cat <<'EOF'
-## Acceptance Criteria
-- All feedback items addressed
-- Findings stored in design field as phased structure
-- Consumable by /prepare for epic creation
-EOF
-)"
+- TaskCreate:
+  - subject: "Fix: <brief-summary-of-feedback>"
+  - description: "All feedback items addressed. Findings stored in task metadata design field as phased structure. Consumable by /prepare for epic creation."
+  - metadata: {type: "task", priority: 2}
+- TaskUpdate(taskId, status: "in_progress")
+
+Then structure findings as phases in the metadata design field:
+
+- TaskUpdate(taskId, metadata: {design: "<phased-findings>"})
+
+Design field format:
 ```
-
-Validate: `bd lint <id>` — fix violations if needed.
-Mark in progress: `bd update <id> --status in_progress`
-
-Then structure findings as phases in the design field:
-
-```bash
-bd update <id> --design "$(cat <<'EOF'
 ## Feedback Analysis
 
 **Phase 1: Bug Fixes**
@@ -85,8 +79,6 @@ bd update <id> --design "$(cat <<'EOF'
 
 Each phase groups findings by type (bugs first, then tasks,
 then features). Skip empty phases.
-EOF
-)"
 ```
 
 **Phase grouping rules:**
@@ -100,11 +92,11 @@ EOF
 
 Output format:
 ```
-## Fix Issue: #<id>
+## Fix Task: #<id>
 
 **Findings**: N items (X bugs, Y tasks, Z features)
 
-**Next**: `bd edit <id> --design` to review findings,
+**Next**: `TaskGet(<id>)` to review findings,
 `/prepare <id>` to create epic with tasks.
 ```
 
@@ -113,46 +105,35 @@ Output format:
 **User feedback:**
 "The login timeout is too short and the error message doesn't help"
 
-**Creates one bead with phased design:**
-```bash
-bd create "Fix: login timeout and error UX" --type task --priority 2 \
-  --description "$(cat <<'EOF'
-## Acceptance Criteria
-- All feedback items addressed
-- Findings stored in design field as phased structure
-- Consumable by /prepare for epic creation
-EOF
-)"
-bd update <id> --status in_progress
-bd update <id> --design "$(cat <<'EOF'
-## Feedback Analysis
+**Creates one task with phased design:**
 
-**Phase 1: Bug Fixes**
-1. Fix unclear login timeout error in auth/login.ts:87 —
-   shows generic 'Error occurred' instead of timeout message
-
-**Phase 2: Improvements**
-2. Increase login timeout duration in auth/config.ts:42 —
-   current 5s timeout is too short, make configurable
-EOF
-)"
-```
+1. TaskCreate(subject: "Fix: login timeout and error UX",
+   description: "All feedback items addressed. Findings stored
+   in task metadata design field. Consumable by /prepare.",
+   metadata: {type: "task", priority: 2})
+2. TaskUpdate(taskId, status: "in_progress")
+3. TaskUpdate(taskId, metadata: {design: "## Feedback Analysis\n\n
+   **Phase 1: Bug Fixes**\n1. Fix unclear login timeout error
+   in auth/login.ts:87 — shows generic 'Error occurred' instead
+   of timeout message\n\n**Phase 2: Improvements**\n2. Increase
+   login timeout duration in auth/config.ts:42 — current 5s
+   timeout is too short, make configurable"})
 
 **Output:**
 ```
-## Fix Issue: #claude-abc
+## Fix Task: #<id>
 
 **Findings**: 2 items (1 bug, 1 task)
 
-**Next**: `bd edit claude-abc --design` to review findings,
-`/prepare claude-abc` to create epic with tasks.
+**Next**: `TaskGet(<id>)` to review findings,
+`/prepare <id>` to create epic with tasks.
 ```
 
 ## Style Rules
 
 - Keep concise — bullet points, not prose
 - No emoji
-- All findings in one bead — grouped by type in design phases
+- All findings in one task — grouped by type in design phases
 - Use specific file paths and line numbers when available
 - Classify accurately (bug vs task vs feature matters for grouping)
 - Default to P2 unless feedback indicates urgency

@@ -1,86 +1,89 @@
 ---
 name: implement
 description: >
-  Execute implementation plans from beads issues. Detects swarm
-  epics and spawns teams for parallel work.
+  Execute implementation plans from tasks. Detects epics and spawns
+  teams for parallel work.
   Triggers: 'implement', 'build this', 'execute plan', 'start work'.
 allowed-tools: Bash, Read, Task, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet, TeamCreate, TeamDelete
-argument-hint: "[beads-issue-id] [--solo]"
+argument-hint: "[task-id] [--solo]"
 ---
 
 # Implement
 
-Execute work from beads issues. Spawns Claude teams for parallel
-execution when beads swarm has multiple ready tasks.
+Execute work from tasks. Spawns Claude teams for parallel execution
+when an epic has multiple ready child tasks.
 
 ## Arguments
 
-- `beads-issue-id` — epic or task ID (optional)
-- `--solo` — force single-agent mode even for swarms
+- `task-id` — epic or task ID (optional)
+- `--solo` — force single-agent mode even for epics
 
 ## Step 1: Find Work
 
 - If ID in `$ARGUMENTS` → use it
-- Else: `bd list --status=in_progress --type=epic` → first result (Swarm Mode)
-- Else: `bd list --status=open --type=epic` → check each for swarm molecule
-  (`bd swarm status <id>` succeeds) → first swarmable epic (Swarm Mode)
-- Else: `bd list --status=in_progress` → first result (Solo Mode)
-- Else: `bd ready` → first result (Solo Mode)
+- Else: `TaskList()` → find first in_progress task where
+  `metadata.type == "epic"` (Swarm Mode)
+- Else: `TaskList()` → find first pending task where
+  `metadata.type == "epic"` (Swarm Mode)
+- Else: `TaskList()` → find first in_progress task (Solo Mode)
+- Else: `TaskList()` → find first pending task with empty
+  blockedBy (Solo Mode)
 - Nothing found → exit, suggest `/explore` then `/prepare`
 
-## Step 2: Classify Issue
+## Step 2: Classify
 
-Run `bd show <id> --json` to inspect.
+`TaskGet(taskId)` to inspect.
 
-**Epic?** → issue_type is "epic" → **Swarm Mode** (unless `--solo`)
-**Task with parent?** → has parent → read parent for context, **Solo Mode**
+**Epic?** → `metadata.type == "epic"` → **Swarm Mode** (unless `--solo`)
+**Task with parent?** → has `metadata.parent_id` → read parent for context, **Solo Mode**
 **Standalone task?** → **Solo Mode**
 
 ## Swarm Mode
 
 ### Setup
 
-1. `bd swarm validate <epic-id> --json` → parse waves
-2. `bd show <epic-id> --json` → extract title + design field as epic_context
-3. Create team: `TeamCreate(team_name="swarm-<epic-id>")`
+1. Parse waves from `TaskList()`:
+   - Filter tasks by `metadata.parent_id == epicId`
+   - Group by dependency depth (tasks with empty blockedBy = wave 1,
+     tasks blocked only by wave 1 = wave 2, etc.)
+2. `TaskGet(epicId)` → extract subject + `metadata.design` as epic_context
+3. Create team: `TeamCreate(team_name="swarm-<epicId>")`
    If TeamCreate fails → fall back to sequential Solo Mode:
-     for each task in topological order (from bd swarm validate):
-       bd update <task-id> --claim
+     for each task in topological order:
+       TaskUpdate(taskId, status: "in_progress", owner: "worker")
        Spawn single Task agent, wait for completion
-       bd close <task-id>
+       TaskUpdate(taskId, status: "completed")
      Skip team cleanup (no team was created)
-4. Read team config: `~/.claude/teams/swarm-<epic-id>/config.json`
+4. Read team config: `~/.claude/teams/swarm-<epicId>/config.json`
    → extract the team lead's `name` field for injecting into worker prompts
 
 ### Wave Loop
 
 ```
 while true:
-  ready_tasks = bd ready --parent <epic-id> --json
+  ready_tasks = TaskList() filtered by:
+    metadata.parent_id == epicId AND
+    status == "pending" AND
+    blockedBy is empty
   if empty → break
 
   for each task in ready_tasks:
-    task_detail = bd show <task-id> --json → description
+    task_detail = TaskGet(taskId) → description
     Spawn worker via Task tool (see Worker Spawn below)
 
   Wait for all workers to complete (messages + idle notifications)
-  Verify: bd swarm status <epic-id> --json → check completed count
-
-  # Optional: for checkpoint reviews between waves, use
-  # `bd gate create --await 'human:...'` to pause execution.
-  #   gate_id = bd gate create --await "human:Review wave N results" --timeout 4h
-  #   bd gate list  # Show pending gates
-  #   (Pause until: bd gate approve $gate_id)
+  Verify: TaskList() filtered by parent → check completed count
 
   # Recover stuck tasks before next wave
-  stuck = bd list --status=in_progress --parent <epic-id>
+  stuck = TaskList() filtered by:
+    metadata.parent_id == epicId AND status == "in_progress"
   for each stuck task not in just-completed set:
-    bd update <stuck-id> --status open  # release claim for retry
-    bd update <stuck-id> --notes "Released: worker failed in wave N"
+    TaskUpdate(stuckId, status: "pending", owner: "")
+    TaskUpdate(stuckId, metadata: { notes: "Released: worker failed in wave N" })
 
-bd epic close-eligible
-molecule_id = bd swarm list --json | jq '.swarms[] | select(.epic_id=="<epic-id>") | .id'
-bd close $molecule_id
+# Check if all children completed
+all_children = TaskList() filtered by metadata.parent_id == epicId
+if all completed → TaskUpdate(epicId, status: "completed")
 Shutdown all teammates via SendMessage(type="shutdown_request")
 TeamDelete
 ```
@@ -92,8 +95,8 @@ For each ready task, spawn via Task tool:
 ```
 Task(
   subagent_type="general-purpose",
-  team_name="swarm-<epic-id>",
-  name="worker-<task-id>",
+  team_name="swarm-<epicId>",
+  name="worker-<taskId>",
   prompt=<WORKER_PROMPT>
 )
 ```
@@ -104,27 +107,27 @@ Before spawning, inject the team lead's actual name (from team
 config) into `<team-lead-name>` in the prompt template below.
 
 ```
-You are a swarm worker. Implement beads task <task-id>.
+You are a swarm worker. Implement task <task-id>.
 
 ## Your Task
-<task description from bd show>
+<task description from TaskGet>
 
 ## Epic Context
-<epic title + design field summary>
+<epic subject + design field summary>
 
 ## Protocol
 
-1. FIRST: Claim your task atomically:
-   bd update <task-id> --claim
+1. FIRST: Claim your task:
+   TaskUpdate(taskId, status: "in_progress", owner: "worker-<task-id>")
    If claim fails, someone else took it. Report and stop.
 
 2. Read full context:
-   bd show <task-id> --json
+   TaskGet(taskId)
 
 3. Implement the work described in the task.
 
-4. When done, close the task:
-   bd close <task-id>
+4. When done, complete the task:
+   TaskUpdate(taskId, status: "completed")
 
 5. Send completion message to team lead:
    Use SendMessage(type="message", recipient="<team-lead-name>",
@@ -148,7 +151,7 @@ After spawning a wave of workers:
 2. As each worker sends completion message → completed_count++
 3. When completed_count == N → wave done, proceed to next
 4. If a worker goes idle WITHOUT sending completion:
-   - Check `bd swarm status <epic-id> --json`
+   - Check `TaskList()` filtered by parent
    - If task still in_progress → worker is stuck/crashed
    - Log stuck task, decrement expected count
    - If all non-stuck workers done → proceed to next wave
@@ -164,34 +167,34 @@ message) makes waves run N× slower.
 
 ## Solo Mode
 
-1. `bd update <id> --claim`
-2. Read scope from description and/or design field
-3. If parent epic: `bd show <parent> --json` for context
+1. `TaskUpdate(taskId, status: "in_progress")`
+2. Read scope from description and/or `metadata.design`
+3. If parent epic: `TaskGet(parentId)` for context
 4. Spawn single Task agent (`subagent_type=general-purpose`)
    - Pass task description + parent context
-   - Worker claims, implements, closes
-5. On completion: verify `bd show <id>` is closed
+   - Worker implements, then: `TaskUpdate(taskId, status: "completed")`
+5. On completion: verify via `TaskGet(taskId)` status is completed
 6. Report results
 
 ## Error Handling
 
 **No work found:**
-- No issue → suggest `/explore` then `/prepare`
+- No task → suggest `/explore` then `/prepare`
 - Epic has no children → suggest `/prepare`
 
 **Worker failures:**
-- Claim fails (`bd update --claim` errors) → skip task, report
-- Worker goes idle without closing task → mark as stuck
-- Worker reports file conflict → log in beads notes, skip
+- Claim fails (TaskUpdate errors) → skip task, report
+- Worker goes idle without completing task → mark as stuck
+- Worker reports file conflict → log in task metadata.notes, skip
 
 **Wave-level recovery:**
 - If some tasks in a wave fail but others succeed,
-  still check `bd ready` — downstream tasks may be unblocked
+  still check `TaskList()` — downstream tasks may be unblocked
   by the successful ones
 - Only abort entirely if ALL tasks in a wave fail
 
 **Reporting:**
 After all waves complete (or abort), report:
 - Total tasks: N completed, M stuck, K failed
-- Stuck task IDs (still in_progress in beads)
+- Stuck task IDs (still in_progress)
 - Whether epic was closed or left open

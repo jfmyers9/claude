@@ -1,23 +1,10 @@
 # Claude Code Configuration
 
 Portable Claude Code configuration with skills, rules, and
-beads-based issue tracking. Symlinks into `~/.claude/` for
-consistent setup across machines.
+task-based workflow. Symlinks into `~/.claude/` for consistent
+setup across machines.
 
 ## Installation
-
-**Prerequisites:** beads (`bd`) CLI installed and on PATH.
-The installer will auto-install it, or install manually:
-
-```bash
-# Recommended (Linux, macOS, FreeBSD)
-curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
-
-# Alternatives
-npm install -g @beads/bd
-brew install beads          # macOS only
-go install github.com/steveyegge/beads/cmd/bd@latest
-```
 
 ```bash
 git clone <your-repo-url> ~/dotfiles/claude-config
@@ -31,9 +18,7 @@ skills, and rules into `~/.claude/`.
 ## Structure
 
 ```
-├── .beads/            # Beads issue tracking data
 ├── .claude/           # Claude Code project config
-├── AGENTS.md          # Agent instructions for beads workflow
 ├── CLAUDE.md          # Global instructions for all sessions
 ├── install.sh         # Symlink installer
 ├── README.md
@@ -51,10 +36,6 @@ skills, and rules into `~/.claude/`.
 
 ### Key files
 
-- **AGENTS.md** -- Instructions for agent teammates. Contains
-  beads CLI quick reference (`bd ready`, `bd show`, `bd update`,
-  `bd close`, `bd sync`) and the "Landing the Plane" protocol
-  for session completion (mandatory `git push`).
 - **settings.json** -- Model set to Opus. Enables experimental
   agent teams (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`).
   Custom statusline command.
@@ -69,18 +50,18 @@ The primary development cycle:
 
 | Skill | Trigger | Purpose |
 |-------|---------|---------|
-| **explore** | `/explore "topic"` | Research topics, investigate codebases, create implementation plans stored in beads `design` field |
-| **prepare** | `/prepare` | Convert exploration findings into a beads epic with child issues and swarm configuration |
-| **implement** | `/implement <epic>` | Execute implementation plans from beads issues. Detects swarm epics and spawns Claude teams for parallel work |
-| **review** | `/review` | Senior engineer code review of current branch. Files findings as beads issues |
+| **explore** | `/explore "topic"` | Research topics, investigate codebases, create implementation plans stored in task metadata |
+| **prepare** | `/prepare` | Convert exploration findings into tasks with team configuration |
+| **implement** | `/implement` | Execute implementation plans from tasks. Detects team configs and spawns Claude teams for parallel work |
+| **review** | `/review` | Senior engineer code review of current branch. Files findings as tasks |
 
 ### Branch and PR Management
 
 | Skill | Trigger | Purpose |
 |-------|---------|---------|
-| **start** | `/start <branch>` | Create a new Graphite branch, optionally linked to a beads issue |
-| **commit** | `/commit` | Create conventional commits with automatic beads sync |
-| **submit** | `/submit` | Sync branches and create/update PRs via Graphite with beads state sync |
+| **start** | `/start <branch>` | Create a new Graphite branch |
+| **commit** | `/commit` | Create conventional commits |
+| **submit** | `/submit` | Sync branches and create/update PRs via Graphite |
 | **gt** | `/gt <command>` | Wrap common Graphite CLI operations for branch management |
 | **resume-work** | `/resume-work` | Resume work on a branch/PR after a break -- summarizes state |
 
@@ -88,7 +69,7 @@ The primary development cycle:
 
 | Skill | Trigger | Purpose |
 |-------|---------|---------|
-| **fix** | `/fix` | Convert user feedback on recent implementations into beads issues |
+| **fix** | `/fix` | Convert user feedback on recent implementations into tasks |
 | **debug** | `/debug` | Systematically diagnose and fix bugs, CI failures, and test failures |
 
 ### Meta
@@ -97,45 +78,40 @@ The primary development cycle:
 |-------|---------|---------|
 | **writing-skills** | `/writing-skills` | Create new skills with proper directory structure and frontmatter |
 
-## Beads Workflow
+## Task Workflow
 
-All plans, notes, and state live in beads -- no filesystem
-documents. The `bd` CLI is the interface:
+All plans, notes, and state use native Claude Code tasks — no
+filesystem documents. The task tools are the interface:
 
-```bash
-bd ready          # Find available work
-bd show <id>      # View issue details (description, design, notes)
-bd list           # List all issues
-bd create         # Create a new issue
-bd update <id>    # Update status, claim work
-bd close <id>     # Mark work complete
-bd sync           # Sync beads state with git
-bd lint           # Validate beads data integrity
-```
+- `TaskCreate` -- Create a new task with subject, description
+- `TaskGet(taskId)` -- View full task details and metadata
+- `TaskList()` -- List all tasks and their status
+- `TaskUpdate(taskId)` -- Update status, assign owner, add
+  metadata
 
-### Beads Fields
+### Task Metadata
 
 - **description** -- What needs to be done
-- **design** -- Exploration plans, implementation approach
-- **notes** -- Review summaries, investigation findings
-- **acceptance_criteria** -- Definition of done
-- **status** -- Tracking state (open, in_progress, closed)
+- **metadata.design** -- Exploration plans, implementation
+  approach
+- **metadata.notes** -- Review summaries, investigation findings
+- **status** -- pending, in_progress, completed
 
 ### Typical Cycle
 
 ```
-/explore "topic"     -> creates bead with findings in design field
-/prepare             -> creates epic + child issues + swarm config
-/implement <epic>    -> executes via swarm workers (parallel)
-/review              -> files findings as beads issues
-/commit              -> conventional commit + beads sync
-/submit              -> PR via Graphite + beads sync
+/explore "topic"     -> creates task with findings in metadata
+/prepare             -> creates tasks + team configuration
+/implement           -> executes via team workers (parallel)
+/review              -> files findings as tasks
+/commit              -> conventional commit
+/submit              -> PR via Graphite
 ```
 
 ### Phase-Based Planning
 
 Complex features use multi-phase implementation plans stored in
-the beads `design` field. Phase markers follow these patterns:
+task `metadata.design`. Phase markers follow these patterns:
 
 - `**Phase N: Description**` (bold inline)
 - `### Phase N: Description` (heading)
@@ -144,17 +120,16 @@ Each phase is independently reviewable and testable. The
 `/implement` skill detects phases and executes them sequentially,
 allowing commits and review between phases.
 
-## Beads Swarm
+## Team Swarm
 
 The swarm system enables parallel execution of independent tasks
-via Claude teams. When `/prepare` creates an epic with child
-issues, it generates a swarm configuration. Running `/implement`
-on a swarm epic:
+via Claude teams. When `/prepare` creates tasks, it generates a
+team configuration. Running `/implement` on a team:
 
-1. Detects the swarm configuration on the epic
-2. Spawns a Claude team with one worker per child issue
+1. Detects the team configuration
+2. Spawns a Claude team with one worker per task
 3. Workers execute their tasks in parallel
-4. Progress is tracked via beads status updates
+4. Progress is tracked via task status updates
 
 This uses the experimental `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`
 feature enabled in settings.json.
