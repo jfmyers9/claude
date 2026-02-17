@@ -63,6 +63,32 @@ target directory.
 | `statusLine` | command: `python3 ~/.claude/statusline.py` | Custom statusline |
 | `attribution` | empty commit/PR strings | Disable author attribution |
 
+### Task Persistence (`CLAUDE_CODE_TASK_LIST_ID`)
+
+By default, each Claude Code session gets a unique task list
+that dies with the session. For long-running epics that span
+session restarts, set a named task list:
+
+```json
+// .claude/settings.json (per-project)
+{
+  "env": {
+    "CLAUDE_CODE_TASK_LIST_ID": "my-project"
+  }
+}
+```
+
+Or in your shell: `export CLAUDE_CODE_TASK_LIST_ID=my-project`
+
+This enables:
+- Epic task state persists across session restarts
+- Multiple terminals share the same task list
+- `/resume-work` can discover in-progress epics
+
+Note: plan files (`~/.claude/plans/<project>/`) already persist
+across sessions without configuration. The env var is only needed
+for task list (epic/child task) persistence.
+
 ### Instructions (`CLAUDE.md`)
 
 Two layers of instructions, both loaded into every session:
