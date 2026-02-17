@@ -47,8 +47,7 @@ Orchestrate code review via tasks and Task delegation.
    subagent per group, aggregate findings
 
 7. **Store findings**
-   a. Generate slug from branch name (e.g. branch `feat/login-flow`
-      → slug `login-flow`)
+   a. Generate slug: `Bash("tools/bin/slug '<branch-name>'")`
    b. Write plan file:
       ```
       Write("~/.claude/plans/<project>/review-<slug>.md", <frontmatter + findings>)
@@ -147,32 +146,8 @@ findings as phases for downstream task creation:
 
 Only include phases that have findings. Skip empty phases.
 For each finding include: file, line(s), what's wrong, suggested fix.
-
-## Review Criteria
-
-**Flag as critical (Phase 1):**
-- Uncaught exceptions or error paths
-- Race conditions, deadlocks
-- Memory leaks, resource exhaustion
-- Input validation gaps (XSS, injection, path traversal)
-- Logic errors causing incorrect behavior
-
-**Flag as improvements (Phase 2):**
-- Overly complex code with simpler alternatives
-- Poor naming or structure hindering readability
-- Performance bottlenecks (N+1, blocking I/O)
-
-**Flag as testing gaps (Phase 3):**
-- Missing tests for realistic failure modes
-- Untested edge cases with real-world impact
-
-**Don't flag:**
-- Style preferences (unless severe)
-- Missing comments (code should be self-documenting)
-- Hypothetical edge cases with no realistic trigger
-- Minor optimizations with negligible impact
-- Pre-existing flaws in unchanged code (unless truly critical)
-- "While we're here" improvements to surrounding code
+Don't flag style preferences, hypothetical edge cases, or
+pre-existing flaws in unchanged code.
 ```
 
 ## Large Diff Handling
@@ -267,33 +242,8 @@ findings as phases for downstream task creation:
 
 Only include phases that have findings. Skip empty phases.
 For each finding include: file, line(s), what's wrong, suggested fix.
-
-## Review Criteria
-
-**Flag as critical (Phase 1):**
-- Circular dependencies or dependency cycles
-- Violations of existing architectural patterns in the codebase
-- Shared mutable state across module boundaries
-- Missing error propagation at system boundaries
-- Designs that cannot be extended without rewriting
-
-**Flag as improvements (Phase 2):**
-- Unnecessary layers of indirection
-- Components doing too many unrelated things
-- Missing abstractions causing code duplication across modules
-- Tight coupling that makes isolated testing impossible
-
-**Flag as testing gaps (Phase 3):**
-- Untested integration points between components
-- Missing contract tests at service/module boundaries
-- No tests for failure cascading between layers
-
-**Don't flag:**
-- Code-level style or naming (code-quality reviewer handles this)
-- Individual error handling within functions
-- Security specifics (devil's-advocate reviewer handles this)
-- Test coverage for pure internal logic
-- Pre-existing design flaws in unchanged code (unless critical)
+Stay in your lane: don't flag code-level style, security specifics,
+or pre-existing design flaws in unchanged code.
 ```
 
 ### Code Quality Prompt
@@ -354,35 +304,8 @@ findings as phases for downstream task creation:
 
 Only include phases that have findings. Skip empty phases.
 For each finding include: file, line(s), what's wrong, suggested fix.
-
-## Review Criteria
-
-**Flag as critical (Phase 1):**
-- Uncaught exceptions that crash or corrupt state
-- Off-by-one errors or incorrect boundary conditions
-- Resource leaks (unclosed handles, missing cleanup)
-- Type coercion bugs or unsafe casts
-- Error paths that lose context or return misleading results
-
-**Flag as improvements (Phase 2):**
-- Misleading or ambiguous variable/function names
-- Functions doing multiple unrelated things
-- Deeply nested conditionals with simpler alternatives
-- Duplicated logic that should share an implementation
-- Inconsistency with surrounding code conventions
-
-**Flag as testing gaps (Phase 3):**
-- Untested error/exception paths
-- Missing boundary value tests (zero, empty, max)
-- No assertions on error messages or error types
-- Missing tests for recently fixed edge cases
-
-**Don't flag:**
-- Architecture or system design (architect reviewer handles this)
-- Security threat modeling (devil's-advocate reviewer handles this)
-- Style preferences with no readability impact
-- Hypothetical performance issues without evidence
-- Pre-existing quality issues in unchanged code (unless critical)
+Stay in your lane: don't flag architecture, security threat modeling,
+or pre-existing quality issues in unchanged code.
 ```
 
 ### Devil's Advocate Prompt
@@ -451,43 +374,8 @@ numbered list>
 
 Only include phases that have findings. Skip empty phases.
 For each finding include: file, line(s), what's wrong, suggested fix.
-
-## Review Criteria
-
-**Flag as critical (Phase 1):**
-- Input that can trigger injection (SQL, command, XSS, template)
-- Authentication or authorization bypasses
-- Secrets in code, logs, or error messages
-- Unvalidated redirects or path traversal
-- Race conditions causing data corruption
-- Denial-of-service via unbounded allocation or recursion
-- Assumptions that will silently break under changed conditions
-  (e.g., assumes single consumer, ordered delivery, idempotent
-  operations, or stable schema)
-
-**Flag as improvements (Phase 2):**
-- Missing input validation or sanitization
-- Overly permissive error messages leaking internals
-- Missing rate limiting or resource bounds
-- Assumptions about input format without validation
-- No graceful degradation when dependencies fail
-- Implicit coupling to current scale, data model, or deployment
-  topology that will break without warning
-
-**Flag as testing gaps (Phase 3):**
-- No tests with malformed or adversarial input
-- Missing failure injection tests (timeouts, errors)
-- No tests for concurrent access patterns
-- Missing tests for permission/authorization boundaries
-- No tests verifying behavior under changed assumptions
-  (different ordering, multiple consumers, schema evolution)
-
-**Don't flag:**
-- Code style or readability (code-quality reviewer handles this)
-- Architecture or design patterns (architect reviewer handles this)
-- Theoretical attacks requiring physical access or compromised infra
-- Performance optimizations unrelated to DoS resilience
-- Pre-existing vulnerabilities in unchanged code (unless critical)
+Stay in your lane: don't flag code style, architecture patterns,
+or pre-existing vulnerabilities in unchanged code.
 ```
 
 ### Operations Prompt
@@ -551,40 +439,8 @@ numbered list>
 
 Only include phases that have findings. Skip empty phases.
 For each finding include: file, line(s), what's wrong, suggested fix.
-
-## Review Criteria
-
-**Flag as critical (Phase 1):**
-- Silent failures with no logging or alerting
-- Missing error context that would block incident diagnosis
-- Backwards-incompatible changes without migration path
-- Resource exhaustion risks (unbounded queues, missing timeouts,
-  connection leaks)
-- Cascading failure potential (one component failure taking down
-  others)
-- Data loss risk during rollback or partial deployment
-
-**Flag as improvements (Phase 2):**
-- Insufficient log context (missing request IDs, user context,
-  operation identifiers)
-- Missing health checks or readiness signals
-- No graceful degradation when dependencies are slow or down
-- Deployment coupling requiring coordinated releases
-- Missing configuration for operational tuning (timeouts,
-  retries, circuit breakers)
-
-**Flag as testing gaps (Phase 3):**
-- No tests for behavior during dependency failure
-- Missing load/stress test considerations for new paths
-- No tests for rollback or backwards compatibility
-- Missing tests for resource cleanup under error conditions
-
-**Don't flag:**
-- Code style or readability (code-quality reviewer handles this)
-- Architecture or design patterns (architect reviewer handles this)
-- Security specifics (devil's-advocate reviewer handles this)
-- Performance micro-optimizations unrelated to operational risk
-- Pre-existing operational gaps in unchanged code (unless critical)
+Stay in your lane: don't flag code style, architecture patterns,
+security specifics, or pre-existing ops gaps in unchanged code.
 ```
 
 For continuations, prepend: "Previous findings:\n<existing-design>
@@ -607,6 +463,8 @@ spawning causes 4x slower execution.
 When `--team` flag is present, execute EXACTLY these steps:
 
 **Step A: Gather context**
+Use `tools/bin/gitcontext --base main` for structured context,
+or gather manually:
 ```
 branch=$(git branch --show-current)
 log=$(git log main..HEAD --format="%h %s")

@@ -1,8 +1,8 @@
 ---
 name: start
 description: >
-  Create a new Graphite branch.
-  Triggers: /start, "start new branch", "begin work on".
+  Create a new Graphite branch. Use when beginning a new feature, starting fresh work, or needing a new
+  branch for a task. Triggers: /start, "start new branch", "begin work on".
 allowed-tools: Bash
 argument-hint: "<branch-name>"
 ---

@@ -1,8 +1,8 @@
 ---
 name: gt
 description: >
-  Wrap common Graphite CLI operations for branch management
-  and stacking. Triggers: /gt
+  Wrap common Graphite CLI operations for branch management and stacking. Use to check branch stack,
+  rebase stack, sync branches, navigate between stacked branches, or get branch info. Triggers: /gt
 allowed-tools: Bash
 argument-hint: "[log|restack|sync|info|amend|up|down|top|bottom] [flags]"
 ---

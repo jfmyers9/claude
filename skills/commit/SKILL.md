@@ -1,7 +1,8 @@
 ---
 name: commit
 description: >
-  Create conventional commits. Triggers: /commit, "commit this".
+  Create conventional commits with auto-generated messages. Use after making changes, when saving progress,
+  done with a change, ready to commit, or finished implementing. Triggers: /commit, "commit this".
 allowed-tools: Bash
 argument-hint: "[--amend] [--fixup <commit>] [message]"
 ---

@@ -55,8 +55,7 @@ Create ONE task containing all findings:
 Then structure findings as phases and store in both plan file and
 task metadata:
 
-a. Generate slug from feedback summary (lowercase, hyphens, max
-   50 chars, e.g. "login-timeout-error-ux")
+a. Generate slug: `Bash("tools/bin/slug '<feedback-summary>'")`
 b. Write plan file:
    ```
    Write("~/.claude/plans/<project>/fix-<slug>.md", <frontmatter + findings>)

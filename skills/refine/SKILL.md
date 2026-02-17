@@ -32,13 +32,8 @@ Read all identified files.
 
 For each file, find and fix:
 
-**Simplify code:**
-- Flatten nested conditionals → early returns/guard clauses
-- Extract magic numbers → named constants (if used 2+ times)
-- Replace abbreviations with clear names
-- Break multi-responsibility functions
-- Remove redundant defaults (`.get(key, None)` → `.get(key)`)
-- Replace inline lambdas with direct expressions
+**Simplify code** — apply standard simplification patterns
+(guard clauses, naming, single-responsibility, etc).
 
 **Improve comments:**
 - Remove code-restating comments ("increment counter",

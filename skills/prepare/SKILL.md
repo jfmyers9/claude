@@ -40,7 +40,7 @@ Plans live at `~/.claude/plans/<project>/<slug>.md`.
    b. If `$ARGUMENTS` is a task ID → `TaskGet(taskId)`, extract
       `metadata.design`
    c. If no args → scan for most recent plan file:
-      `ls -t ~/.claude/plans/<project>/*.md 2>/dev/null | head -1`
+      `Bash("tools/bin/planfile latest --project $(pwd)")`
       If found, read the file.
    d. If no plan file → fall back to unscoped:
       `ls -t ~/.claude/plans/*.md 2>/dev/null | head -1`
@@ -55,6 +55,8 @@ Plans live at `~/.claude/plans/<project>/<slug>.md`.
    - Find "Phases" or "Next Steps" section
    - Parse phases: `**Phase N: Description**` or `### Phase N:`
    - Extract tasks under each phase (numbered list items)
+   Or parse via: `Bash("tools/bin/phases '<plan-file-path>'")`
+   for structured JSON output of phases and dependencies.
 
 3. **Detect dependencies**
    - Default: sequential (each phase blocks the next)

@@ -32,32 +32,10 @@ test failures.
   - description: "Steps to Reproduce: <observed symptoms and error output>. Acceptance Criteria: Bug is fixed and verified by passing tests."
   - metadata: {type: "bug", priority: 1}
 
-### 2. Gather Diagnostics (Parallel)
+### 2. Diagnose and Fix
 
-Run these in parallel:
-```bash
-git branch --show-current
-git log --oneline -5
-git diff --stat
-gh pr checks  # or gh run list --limit 3
-```
-
-If test failure mentioned, run failing tests to reproduce.
-
-### 3. Investigate Systematically
-
-1. Read error output carefully
-2. Trace to root cause (don't guess)
-3. Read relevant source files
-4. Check recent changes that may have introduced the bug
-5. Use Grep/Glob to find related code
-
-### 4. Fix the Issue
-
-1. Make minimal, targeted changes
-2. Re-run failing tests/checks to verify fix
-3. If fix works: TaskUpdate(taskId, status: "completed")
-4. If fix doesn't work: TaskUpdate(taskId, metadata: {notes: "Findings: ..."})
+Gather context, trace to root cause, make minimal fix, verify
+with tests. Update task on success or record findings on failure.
 
 ### 5. Report
 

@@ -1,7 +1,8 @@
 ---
 name: resume-work
 description: >
-  Resume work on a branch/PR after a break. Triggers: /resume-work, /resume
+  Resume work on a branch/PR after a break. Use when asking where was I, what's the status, picking up
+  where I left off, what needs attention, or getting context on current work. Triggers: /resume-work, /resume
 allowed-tools: Bash, Read, Glob, TaskList, TaskGet
 argument-hint: "[branch-name|PR#]"
 ---
