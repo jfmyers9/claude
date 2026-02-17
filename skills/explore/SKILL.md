@@ -32,7 +32,10 @@ Create the directory on first write: `mkdir -p ~/.claude/plans/<project>/`
 
 ## Slug Generation
 
-Generate via: `Bash("tools/bin/slug '<topic>'")`
+Generate a kebab-case slug from the topic: lowercase, strip filler
+words [a, an, the, for, with, and, or, to, in, of, on, by, is,
+it, be, as, at, do], replace non-alphanumeric runs with hyphens,
+max 50 chars truncated on word boundary.
 
 ## Plan File Format
 
@@ -85,7 +88,6 @@ status: draft
 
 5. Store findings:
    a. Write plan file: `Write("~/.claude/plans/<project>/<slug>.md", <frontmatter + findings>)`
-      Or use: `Bash("tools/bin/planfile create --topic '<topic>' --project $(pwd) --slug '<slug>' --body '<body>'")`
    b. Store in task: `TaskUpdate(taskId, metadata: { design: "<findings>", plan_file: "<slug>.md" })`
    For Team Mode, run aggregation first (see Team Mode Aggregation).
 
@@ -117,7 +119,7 @@ status: draft
    - Delete `~/.claude/plans/<project>/<slug>.md` (try with/without
      .md extension, partial glob match)
 3. If no slug → delete most recent:
-   Find most recent: `Bash("tools/bin/planfile latest --project $(pwd)")`
+   Find most recent: `ls -t ~/.claude/plans/<project>/*.md | head -1`
    Then delete it.
 4. Report: "Discarded plan: `<filename>`"
 

@@ -55,7 +55,8 @@ Create ONE task containing all findings:
 Then structure findings as phases and store in both plan file and
 task metadata:
 
-a. Generate slug: `Bash("tools/bin/slug '<feedback-summary>'")`
+a. Generate a kebab-case slug from the feedback summary (lowercase,
+   strip filler words, replace non-alnum with hyphens, max 50 chars)
 b. Write plan file:
    ```
    Write("~/.claude/plans/<project>/fix-<slug>.md", <frontmatter + findings>)

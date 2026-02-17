@@ -47,7 +47,8 @@ Orchestrate code review via tasks and Task delegation.
    subagent per group, aggregate findings
 
 7. **Store findings**
-   a. Generate slug: `Bash("tools/bin/slug '<branch-name>'")`
+   a. Generate a kebab-case slug from the branch name (lowercase,
+      strip filler words, replace non-alnum with hyphens, max 50 chars)
    b. Write plan file:
       ```
       Write("~/.claude/plans/<project>/review-<slug>.md", <frontmatter + findings>)
@@ -463,8 +464,6 @@ spawning causes 4x slower execution.
 When `--team` flag is present, execute EXACTLY these steps:
 
 **Step A: Gather context**
-Use `tools/bin/gitcontext --base main` for structured context,
-or gather manually:
 ```
 branch=$(git branch --show-current)
 log=$(git log main..HEAD --format="%h %s")

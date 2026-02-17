@@ -70,7 +70,6 @@ Triage PR review feedback and recommend actions.
      ```
      Write("~/.claude/plans/<project>/respond-pr-<number>.md", <frontmatter + phased findings>)
      ```
-     Or use: `Bash("tools/bin/planfile create --topic 'Respond: PR #<number>' --project $(pwd) --slug 'respond-pr-<number>' --body '<body>'")`
      Frontmatter:
      ```yaml
      ---
