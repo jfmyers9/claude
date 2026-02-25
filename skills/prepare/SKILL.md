@@ -89,8 +89,16 @@ Plans live at `~/.claude/plans/<project>/<slug>.md`.
 
 5. **Finalize**
    - `TaskUpdate(epicId, status: "in_progress")`
-   - If source was a plan file: delete it
-     `rm ~/.claude/plans/<project>/<filename>` (via Bash)
+   - Copy full plan content into epic metadata:
+     `TaskUpdate(epicId, metadata: { design: "<full plan text>" })`
+   - If source was a plan file: archive it
+     ```
+     mkdir -p ~/.claude/plans/<project>/archive/
+     ```
+     Update frontmatter `status: prepared` in the file, then:
+     ```
+     mv ~/.claude/plans/<project>/<filename> ~/.claude/plans/<project>/archive/
+     ```
    - If source was a task: close it
      `TaskUpdate(sourceId, status: "completed")`
      (close source AFTER epic creation succeeds — failures leave
@@ -98,7 +106,7 @@ Plans live at `~/.claude/plans/<project>/<slug>.md`.
 
 6. **Report**
    - Display epic ID and all child task IDs
-   - Note source consumed (deleted plan file or closed task)
+   - Note source archived (plan file moved to archive/) or closed task
    - Show dependency graph
    - Show parallel work fronts
    - Suggest: `/implement <epic-id>` to start execution

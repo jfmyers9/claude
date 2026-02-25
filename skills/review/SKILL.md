@@ -3,7 +3,7 @@ name: review
 description: >
   Senior engineer code review, filing findings as tasks.
   Triggers: 'review code', 'code review', 'review my changes'.
-allowed-tools: Bash, Read, Write, Task, TaskCreate, TaskUpdate, TaskGet, TaskList
+allowed-tools: Bash, Read, Write, Task, SendMessage, TaskCreate, TaskUpdate, TaskGet, TaskList, TeamCreate, TeamDelete
 argument-hint: "[file-pattern] [--team] | <task-id> | --continue"
 ---
 
@@ -16,7 +16,8 @@ Orchestrate code review via tasks and Task delegation.
 - `<file-pattern>` — new review, optionally filtering files
 - `<task-id>` — continue existing review task
 - `--continue` — resume most recent in_progress review
-- `--team` — multi-perspective review (architect, code-quality, devil's-advocate, operations)
+- `--team` — multi-perspective team review (architect,
+  code-quality, devil's-advocate, operations)
 
 ## Workflow
 
@@ -31,28 +32,100 @@ Orchestrate code review via tasks and Task delegation.
 2. **Create review task**
    - TaskCreate:
      - subject: "Review: {branch}"
-     - description: "All changed files reviewed for critical issues, design, and testing gaps. Findings stored in task metadata design field as phased structure. Critical issues identified and actionable via /prepare."
+     - description: "All changed files reviewed for critical
+       issues, design, and testing gaps. Findings stored in
+       task metadata design field as phased structure."
      - metadata: {type: "task", priority: 2}
    - TaskUpdate(taskId, status: "in_progress")
 
 3. **Determine review mode**
-   - `--team` in arguments → **Perspective Mode**: 4 specialized reviewers
-     (always 4 subagents regardless of file count — no file splitting)
-   - ≤15 changed files (no --team) → **Solo Mode**: single Review subagent
-   - >15 changed files (no --team) → **Team Mode**: spawn parallel reviewers
 
-4. **Solo Mode**: Spawn single Task subagent (see Review Subagent Prompt)
-5. **Perspective Mode**: Spawn 4 specialized Task subagents (see Perspective Mode Details)
-6. **Team Mode**: Split files into groups of ~8, spawn one
-   subagent per group, aggregate findings
+   | Scenario | Flag | Mode |
+   |----------|------|------|
+   | Few files (≤15) | (none) | Solo |
+   | Large changeset (>15) | (none) | Split |
+   | Any file count | `--team` | Perspective |
 
-7. **Store findings**
-   a. Generate a kebab-case slug from the branch name (lowercase,
-      strip filler words, replace non-alnum with hyphens, max 50 chars)
+4. **Execute review** by mode:
+   - **Solo Mode** → step 5
+   - **Split Mode** → step 6
+   - **Perspective Mode** → step 7
+
+5. **Solo Mode**: Spawn single Task subagent
+   (see Review Subagent Prompt)
+
+6. **Split Mode**: When >15 changed files (no `--team`):
+   a. Split changed files into groups of ~8
+   b. Spawn parallel Task subagents (one per group), all in
+      a single message for true parallel execution
+   c. Each subagent reviews its file group using the solo prompt
+   d. Aggregate: merge Phase 1/2/3 findings across groups,
+      deduplicate cross-file findings
+   e. Store consolidated findings in design field
+
+7. **Perspective Mode**: Create a Claude team for coordinated
+   multi-perspective review.
+
+   a. Gather context:
+      ```
+      branch=$(git branch --show-current)
+      log=$(git log main..HEAD --format="%h %s")
+      files=$(git diff main...HEAD --name-only)
+      diff=$(git diff main...HEAD)
+      ```
+      Apply Large Diff Handling when gathering context.
+
+   b. Create team:
+      `TeamCreate(team_name="review-<branch-slug>")`
+      Read team config:
+      `~/.claude/teams/review-<branch-slug>/config.json`
+      → extract your `name` field as `<lead-name>`
+
+   c. Spawn ALL FOUR workers in ONE message.
+      CRITICAL: All 4 Task calls MUST be in the SAME response.
+      Sequential spawning causes 4x slower execution.
+      ```
+      Task(subagent_type="general-purpose",
+           team_name="review-<branch-slug>",
+           name="architect", model=opus,
+           prompt=<Architect Prompt + Team Protocol>)
+      Task(subagent_type="general-purpose",
+           team_name="review-<branch-slug>",
+           name="code-quality", model=opus,
+           prompt=<Code Quality Prompt + Team Protocol>)
+      Task(subagent_type="general-purpose",
+           team_name="review-<branch-slug>",
+           name="devils-advocate", model=opus,
+           prompt=<Devil's Advocate Prompt + Team Protocol>)
+      Task(subagent_type="general-purpose",
+           team_name="review-<branch-slug>",
+           name="operations", model=opus,
+           prompt=<Operations Prompt + Team Protocol>)
+      ```
+      Inject `<lead-name>` and gathered context into each
+      prompt's placeholders.
+
+   d. Wait for completion — track `completed_count` from
+      worker SendMessage notifications. When all 4 done →
+      aggregate. If a worker goes idle without completing →
+      check TaskList, proceed when all non-stuck done. Tag
+      partial results: "Note: <perspective> did not return
+      results."
+      If 2+ workers fail → fall back to Solo Mode, note that
+      team review was attempted.
+
+   e. Aggregate findings (see Perspective Aggregation).
+
+   f. Cleanup: `SendMessage(type="shutdown_request")` to each
+      worker. After all acknowledge → `TeamDelete`.
+
+8. **Store findings**
+   a. Generate a kebab-case slug from the branch name
+      (lowercase, strip filler words, replace non-alnum
+      with hyphens, max 50 chars)
    b. Write plan file:
-      ```
-      Write("~/.claude/plans/<project>/review-<slug>.md", <frontmatter + findings>)
-      ```
+      `Write("~/.claude/plans/<project>/review-<slug>.md",
+        <frontmatter + findings>)`
       Frontmatter:
       ```yaml
       ---
@@ -62,10 +135,13 @@ Orchestrate code review via tasks and Task delegation.
       status: draft
       ---
       ```
-   c. Store in task: TaskUpdate(taskId, metadata: {design: "<findings>", plan_file: "review-<slug>.md"})
+   c. Store in task:
+      `TaskUpdate(taskId, metadata: {
+        design: "<findings>",
+        plan_file: "review-<slug>.md" })`
    d. Leave task in_progress
 
-8. **Report results** (see Output Format)
+9. **Report results** (see Output Format)
 
 ### Continue Review
 
@@ -73,19 +149,22 @@ Orchestrate code review via tasks and Task delegation.
    - If `$ARGUMENTS` matches a task ID → use it
    - If `--continue` → TaskList(), find first in_progress task
      with subject starting "Review:"
-2. Load existing context: TaskGet(taskId) → extract metadata.design
+2. Load existing context:
+   TaskGet(taskId) → extract metadata.design
 3. Detect original review type:
-   - If design contains `[architect]` or `**Consensus**` tags →
-     was a team review → re-spawn in Perspective Mode
+   - If design contains `[architect]` or `**Consensus**` tags
+     → was a perspective review → re-spawn in Perspective Mode
    - Otherwise → re-spawn as Solo Mode
 4. Spawn subagent(s) with previous findings prepended:
-   - Solo continuation: single subagent with "Previous findings:\n<design>\n\nContinue reviewing..."
-   - Team continuation: 4 perspective subagents, each with
-     "Previous findings:\n<design>\n\nContinue reviewing from your
-     perspective (<architect|code-quality|devil's-advocate|operations>)..."
-5. Aggregate new findings with previous (re-run Perspective Aggregation
-   if team continuation)
-6. Update design: TaskUpdate(taskId, metadata: {design: "<updated-findings>"})
+   - Solo: "Previous findings:\n<design>\n\nContinue
+     reviewing..."
+   - Perspective: 4 workers, each with "Previous team review
+     findings:\n<design>\n\nContinue reviewing from the
+     <perspective> perspective..."
+5. Aggregate new findings with previous (re-run Perspective
+   Aggregation if team continuation)
+6. Update design:
+   `TaskUpdate(taskId, metadata: {design: "<updated>"})`
 7. Report results
 
 ## Review Scope
@@ -103,7 +182,17 @@ existing codebase. The diff is the primary review surface.
 
 This principle applies to all review modes and prompts below.
 
-## Review Subagent Prompt
+## Large Diff Handling
+
+If total diff exceeds 3000 lines: for each file with >200 lines
+of diff, truncate to first 50 + last 50 lines. Note truncations
+in the prompt so subagents know to `Read` full files if needed.
+
+Applies to Split Mode and Perspective Mode when gathering diffs.
+
+## Prompt Templates
+
+### Solo / Split Review Prompt
 
 Spawn Task (subagent_type=Explore, model=opus) with:
 
@@ -151,42 +240,14 @@ Don't flag style preferences, hypothetical edge cases, or
 pre-existing flaws in unchanged code.
 ```
 
-## Large Diff Handling
+### Perspective Prompts
 
-Applies to both Team Mode and Perspective Mode when gathering
-diffs for subagents:
+Each perspective worker gets its specialized prompt (below)
+plus the Team Worker Protocol appendix (at the end of this
+section). Inject `<lead-name>` and gathered diff context into
+placeholders.
 
-If total diff exceeds 3000 lines: for each file with >200 lines
-of diff, truncate to first 50 + last 50 lines. Note truncations
-in the prompt so subagents know to `Read` full files if needed.
-
-## Team Mode Details
-
-When >15 files changed (no `--team` flag):
-
-Each subagent gets a subset of files. After all return,
-concatenate findings and deduplicate across phases.
-
-Apply Large Diff Handling (above) when gathering context.
-
-1. Split changed files into groups of ~8
-2. Spawn parallel Task subagents (one per group), all in a
-   single message for true parallel execution
-3. Each subagent reviews its file group using the prompt above
-4. Aggregate results:
-   - Merge Phase 1 findings from all subagents
-   - Merge Phase 2 findings from all subagents
-   - Merge Phase 3 findings from all subagents
-   - Deduplicate cross-file findings
-5. Store consolidated findings in design field
-
-## Team Review Prompts
-
-When `--team` flag is provided, spawn 3 parallel Task subagents
-(subagent_type=Explore, model=opus) using these specialized prompts
-instead of the generic prompt above.
-
-### Architect Prompt
+#### Architect
 
 ```
 You are a staff-level software architect with deep experience in
@@ -247,7 +308,7 @@ Stay in your lane: don't flag code-level style, security specifics,
 or pre-existing design flaws in unchanged code.
 ```
 
-### Code Quality Prompt
+#### Code Quality
 
 ```
 You are a principal engineer who has spent years onboarding new
@@ -309,7 +370,7 @@ Stay in your lane: don't flag architecture, security threat modeling,
 or pre-existing quality issues in unchanged code.
 ```
 
-### Devil's Advocate Prompt
+#### Devil's Advocate
 
 ```
 You are a staff security engineer and resilience specialist who
@@ -379,7 +440,7 @@ Stay in your lane: don't flag code style, architecture patterns,
 or pre-existing vulnerabilities in unchanged code.
 ```
 
-### Operations Prompt
+#### Operations
 
 ```
 You are a staff SRE and platform engineer who has been paged at
@@ -444,57 +505,34 @@ Stay in your lane: don't flag code style, architecture patterns,
 security specifics, or pre-existing ops gaps in unchanged code.
 ```
 
-For continuations, prepend: "Previous findings:\n<existing-design>
-\n\nContinue reviewing, focusing on: <new-instructions>"
+#### Team Worker Protocol
 
-For team continuations, prepend to each perspective's prompt:
-"Previous team review findings:\n<existing-design>\n\nContinue
-reviewing from the <perspective-name> perspective, focusing on:
-<new-instructions>"
+Append this to each perspective prompt:
 
-After agent(s) return, store full findings:
-TaskUpdate(taskId, metadata: {design: "<findings>"})
-
-## Perspective Mode Execution
-
-CRITICAL: All 4 Task calls MUST be in the SAME message/response.
-Do NOT spawn one, wait for it, then spawn the next. Sequential
-spawning causes 4x slower execution.
-
-When `--team` flag is present, execute EXACTLY these steps:
-
-**Step A: Gather context**
-```
-branch=$(git branch --show-current)
-log=$(git log main..HEAD --format="%h %s")
-files=$(git diff main...HEAD --name-only)
-diff=$(git diff main...HEAD)
 ```
 
-Apply Large Diff Handling (above) when gathering context.
+## Team Protocol
 
-**Step B: Spawn ALL FOUR subagents in ONE message**
-Make exactly 4 Task tool calls in a single response:
-1. `Task(subagent_type=Explore, model=opus, prompt=<Architect Prompt with context>)`
-2. `Task(subagent_type=Explore, model=opus, prompt=<Code Quality Prompt with context>)`
-3. `Task(subagent_type=Explore, model=opus, prompt=<Devil's Advocate Prompt with context>)`
-4. `Task(subagent_type=Explore, model=opus, prompt=<Operations Prompt with context>)`
+1. Research and review using the prompt above.
+   Return your COMPLETE findings as text.
 
-Inject gathered context into each prompt's placeholders.
+2. When done, send your findings to the team lead:
+   SendMessage(type="message", recipient="<lead-name>",
+     content="<your full structured findings>",
+     summary="<perspective> review complete")
 
-**Step C: Handle failures**
-- If 1 subagent returns empty/error: note which perspective is
-  missing, proceed with remaining results
-- If 2+ subagents fail: fall back to Solo Mode, note that team
-  review was attempted
-- Tag partial results: "Note: <perspective> did not return results"
+3. Wait for shutdown request. When received, approve it.
 
-**Step D: Aggregate findings** (see Perspective Aggregation)
+## Rules
+- Only review — do NOT modify any files
+- If you notice something relevant to another perspective,
+  mention it in your findings (the lead will cross-reference)
+- Do NOT communicate directly with other reviewers
+```
 
 ## Perspective Aggregation
 
-After all subagents return (or 3 of 4 if one failed), merge
-findings:
+After all workers report (or 3 of 4 if one failed), merge:
 
 ### Step 1: Concatenate with source headers
 
@@ -514,9 +552,9 @@ findings:
 
 ### Step 2: Scan for consensus
 
-Compare findings across perspectives. Same file + same issue area
-flagged by 2+ perspectives = consensus finding. Tag with all
-agreeing sources: `[architect, code-quality]`.
+Compare findings across perspectives. Same file + same issue
+area flagged by 2+ perspectives = consensus finding. Tag with
+all agreeing sources: `[architect, code-quality]`.
 
 ### Step 3: Build unified output
 
@@ -544,12 +582,13 @@ agreeing sources: `[architect, code-quality]`.
 - Finding [source-perspective]
 ```
 
-Reviewer Summaries first (one sentence per persona capturing their
-overall take). Then consensus items. Then disagreements — when one
-persona flags something as critical but another's "Don't flag" list
-covers it, surface the tension rather than silently dropping.
-Remove consensus/disagreement items from Phase sections to avoid
-duplication. Skip empty sections. Most impactful first.
+Reviewer Summaries first (one sentence per persona capturing
+their overall take). Then consensus items. Then disagreements —
+when one persona flags something as critical but another's
+"Don't flag" list covers it, surface the tension rather than
+silently dropping. Remove consensus/disagreement items from
+Phase sections to avoid duplication. Skip empty sections. Most
+impactful first.
 
 ## Output Format
 
@@ -562,15 +601,15 @@ duplication. Skip empty sections. Most impactful first.
 - <improvements count> design improvements
 - <testing gaps count> testing gaps
 
-**Plan**: `~/.claude/plans/<project>/review-<slug>.md` — review/edit in
-`$EDITOR` before `/prepare`.
-
-**Next**: `/prepare` to create tasks, or edit the plan file first.
-
-For `--team` reviews, add before **Plan**:
+For `--team` reviews, add:
 
 **Consensus Findings** (flagged by multiple perspectives):
 - <count> consensus findings
+
+**Plan**: `~/.claude/plans/<project>/review-<slug>.md` —
+review/edit in `$EDITOR` before `/prepare`.
+
+**Next**: `/prepare` to create tasks, or edit the plan first.
 
 ## Guidelines
 
@@ -579,12 +618,3 @@ For `--team` reviews, add before **Plan**:
 - Let the Task agent do the review work
 - Summarize agent findings, don't copy verbatim
 - Always read files before reviewing diffs (need full context)
-
-## Mode Selection Guide
-
-| Scenario | Flag | Mode | Subagents |
-|----------|------|------|-----------|
-| Quick review, few files | (none) | Solo | 1 generic |
-| Large changeset | (none) | Team | N groups × 1 generic |
-| Deep multi-perspective | `--team` | Perspective | 4 specialized |
-| Large + multi-perspective | `--team` | Perspective | 4 specialized |

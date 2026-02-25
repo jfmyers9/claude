@@ -64,6 +64,8 @@ Fetch task, team, and plan state:
 - Determine `<project>`: `basename $(git rev-parse --show-toplevel 2>/dev/null || pwd)`
 - `ls -t ~/.claude/plans/<project>/*.md 2>/dev/null | head -5`
   for pending plan files
+- `ls -t ~/.claude/plans/<project>/archive/*.md 2>/dev/null | head -5`
+  for archived (previously prepared) plans
 
 ### 3. Summarize
 
@@ -77,6 +79,7 @@ Format gathered data as:
 **CI:** Passing | Failing (list failures)
 **Comments:** N unresolved (summarize key ones)
 **Plans:** N pending plan files (list filenames)
+**Archived Plans:** N archived plans (list filenames)
 **Tasks:** N in progress, M pending, K active teams
 ```
 

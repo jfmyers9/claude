@@ -5,17 +5,18 @@ description: >
   teams for parallel work.
   Triggers: 'implement', 'build this', 'execute plan', 'start work'.
 allowed-tools: Bash, Read, Task, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet, TeamCreate, TeamDelete
-argument-hint: "[task-id] [--solo]"
+argument-hint: "[task-id] [--solo] [--team]"
 ---
 
 # Implement
 
-Execute work from tasks, spawning teams for parallel epics.
+Execute work from tasks, spawning teams for parallel execution.
 
 ## Arguments
 
 - `task-id` — epic or task ID (optional)
 - `--solo` — force single-agent mode even for epics
+- `--team` — force Swarm Mode (auto-creates ad-hoc epic if needed)
 
 ## Step 1: Find Work
 
@@ -34,8 +35,33 @@ Execute work from tasks, spawning teams for parallel epics.
 `TaskGet(taskId)` to inspect.
 
 **Epic?** → `metadata.type == "epic"` → **Swarm Mode** (unless `--solo`)
+**`--team` flag + not an epic?** → **Ad-hoc Swarm Mode** (see below)
 **Task with parent?** → has `metadata.parent_id` → read parent for context, **Solo Mode**
 **Standalone task?** → **Solo Mode**
+  - If `--team` was requested but only 1 standalone task exists,
+    report: "Solo Mode: only 1 task found. Use `/prepare` to create
+    an epic with multiple phases for team execution."
+
+### Ad-hoc Swarm Mode
+
+When `--team` is passed but the target is not an epic:
+
+1. Gather pending tasks: `TaskList()` → filter tasks with
+   `status == "pending"` and empty `blockedBy`
+2. If <2 eligible tasks → report and fall to Solo Mode (same
+   message as above)
+3. Create ad-hoc epic:
+   ```
+   TaskCreate(
+     subject: "Ad-hoc: <first-task-subject> + N more",
+     description: "Auto-created epic for team execution",
+     activeForm: "Implementing tasks as team",
+     metadata: { type: "epic", priority: 1 }
+   )
+   ```
+4. Re-parent eligible tasks:
+   `TaskUpdate(taskId, metadata: { parent_id: "<epicId>" })`
+5. Proceed to **Swarm Mode** with the new epic
 
 ## Swarm Mode
 
