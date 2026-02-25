@@ -11,6 +11,12 @@ argument-hint: "[file-pattern] [--team] | <task-id> | --continue"
 
 Orchestrate code review via tasks and Task delegation.
 
+## Plan Directory
+
+`<project>` = `basename` of git root (or cwd if not in a repo).
+Determine via: `basename $(git rev-parse --show-toplevel 2>/dev/null || pwd)`
+Plans live at `~/.claude/plans/<project>/review-<slug>.md`.
+
 ## Arguments
 
 - `<file-pattern>` — new review, optionally filtering files

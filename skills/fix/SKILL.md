@@ -11,6 +11,12 @@ argument-hint: "[feedback-text]"
 
 Convert user feedback into structured tasks.
 
+## Plan Directory
+
+`<project>` = `basename` of git root (or cwd if not in a repo).
+Determine via: `basename $(git rev-parse --show-toplevel 2>/dev/null || pwd)`
+Plans live at `~/.claude/plans/<project>/fix-<slug>.md`.
+
 ## Arguments
 
 - `<feedback-text>` — feedback to convert (may reference files,

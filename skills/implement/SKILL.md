@@ -12,6 +12,10 @@ argument-hint: "[task-id] [--solo] [--team]"
 
 Execute work from tasks, spawning teams for parallel execution.
 
+CRITICAL: This skill is a pure orchestrator. Do NOT implement code
+directly — always delegate to Task agents (`subagent_type=general-purpose`).
+Bash is for read-only orchestration only (git status, team config reads).
+
 ## Arguments
 
 - `task-id` — epic or task ID (optional)
@@ -75,9 +79,15 @@ When `--team` is passed but the target is not an epic:
 3. Create team: `TeamCreate(team_name="swarm-<epicId>")`
    If TeamCreate fails → fall back to sequential Solo Mode:
      for each task in topological order:
-       TaskUpdate(taskId, status: "in_progress", owner: "worker")
-       Spawn single Task agent, wait for completion
-       TaskUpdate(taskId, status: "completed")
+       Inject task description + epic context into Solo Worker
+       Prompt Template, then spawn:
+       ```
+       Task(
+         subagent_type="general-purpose",
+         prompt=<SOLO_WORKER_PROMPT with injected context>
+       )
+       ```
+       Wait for completion, verify task status.
      Skip team cleanup (no team was created)
 4. Read team config: `~/.claude/teams/swarm-<epicId>/config.json`
    → extract the team lead's `name` field for injecting into worker prompts
@@ -169,6 +179,44 @@ You are a swarm worker. Implement task <task-id>.
 - Do NOT work on other tasks after completing yours
 ```
 
+### Solo Worker Spawn
+
+For standalone or single-child tasks, spawn via Task tool:
+
+```
+Task(
+  subagent_type="general-purpose",
+  prompt=<SOLO_WORKER_PROMPT>
+)
+```
+
+### Solo Worker Prompt Template
+
+```
+You are an implementation worker. Implement task <task-id>.
+
+## Your Task
+<task description from TaskGet>
+
+## Context
+<parent epic subject + design field summary, if available>
+
+## Protocol
+
+1. Read any files referenced in the task to understand current state.
+
+2. Implement the work described in the task.
+
+3. When done, complete the task:
+   TaskUpdate(taskId="<task-id>", status="completed")
+
+## Rules
+- Only modify files described in or implied by the task
+- If you hit a blocker, stop and report it in task metadata:
+  TaskUpdate(taskId="<task-id>", metadata={ notes: "<blocker>" })
+- Do NOT work on other tasks
+```
+
 ### Wave Completion Detection
 
 After spawning a wave of workers:
@@ -192,14 +240,22 @@ message) makes waves run N× slower.
 
 ## Solo Mode
 
+CRITICAL: Do NOT implement code directly on this context. Always
+delegate to a Task agent using the Solo Worker Prompt Template.
+
 1. `TaskUpdate(taskId, status: "in_progress")`
-2. Read scope from description and/or `metadata.design`
-3. If parent epic: `TaskGet(parentId)` for context
-4. Spawn single Task agent (`subagent_type=general-purpose`)
-   - Pass task description + parent context
-   - Worker implements, then: `TaskUpdate(taskId, status: "completed")`
-5. On completion: verify via `TaskGet(taskId)` status is completed
-6. Report results
+2. Read scope: `TaskGet(taskId)` → extract description + `metadata.design`
+3. If parent epic (`metadata.parent_id`): `TaskGet(parentId)` for context
+4. Inject task description + parent context into Solo Worker Prompt Template
+5. Spawn worker (see Solo Worker Spawn above):
+   ```
+   Task(
+     subagent_type="general-purpose",
+     prompt=<SOLO_WORKER_PROMPT with injected context>
+   )
+   ```
+6. On completion: verify via `TaskGet(taskId)` status is completed
+7. Report results
 
 ## Error Handling
 

@@ -11,6 +11,12 @@ argument-hint: "[pr-number] | <task-id> | --continue"
 
 Triage PR review feedback and recommend actions.
 
+## Plan Directory
+
+`<project>` = `basename` of git root (or cwd if not in a repo).
+Determine via: `basename $(git rev-parse --show-toplevel 2>/dev/null || pwd)`
+Plans live at `~/.claude/plans/<project>/respond-pr-<number>.md`.
+
 ## Arguments
 
 - `<pr-number>` — new respond session for specific PR
