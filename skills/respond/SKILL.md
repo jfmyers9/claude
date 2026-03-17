@@ -35,13 +35,46 @@ Plans live at `~/.claude/plans/<project>/respond-pr-<number>.md`.
    ```bash
    # Repo identifier
    REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+   OWNER="${REPO%%/*}"
+   REPO_NAME="${REPO##*/}"
    PR_NUM=<number>
 
-   # Inline review comments (on code lines)
-   gh api "repos/$REPO/pulls/$PR_NUM/comments" \
-     --jq '.[] | {id, path, line, original_line, body,
-       user: .user.login, in_reply_to_id, created_at,
-       diff_hunk, subject_type}'
+   # Inline review comments (unresolved only, via GraphQL)
+   gh api graphql --paginate -F owner="$OWNER" -F repo="$REPO_NAME" -F pr="$PR_NUM" -f query='
+     query($owner: String!, $repo: String!, $pr: Int!, $endCursor: String) {
+       repository(owner: $owner, name: $repo) {
+         pullRequest(number: $pr) {
+           reviewThreads(first: 100, after: $endCursor) {
+             pageInfo { hasNextPage endCursor }
+             nodes {
+               isResolved
+               isOutdated
+               path
+               line
+               originalLine
+               diffHunk
+               subjectType
+               comments(first: 1) {
+                 nodes {
+                   id
+                   body
+                   author { login }
+                   createdAt
+                 }
+               }
+             }
+           }
+         }
+       }
+     }' \
+     --jq '.data.repository.pullRequest.reviewThreads.nodes[]
+       | select(.isResolved == false)
+       | {id: .comments.nodes[0].id, path, line, original_line: .originalLine,
+          body: (if .isOutdated then "[outdated] " + .comments.nodes[0].body else .comments.nodes[0].body end),
+          user: .comments.nodes[0].author.login,
+          created_at: .comments.nodes[0].createdAt,
+          diff_hunk: .diffHunk, subject_type: .subjectType,
+          is_outdated: .isOutdated}'
 
    # Top-level review comments + review decisions
    gh pr view $PR_NUM --json reviews,comments,reviewDecision
@@ -54,8 +87,8 @@ Plans live at `~/.claude/plans/<project>/respond-pr-<number>.md`.
    ```
 
 3. **Filter comments**
-   - Only top-level comments (`in_reply_to_id == null`) — these
-     are unresolved threads
+   - Resolved threads excluded at fetch time (GraphQL `isResolved` filter)
+   - Outdated threads included with `[outdated]` body prefix
    - Exclude bot comments (dependabot, github-actions, etc.)
    - Exclude the PR author's own comments
    - Group by file path

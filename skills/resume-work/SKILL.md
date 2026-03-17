@@ -44,15 +44,36 @@ gh pr view --json number,title,state,isDraft,reviewDecision,statusCheckRollup,ur
 gh pr checks 2>/dev/null || echo "No PR"
 ```
 
-Fetch unresolved review comments (top-level only):
+Fetch unresolved review comments (via GraphQL):
 
 ```bash
 PR_NUM=$(gh pr view --json number -q .number 2>/dev/null)
 if [[ -n "$PR_NUM" ]]; then
   REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-  gh api "repos/$REPO/pulls/$PR_NUM/comments" \
-    --jq '.[] | select(.in_reply_to_id == null) |
-      "- \(.path):\(.line) (@\(.user.login)): \(.body | split("\n")[0])"' \
+  OWNER="${REPO%%/*}"
+  REPO_NAME="${REPO##*/}"
+  gh api graphql --paginate -F owner="$OWNER" -F repo="$REPO_NAME" -F pr="$PR_NUM" -f query='
+    query($owner: String!, $repo: String!, $pr: Int!, $endCursor: String) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $pr) {
+          reviewThreads(first: 100, after: $endCursor) {
+            pageInfo { hasNextPage endCursor }
+            nodes {
+              isResolved
+              isOutdated
+              path
+              line
+              comments(first: 1) {
+                nodes { body author { login } }
+              }
+            }
+          }
+        }
+      }
+    }' \
+    --jq '.data.repository.pullRequest.reviewThreads.nodes[]
+      | select(.isResolved == false)
+      | "- \(.path):\(.line) (@\(.comments.nodes[0].author.login)): \(if .isOutdated then "[outdated] " else "" end)\(.comments.nodes[0].body | split("\n")[0])"' \
     2>/dev/null | head -20
 fi
 ```
@@ -102,4 +123,4 @@ Pick the first matching condition:
 ## Notes
 
 - Limit output with `head -N` to prevent context overflow
-- Only top-level comments (`in_reply_to_id == null`)
+- Only unresolved review threads (filtered via GraphQL `isResolved`)
