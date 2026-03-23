@@ -35,7 +35,8 @@ Fires once at skill completion, not per-write:
 ```sh
 cd ~/workspace/blueprints && \
   git add -A <project>/ && \
-  git commit -m "<type>(<project>): <slug>"
+  git commit -m "<type>(<project>): <slug>" && \
+  git push
 ```
 
 ## Archive Protocol
