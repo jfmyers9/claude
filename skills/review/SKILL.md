@@ -254,9 +254,12 @@ Focus on **introduced code** and how it interacts with the
 existing codebase. The diff is the primary review surface.
 
 - **Always review**: new/modified code, new patterns, new
-  dependencies, changed interfaces, changed behavior
+  dependencies, changed interfaces, changed behavior,
+  previously-ignored parameters/code paths now activated
 - **Review if relevant**: existing code that the new code
-  calls into or depends on (interaction quality)
+  calls into or depends on (interaction quality), existing
+  callers of changed functions (especially when a parameter
+  goes from ignored/hardcoded to actually used)
 - **Only flag existing code** if it has a truly critical flaw
   (security vulnerability, data loss, crash) — not style,
   not "while we're here" improvements
@@ -329,6 +332,11 @@ Review each file strictly through an architectural lens:
 - **Approach alignment**: Does this approach achieve the stated
   goal with appropriate complexity? Could the PR's objective be
   met with a fundamentally different strategy?
+- **Backwards compatibility**: When changing how an existing
+  interface consumes its inputs (respecting a previously-ignored
+  param, widening accepted values, changing defaults), trace
+  existing callers. Ask: "who calls this today, what values do
+  they pass, and will their behavior change silently?"
 
 ## Shared Concerns
 
@@ -413,6 +421,11 @@ Review each file strictly through a code quality lens:
 - **Intent alignment**: Does the implementation match the
   described intent in the PR? Any disconnect between what the
   PR says and what the code does?
+- **Dead code activation**: When code changes how an input is
+  consumed (ignored → used, hardcoded → dynamic, narrowed →
+  widened), grep for existing callers. Their existing arguments
+  may suddenly take effect or change meaning without their
+  knowledge.
 
 ## Shared Concerns
 
@@ -579,7 +592,10 @@ Review each file through an operational lens:
   broken from metrics alone?
 - **Deployment safety**: Can this be deployed incrementally? Is
   it backwards compatible with in-flight requests? Does it need
-  a feature flag or migration?
+  a feature flag or migration? If an interface now consumes
+  inputs differently (ignored → used, default changed, accepted
+  values widened), will existing callers' behavior change
+  silently on deploy?
 - **Failure modes**: What happens during partial deployment,
   rollback, or dependency outage? Any cascading failure risks?
 - **Resource footprint**: Any unbounded growth, missing timeouts,
