@@ -145,6 +145,10 @@ Orchestrate code review via tasks and Task delegation.
            team_name="review-<branch-slug>",
            name="operations", model=opus,
            prompt=<Operations Prompt + Team Protocol>)
+      Task(subagent_type="general-purpose",
+           team_name="review-<branch-slug>",
+           name="test-quality", model=opus,
+           prompt=<Test Quality Prompt + Team Protocol>)
       # If $LANG is set, include language reviewer in same message:
       Task(subagent_type="general-purpose",
            team_name="review-<branch-slug>",
@@ -157,12 +161,12 @@ Orchestrate code review via tasks and Task delegation.
            prompt=<Coherence Prompt ($SPEC_CONTENT) + Team Protocol>)
       ```
       Inject `<lead-name>` and gathered context into each
-      prompt's placeholders. Worker count is 4 + 1 if `$LANG`
-      is set + 1 if `$HAS_PLAN` is true (4, 5, or 6 workers).
+      prompt's placeholders. Worker count is 5 + 1 if `$LANG`
+      is set + 1 if `$HAS_PLAN` is true (5, 6, or 7 workers).
 
    d. Wait for completion — track `completed_count` from
       worker SendMessage notifications. Expected count is
-      4 + 1 if language + 1 if coherence (4, 5, or 6).
+      5 + 1 if language + 1 if coherence (5, 6, or 7).
       When all expected workers done → aggregate. If a worker
       goes idle without completing → check TaskList, proceed
       when all non-stuck done. Tag partial results: "Note:
@@ -237,7 +241,7 @@ Orchestrate code review via tasks and Task delegation.
      -q '{title,body,labels}' 2>/dev/null || echo "")
    ```
    Truncate body to first 500 words. Store as `$PR_CONTEXT`.
-5. Re-spawn in Perspective Mode: 4 core workers + language
+5. Re-spawn in Perspective Mode: 5 core workers + language
    reviewer if `$LANG` detected + coherence reviewer if
    `$HAS_PLAN` (same as step 5 of New Review), each with
    "Previous team review findings:\n<design>\n\nContinue
@@ -298,6 +302,7 @@ Core perspectives (always spawned):
 - `perspectives/code-quality.md`
 - `perspectives/devils-advocate.md`
 - `perspectives/operations.md`
+- `perspectives/test-quality.md`
 
 Conditional perspectives:
 - `perspectives/coherence.md` — only when `$HAS_PLAN` is true
@@ -437,6 +442,9 @@ merge:
 --- OPERATIONS ---
 <operations findings>
 
+--- TEST QUALITY ---
+<test-quality findings>
+
 # Only if coherence reviewer was spawned:
 --- DESIGN COHERENCE ---
 <coherence findings>
@@ -520,6 +528,7 @@ L uncertain [needs-review]"
 - **Code Quality**: <1-2 sentence overall assessment>
 - **Devil's Advocate**: <1-2 sentence overall assessment>
 - **Operations**: <1-2 sentence overall assessment>
+- **Test Quality**: <1-2 sentence overall assessment>
 # Only if coherence reviewer was spawned:
 - **Design Coherence**: <1-2 sentence overall assessment>
 # Only if language reviewer was spawned:
