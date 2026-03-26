@@ -54,6 +54,11 @@ Review each file strictly through an architectural lens:
 - **Approach alignment**: Does this approach achieve the stated
   goal with appropriate complexity? Could the PR's objective be
   met with a fundamentally different strategy?
+- **Execution path tracing**: For async, concurrent, or
+  multi-step flows — trace the full runtime path through guards,
+  early returns, state transitions, and callbacks. Don't stop at
+  the changed lines; follow the control flow to its conclusion
+  and document what actually happens at each step.
 - **Backwards compatibility**: When the diff changes an existing
   interface — its inputs, defaults, or behavior — explore the
   codebase to find existing callers and consumers. Determine

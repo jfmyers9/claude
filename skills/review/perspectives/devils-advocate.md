@@ -57,13 +57,21 @@ Review each file by trying to break it:
   Existing callers may rely on the old behavior in ways the
   author didn't anticipate.
 - **Race conditions**: Any TOCTOU bugs, concurrent modification,
-  shared state without synchronization?
+  shared state without synchronization? For async/concurrent
+  code, trace the full execution path: what runs synchronously,
+  where the first `await` yields, what state is visible to other
+  code between yield points. Document the timeline.
 - **Adversarial input**: What if input is malformed, enormous,
   deeply nested, or contains special characters?
 - **Fragile assumptions**: Will this break when requirements
   change? What if load increases 10x? What if the data model
   evolves? Any implicit coupling to current behavior that will
   silently break?
+- **Premise check**: Does the PR's fix actually fix the stated
+  problem? If the PR says "fixes X" but the code only partially
+  addresses X (e.g., narrows a race window without closing it),
+  that's a critical finding. Don't accept the PR description at
+  face value — verify the claim against the code.
 - **Approach-level risks**: Are there fundamental approach risks
   the author may not have considered? Is this solving the right
   problem?

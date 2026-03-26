@@ -94,7 +94,14 @@ numbered list>
 
 Only include phases that have findings. Skip empty phases.
 For each finding include: file, line(s), what's wrong, suggested
-fix.
+fix. For testing gaps, include a concrete test recipe:
+setup → action → assertion, with enough detail that someone
+could write the test from your description. Example:
+"1. Start async operation with deferred promise
+2. Queue second operation while first is in-flight
+3. Call pause()
+4. Resolve first operation
+5. Assert: second operation's changes are not lost"
 Stay in your lane: don't flag missing tests (code-quality owns
 that), don't flag production code issues, don't flag test
 style/naming — except for shared concerns tagged

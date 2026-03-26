@@ -485,12 +485,18 @@ Using PR context and all perspective findings, assess:
    commits and note "No PR description — inferred intent:
    <summary>".
 
-2. **Approach fitness**: Given the stated goal, is this the
+2. **Premise check**: Does the fix actually fix the stated
+   problem? Challenge the PR's own claims. If the PR says "fixes
+   race condition X" but the race window is only narrowed (not
+   closed), that's a finding — don't accept the PR description
+   at face value.
+
+3. **Approach fitness**: Given the stated goal, is this the
    right approach? Consider: simpler alternatives (Architect),
    fundamental risks (Devil's Advocate), operational concerns
    (Operations).
 
-3. **Scope assessment**: Is the PR appropriately scoped? Too
+4. **Scope assessment**: Is the PR appropriately scoped? Too
    broad (multiple unrelated changes)? Too narrow (partial
    solution creating tech debt)?
 
@@ -509,6 +515,12 @@ For EACH finding from Steps 1-2.5:
 2. Check if the issue is handled elsewhere (nearby code,
    caller/callee, error handler)
 3. Check if this is new in the PR or pre-existing
+4. **Trace execution paths**: For findings involving async,
+   concurrency, state machines, or multi-step flows — trace the
+   full runtime path through guards, early returns, state
+   transitions, and callbacks. Don't stop at the changed line;
+   follow the control flow to its conclusion. Document the path
+   in the finding.
 
 Classify each finding:
 - **Confirmed** — issue exists in changed code → keep
@@ -528,6 +540,21 @@ Log verification summary: "Verified N findings: K confirmed,
 M false positives pruned, J pre-existing removed/downgraded,
 L uncertain [needs-review]"
 
+### Step 2.9: Group by root cause
+
+Before building output, group all verified findings by root
+cause. Multiple findings about the same underlying issue (e.g.,
+"flush is fire-and-forget" surfacing as a design concern, a
+comment accuracy issue, and a testing gap) become ONE finding
+with multiple facets. This prevents the same issue from
+appearing in 3 different sections.
+
+For each root-cause group:
+- Assign the highest severity from its constituent findings
+- Combine the analysis from all perspectives into one narrative
+- Include all suggested fixes (code, comment, test)
+- Tag with all contributing perspectives
+
 ### Step 3: Build unified output
 
 ```
@@ -543,45 +570,45 @@ L uncertain [needs-review]"
 - **Language (<$LANG>)**: <1-2 sentence overall assessment>
 
 **Approach Assessment**: <rating>
-<1-3 sentences explaining the rating. If alternative
-recommended, describe it here.>
+<1-3 sentences explaining the rating. Include premise check
+result — does the fix actually fix what the PR claims?>
 
 **Consensus** (2+ perspectives agree)
-- Finding [perspective-a, perspective-b]
+<numbered list, each finding is self-contained:>
+1. **<severity>** <file:line> — <title> [perspectives]
+   <full analysis — trace execution path if async/concurrent>
+   **Suggested fix**: <concrete fix — code, comment, or test>
 
 **Perspective Disagreements**
 - <file:line> — <perspective-a> flags <issue> but <perspective-b>
   considers it acceptable because <reason>
-
-**Shared Concern Findings**
-- <file:line> `[shared:<category>]` — synthesized finding combining
-  perspectives: <perspective-a> flags <angle>, <perspective-b>
-  flags <angle>
 
 # Only if coherence reviewer was spawned:
 **Design Coherence**
 - <spec violation or drift finding> [coherence]
 
 **Phase 1: Critical Issues**
-- Finding [source-perspective]
+- <only findings NOT already in Consensus — self-contained>
 
 **Phase 2: Design Improvements**
-- Finding [source-perspective]
+- <only findings NOT already in Consensus — self-contained>
 
 **Phase 3: Testing Gaps**
-- Finding [source-perspective]
+- <only findings NOT already in Consensus — self-contained>
+- For each gap: include a concrete test outline
+  (setup → action → assertion)
 ```
 
 Reviewer Summaries first (one sentence per persona capturing
-their overall take). Then consensus items. Then disagreements —
-when one persona flags something as critical but another's
-"Don't flag" list covers it, surface the tension rather than
-silently dropping. Then shared concern findings (synthesized in
-Step 1.5). Then Design Coherence (if coherence reviewer was
-spawned) — spec-vs-implementation findings before the per-phase
-breakdown. Remove consensus/disagreement/shared-concern items
-from Phase sections to avoid duplication. Skip empty sections.
-Most impactful first.
+their overall take). Then consensus items — these are the most
+important findings, each self-contained with full analysis and
+fix. Then disagreements — when one persona flags something as
+critical but another's "Don't flag" list covers it, surface the
+tension rather than silently dropping. Then Design Coherence (if
+coherence reviewer was spawned). Then Phase sections for
+remaining non-consensus findings only — no duplication with
+Consensus. Skip empty sections. Most impactful first within
+each section.
 
 ## Output Format
 

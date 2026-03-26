@@ -55,6 +55,11 @@ Review each file strictly through a code quality lens:
 - **Intent alignment**: Does the implementation match the
   described intent in the PR? Any disconnect between what the
   PR says and what the code does?
+- **Control flow clarity**: For async, state-machine, or
+  multi-step flows — is the execution order obvious to a reader?
+  When fire-and-forget patterns are used, is it clear what
+  completes synchronously vs. what continues in the background?
+  Trace the path if needed to verify comments match reality.
 - **Dead code activation**: When the diff changes how inputs
   are consumed, explore the codebase for existing callers.
   Arguments or values that were previously inert may now take
