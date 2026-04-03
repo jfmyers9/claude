@@ -33,18 +33,4 @@ Use native Claude Code tasks for plans and state.
 - **Task state**: task `status` field
 - **View**: `TaskGet(taskId)`
 
-## Text Formatting
-
-When generating documentation or long-form text, ensure terminal
-readability:
-
-- Wrap prose at 80 characters per line for standard terminal viewing
-- Preserve markdown structure (don't wrap code blocks, headings, lists)
-- Don't break URLs across lines
-- Keep table formatting intact
-- Use semantic line breaks at sentence boundaries when appropriate
-
-The 80-character limit ensures documentation is readable in vim and
-terminal windows without horizontal scrolling.
-
 @RTK.md
