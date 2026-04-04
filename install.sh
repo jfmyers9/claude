@@ -12,6 +12,7 @@ items=(
   "settings.json"
   "statusline.py"
   "skills"
+  "hooks"
   "rules"
 )
 
