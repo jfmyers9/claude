@@ -4,8 +4,8 @@ description: >
   Post-implementation execution report summarizing commits, files
   changed, and plan-vs-reality. Triggers: 'report', 'execution
   report', 'what was built'.
-allowed-tools: Bash, Read, Glob, Grep, TaskList, TaskGet
-argument-hint: "[task-id] [--branch <name>]"
+allowed-tools: Bash, Read, Glob, Grep
+argument-hint: "[--branch <name>]"
 ---
 
 # Report
@@ -15,8 +15,7 @@ the blueprints repo.
 
 ## Arguments
 
-- No args: auto-detect from current branch and tasks
-- `<task-id>`: use specific epic/task for context
+- No args: auto-detect from current branch
 - `--branch <name>`: override branch detection
 
 ## Steps
@@ -73,20 +72,7 @@ git diff --diff-filter=M --name-only "$trunk".."$branch"
 git diff --diff-filter=D --name-only "$trunk".."$branch"
 ```
 
-### 5. Gather Task Data (Optional)
-
-Parse `$ARGUMENTS` for a task-id. If provided, use it directly
-as the epic. Otherwise:
-
-- `TaskList()` — find epic where `metadata.type == "epic"` and
-  status is `in_progress` or `completed`
-- If epic found: `TaskGet(epicId)` + all children by `parent_id`
-- Extract: subject, status, `metadata.notes` for each child
-
-If no epic/tasks found: skip task sections, note "git-only mode"
-in the report.
-
-### 6. Find Source Plan (Optional)
+### 5. Find Source Plan (Optional)
 
 Scan for the most recent `.md` file in:
 - `~/workspace/blueprints/<project>/plan/`
@@ -101,7 +87,7 @@ ls -t ~/workspace/blueprints/<project>/plan/*.md \
 If found: read it and extract phase titles (lines matching
 `**Phase N:` or `### Phase N:`) for plan-vs-reality mapping.
 
-### 7. Generate Slug
+### 6. Generate Slug
 
 Derive from `$branch`:
 - Strip common prefixes (`feature/`, `fix/`, etc.)
@@ -109,7 +95,7 @@ Derive from `$branch`:
 - Remove filler words (the, a, an, and, or)
 - Truncate to max 50 chars
 
-### 8. Write Report
+### 7. Write Report
 
 Create directory and write to
 `~/workspace/blueprints/<project>/report/<epoch>-<slug>.md`
@@ -140,17 +126,13 @@ branch: <branch name>
 
 - **Stats** — lines added/removed, file count. From diff stats.
 
-- **Plan vs Reality** (only if plan found in step 6) — each plan
+- **Plan vs Reality** (only if plan found in step 5) — each plan
   phase mapped to outcome: completed, partial, or skipped. Brief
   note on deviations.
 
-- **Task Results** (only if tasks found in step 5) — each task
-  with status and notes summary.
+- **Watchouts** — prose on deviations from plan, stuck or failed work, edge cases discovered during implementation, and follow-up suggestions. If nothing notable, write "None."
 
-- **Open Items** — stuck tasks, known gaps, follow-up suggestions.
-  If none, write "None identified."
-
-### 9. Commit-on-Write
+### 8. Commit-on-Write
 
 Per @rules/blueprints.md:
 
@@ -163,7 +145,7 @@ cd ~/workspace/blueprints && \
 
 If rebase fails, **stop** and alert the user with conflict details.
 
-### 10. Report to User
+### 9. Report to User
 
 Show:
 - Report file path

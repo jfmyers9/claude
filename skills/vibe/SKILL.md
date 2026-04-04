@@ -109,7 +109,7 @@ If `--dry-run` → stop here. Report plan file, suggest
 ### Stage 3: Implement
 
 ```
-Skill("implement")
+Skill("implement", args="--no-report")
 ```
 
 **Verify**: `TaskList()` → all children of epic have

@@ -4,8 +4,8 @@ description: >
   Execute implementation plans from tasks. Detects epics and spawns
   teams for parallel work.
   Triggers: 'implement', 'build this', 'execute plan', 'start work'.
-allowed-tools: Bash, Read, Glob, Write, Task, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet, TeamCreate, TeamDelete
-argument-hint: "[task-id] [--solo] [--team]"
+allowed-tools: Bash, Read, Glob, Write, Task, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet, TeamCreate, TeamDelete, Skill
+argument-hint: "[task-id] [--solo] [--team] [--no-report]"
 ---
 
 # Implement
@@ -21,6 +21,7 @@ Bash is for read-only orchestration only (git status, team config reads).
 - `task-id` — epic or task ID (optional)
 - `--solo` — force single-agent mode even for epics
 - `--team` — force Swarm Mode (auto-creates ad-hoc epic if needed)
+- `--no-report` — skip automatic execution report generation
 
 ## Step 1: Find Work
 
@@ -327,4 +328,10 @@ After all waves complete (or abort), report:
 - Total tasks: N completed, M stuck, K failed
 - Stuck task IDs (still in_progress)
 - Whether epic was closed or left open
-- `Next: /report to generate execution summary`
+
+Then, unless `--no-report` was passed, invoke the report skill:
+```
+Skill("report")
+```
+If report fails, log a warning but still show the completion
+stats above. Do not fail the implement run due to a report error.
