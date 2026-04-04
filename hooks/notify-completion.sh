@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Notification hook — alerts when Claude finishes work in a non-active tmux window.
-# Sends tmux bell + macOS notification with branch name and context%.
+# Notification hook — marks tmux tab name when Claude finishes in a background window.
+# Also sends macOS notification with branch name and context%.
 
 set -euo pipefail
 
@@ -25,12 +25,14 @@ if [[ -n "$latest" ]]; then
   ctx=$(cat "$latest" 2>/dev/null) || true
 fi
 
-# Tmux bell — highlights window in status bar (bell-action any)
-printf '\a'
+# Mark tab name with ✓ prefix (skip if already marked)
+if [[ "$window_name" != ✓* ]]; then
+  tmux rename-window "✓ $window_name" 2>/dev/null || true
+fi
 
 # macOS notification
 title="Claude: $branch"
-[[ -n "$ctx" ]] && title="Claude: $branch ($ctx)"
+[[ -n "$ctx" ]] && title="Claude: $branch (${ctx}%)"
 osascript -e "display notification \"Done\" with title \"$title\"" 2>/dev/null || true
 
 exit 0
