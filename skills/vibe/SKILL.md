@@ -26,7 +26,7 @@ Run the full development pipeline from a single prompt.
 ## Pipeline
 
 ```
-/start → /research → /implement → /commit
+/start → /research → /implement → /report → /commit
 ```
 
 Each stage verifies success before proceeding. Failures halt
@@ -87,10 +87,10 @@ Skill("start", args="jm/<slug>")
 
 **Verify**: `git branch --show-current` returns the new branch.
 **Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "branch" })`
-**Report**: `[1/4] Branch: jm/<slug>`
+**Report**: `[1/5] Branch: jm/<slug>`
 
 If on a non-main branch already, skip and report:
-`[1/4] Branch: skipped (already on <branch>)`
+`[1/5] Branch: skipped (already on <branch>)`
 
 ### Stage 2: Research
 
@@ -101,7 +101,7 @@ Skill("research", args="<prompt>")
 **Verify**: Plan file exists in `~/workspace/blueprints/<project>/`.
 Check via `{ ls -t ~/workspace/blueprints/<project>/spec/*.md ~/workspace/blueprints/<project>/plan/*.md ~/workspace/blueprints/<project>/review/*.md; } 2>/dev/null | head -1`.
 **Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "research" })`
-**Report**: `[2/4] Researched: plan at <path>`
+**Report**: `[2/5] Researched: plan at <path>`
 
 If `--dry-run` → stop here. Report plan file, suggest
 `/implement` or `/vibe --continue` when ready.
@@ -115,15 +115,28 @@ Skill("implement")
 **Verify**: `TaskList()` → all children of epic have
 `status == "completed"`.
 **Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "implement" })`
-**Report**: `[3/4] Implemented: N/N tasks completed`
+**Report**: `[3/5] Implemented: N/N tasks completed`
 
 If some tasks failed, report failures but continue to commit
 if any code was changed (`git diff --stat` is non-empty).
 
-### Stage 4: Commit
+### Stage 4: Report
+
+```
+Skill("report")
+```
+
+**Verify**: Report file exists via
+`ls -t ~/workspace/blueprints/<project>/report/*.md | head -1`.
+**Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "report" })`
+**Report**: `[4/5] Report: <path>`
+
+If report fails, log warning but continue to commit (non-blocking).
+
+### Stage 5: Commit
 
 Check `git diff --stat` first. If empty → skip, report
-`[4/4] Commit: skipped (no changes)`.
+`[5/5] Commit: skipped (no changes)`.
 
 ```
 Skill("commit")
@@ -131,7 +144,7 @@ Skill("commit")
 
 **Verify**: `git log -1 --oneline` shows a new commit.
 **Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "commit" })`
-**Report**: `[4/4] Committed: <commit oneline>`
+**Report**: `[5/5] Committed: <commit oneline>`
 
 ## Step 5: Finalize
 
@@ -143,10 +156,11 @@ Report full summary:
 
 ```
 Pipeline complete:
-[1/4] Branch: jm/<slug>
-[2/4] Researched: plan at <path>
-[3/4] Implemented: N/N tasks completed
-[4/4] Committed: <commit oneline>
+[1/5] Branch: jm/<slug>
+[2/5] Researched: plan at <path>
+[3/5] Implemented: N/N tasks completed
+[4/5] Report: <path>
+[5/5] Committed: <commit oneline>
 
 Next: `/submit` to create PR
 ```
@@ -163,8 +177,8 @@ If ANY stage fails:
    Error: <details>
 
    Completed:
-   [1/4] Branch: ...
-   [2/4] Researched: ...
+   [1/5] Branch: ...
+   [2/5] Researched: ...
 
    Resume: `/vibe --continue`
    Or run manually: `/<failed-skill> [args]`
@@ -172,8 +186,8 @@ If ANY stage fails:
 
 ## Stage Count
 
-- With branch: 4 stages (`[N/4]`)
-- With `--no-branch`: 3 stages (`[N/3]`)
+- With branch: 5 stages (`[N/5]`)
+- With `--no-branch`: 4 stages (`[N/4]`)
 - With `--dry-run`: 2 stages (`[N/2]`) or 1 (`[N/1]` if also
   `--no-branch`)
 

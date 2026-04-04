@@ -23,11 +23,12 @@ Move a blueprint to `archive/` and commit.
 2. Resolve target file:
    - If slug provided: match against
      `~/workspace/blueprints/<project>/spec/*<slug>*`,
-     `~/workspace/blueprints/<project>/plan/*<slug>*`, and
-     `~/workspace/blueprints/<project>/review/*<slug>*`
+     `~/workspace/blueprints/<project>/plan/*<slug>*`,
+     `~/workspace/blueprints/<project>/review/*<slug>*`, and
+     `~/workspace/blueprints/<project>/report/*<slug>*`
      (try with/without `.md` extension)
    - If no slug: most recent via
-     `{ ls -t ~/workspace/blueprints/<project>/spec/*.md ~/workspace/blueprints/<project>/plan/*.md ~/workspace/blueprints/<project>/review/*.md; } 2>/dev/null | head -1`
+     `{ ls -t ~/workspace/blueprints/<project>/spec/*.md ~/workspace/blueprints/<project>/plan/*.md ~/workspace/blueprints/<project>/review/*.md ~/workspace/blueprints/<project>/report/*.md; } 2>/dev/null | head -1`
    - If no files found: report "No active blueprints for
      `<project>`" and stop.
 3. Archive — unified destination for all types:

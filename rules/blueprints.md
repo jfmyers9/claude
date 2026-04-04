@@ -16,6 +16,7 @@ basename "$(git remote get-url origin 2>/dev/null | sed 's|\.git$||')" 2>/dev/nu
 ~/workspace/blueprints/<project>/spec/       # research specs
 ~/workspace/blueprints/<project>/plan/       # implementation plans (fix, pr-plan, respond)
 ~/workspace/blueprints/<project>/review/     # code review blueprints
+~/workspace/blueprints/<project>/report/     # execution reports
 ~/workspace/blueprints/<project>/archive/    # consumed blueprints (all types)
 ```
 

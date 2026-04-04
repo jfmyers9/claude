@@ -327,3 +327,4 @@ After all waves complete (or abort), report:
 - Total tasks: N completed, M stuck, K failed
 - Stuck task IDs (still in_progress)
 - Whether epic was closed or left open
+- `Next: /report to generate execution summary`
