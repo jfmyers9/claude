@@ -36,4 +36,9 @@ for hook in "$SCRIPT_DIR/hooks/"*; do
   echo "Linked: $dest"
 done
 
+# CLI tools
+mkdir -p "$HOME/.local/bin"
+ln -sf "$SCRIPT_DIR/bin/blueprint" "$HOME/.local/bin/blueprint"
+echo "Linked: ~/.local/bin/blueprint"
+
 echo "Done"

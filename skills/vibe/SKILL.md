@@ -14,7 +14,7 @@ Run the full development pipeline from a single prompt.
 
 ## Plan Directory
 
-@rules/blueprints.md.
+@rules/blueprints.md. Use `blueprint find` for file discovery.
 
 ## Arguments
 
@@ -81,8 +81,8 @@ Run stages sequentially. After each stage succeeds, update
 Skill("research", args="<prompt>")
 ```
 
-**Verify**: Plan file exists in `~/workspace/blueprints/<project>/`.
-Check via `{ ls -t ~/workspace/blueprints/<project>/spec/*.md ~/workspace/blueprints/<project>/plan/*.md ~/workspace/blueprints/<project>/review/*.md; } 2>/dev/null | head -1`.
+**Verify**: Plan file exists — check via
+`blueprint find --type spec,plan,review`.
 **Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "research" })`
 **Report**: `[1/7] Researched: plan at <path>`
 
@@ -110,7 +110,7 @@ Skill("review")
 ```
 
 **Verify**: Review file exists via
-`ls -t ~/workspace/blueprints/<project>/review/*.md | head -1`.
+`blueprint find --type review`.
 **Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "review" })`
 **Report**: `[3/7] Reviewed: findings at <path>`
 
@@ -143,7 +143,7 @@ Skill("report")
 ```
 
 **Verify**: Report file exists via
-`ls -t ~/workspace/blueprints/<project>/report/*.md | head -1`.
+`blueprint find --type report`.
 **Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "report" })`
 **Report**: `[5/7] Report: <path>`
 

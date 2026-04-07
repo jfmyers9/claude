@@ -15,6 +15,9 @@ Triage PR review feedback and recommend actions.
 
 @rules/blueprints.md — type dir: `plan/`, e.g. `plan/<epoch>-respond-pr-<number>.md`.
 
+Use `blueprint create plan "<topic>"` to create plan files with
+proper frontmatter.
+
 ## Arguments
 
 - `<pr-number>` — new respond session for specific PR
@@ -122,18 +125,9 @@ Triage PR review feedback and recommend actions.
    - PR reply drafts → notes: TaskUpdate(taskId, metadata: {notes: "<replies>"})
    - Write plan file (after finalization, not first pass):
      ```
-     mkdir -p ~/workspace/blueprints/<project>/plan/
-     Write("~/workspace/blueprints/<project>/plan/<epoch>-respond-pr-<number>.md", <frontmatter + phased findings>)
+     file=$(blueprint create plan "Respond: PR #<number>" --status draft)
      ```
-     Frontmatter:
-     ```yaml
-     ---
-     topic: "Respond: PR #<number>"
-     project: <absolute path to cwd>
-     created: <ISO 8601 timestamp>
-     status: draft
-     ---
-     ```
+     Write phased findings into `$file` (append after frontmatter).
 
 7. **Report results** (see Output Format — First Pass)
 
@@ -160,12 +154,10 @@ Triage PR review feedback and recommend actions.
 
    Fires after every blueprint write or move per @rules/blueprints.md.
    ```sh
-   cd ~/workspace/blueprints && \
-     git add -A <project>/ && \
-     git commit -m "respond(<project>): <slug>" && \
-     git push || (git pull --rebase && git push)
+   blueprint commit plan <slug>
    ```
-   If rebase fails, STOP and alert the user.
+   If `blueprint commit` exits non-zero, STOP and alert the user
+   with the error output.
 
 7. Report results (see Output Format — Continuation)
 

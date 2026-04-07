@@ -82,12 +82,11 @@ Fetch task, team, and plan state:
 
 - `TaskList()` for in_progress/pending tasks
 - Read `~/.claude/teams/*/config.json` for active teams
-- Determine `<project>` per @rules/blueprints.md.
-- `{ ls -t ~/workspace/blueprints/<project>/spec/*.md ~/workspace/blueprints/<project>/plan/*.md ~/workspace/blueprints/<project>/review/*.md; } 2>/dev/null | head -5`
-  for pending plan files
-- `ls -t ~/workspace/blueprints/<project>/archive/*.md 2>/dev/null | head -5`
-  for archived (previously prepared) plans
-- `cd ~/workspace/blueprints && git status --porcelain <project>/ 2>/dev/null`
+- `blueprint find --type spec,plan,review` for pending plan files
+  (run multiple times or check multiple types as needed)
+- `blueprint find --type archive` for archived (previously prepared) plans
+- `project=$(blueprint project)` then
+  `cd ~/workspace/blueprints && git status --porcelain $project/ 2>/dev/null`
   — if non-empty, note "Uncommitted blueprint changes detected — consider
   committing."
 

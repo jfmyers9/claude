@@ -15,6 +15,9 @@ Orchestrate code review via tasks and Task delegation.
 
 @rules/blueprints.md — subdirectory: `review/`, epoch-prefixed, e.g. `review/<epoch>-<slug>.md` where epoch = Unix seconds.
 
+Use `blueprint create review "<topic>"` to create review files
+with proper frontmatter.
+
 ## Arguments
 
 - `<file-pattern>` — new review, optionally filtering files
@@ -97,16 +100,14 @@ Orchestrate code review via tasks and Task delegation.
        is empty (skip language reviewer).
 
    a3. **Detect plan file** for design coherence review:
-       Compute `<branch-slug>` from `$REVIEW_BRANCH` (lowercase,
-       replace non-alnum with hyphens, strip trailing hyphens).
-       Compute `<project>` same as Plan Directory section.
+       Compute `<branch-slug>` via `blueprint slug "$REVIEW_BRANCH"`.
        ```
-       plan_file=$(ls ~/workspace/blueprints/<project>/spec/*<branch-slug>*.md ~/workspace/blueprints/<project>/plan/*<branch-slug>*.md 2>/dev/null | head -1)
+       plan_file=$(blueprint find --type spec,plan --match <branch-slug>)
        if [ -z "$plan_file" ]; then
-         plan_file=$(ls ~/workspace/blueprints/<project>/archive/*<branch-slug>*.md 2>/dev/null | head -1)
+         plan_file=$(blueprint find --type archive --match <branch-slug>)
        fi
        if [ -z "$plan_file" ]; then
-         plan_file=$(ls ~/workspace/blueprints/<project>/review/*<branch-slug>*.md 2>/dev/null | head -1)
+         plan_file=$(blueprint find --type review --match <branch-slug>)
        fi
        ```
        If `$plan_file` is found, extract the `## Spec` section
@@ -187,29 +188,20 @@ Orchestrate code review via tasks and Task delegation.
       if `$IN_WORKTREE`: `ExitWorktree(action="remove")`.
 
 6. **Store findings**
-   a. Generate a kebab-case slug from the branch name
-      (lowercase, strip filler words, replace non-alnum
-      with hyphens, max 50 chars)
-   a2. Compute epoch: `epoch=$(date +%s)`
-   a3. `mkdir -p ~/workspace/blueprints/<project>/review/`
-   b. Write plan file:
-      `Write("~/workspace/blueprints/<project>/review/<epoch>-<slug>.md",
-        <frontmatter + findings>)`
-      Frontmatter:
-      ```yaml
-      ---
-      topic: "Review: <branch-name>"
-      project: <absolute path to cwd>
-      created: <ISO 8601 timestamp>
-      status: draft
-      source: "[[<$SOURCE_SLUG>]]"   # only when $HAS_PLAN is true
-      ---
+   a. Create review file:
       ```
-   c. Store in task:
+      file=$(blueprint create review "Review: <branch-name>" --status draft)
+      ```
+      If `$HAS_PLAN` is true, link the source:
+      ```
+      blueprint link "$file" "$SOURCE_SLUG"
+      ```
+      Write findings body into `$file` (append after frontmatter).
+   b. Store in task:
       `TaskUpdate(taskId, metadata: {
         design: "<findings>",
-        plan_file: "review/<epoch>-<slug>.md" })`
-   d. Leave task in_progress
+        plan_file: "review/$(basename $file)" })`
+   c. Leave task in_progress
 
 7. **Report results**
 
@@ -217,12 +209,10 @@ Orchestrate code review via tasks and Task delegation.
 
    Fires after every blueprint write or move per @rules/blueprints.md.
    ```sh
-   cd ~/workspace/blueprints && \
-     git add -A <project>/ && \
-     git commit -m "review(<project>): <slug>" && \
-     git push || (git pull --rebase && git push)
+   blueprint commit review <slug>
    ```
-   If rebase fails, STOP and alert the user.
+   If `blueprint commit` exits non-zero, STOP and alert the user
+   with the error output.
 
    (see Output Format)
 

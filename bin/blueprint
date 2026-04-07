@@ -1,0 +1,484 @@
+#!/bin/sh
+set -e
+
+# Blueprint CLI — manage blueprint files for Claude Code projects.
+
+BLUEPRINT_DIR="${BLUEPRINT_DIR:-${HOME}/workspace/blueprints}"
+
+usage() {
+    cat <<'EOF'
+Usage: blueprint <command> [args...]
+
+Commands:
+  project             Derive project name from git remote or directory
+  slug <text>         Generate a URL-safe slug from text
+  create <type> <topic> [--status S] [--source SLUG] [--depth D] [--branch B]
+                      Create a new blueprint file
+  commit <type> <slug>
+                      Commit and push blueprint changes
+  status <file> <new-status>
+                      Update blueprint status in frontmatter
+  find [--type T] [--project P] [--match S]
+                      Find blueprints by pattern (most recent first)
+  archive [slug]      Archive a consumed blueprint
+  link <file> <source-slug>
+                      Add/update source link in frontmatter
+  help                Show this help message
+
+  validate <file>     Validate blueprint structure and frontmatter
+
+Environment:
+  BLUEPRINT_DIR       Blueprint root directory (default: ~/workspace/blueprints)
+EOF
+}
+
+# Derive project name from git remote, git dir, or cwd.
+cmd_project() {
+    basename "$(git remote get-url origin 2>/dev/null | sed 's|\.git$||')" 2>/dev/null \
+        || basename "$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null | sed 's|/\.git$||; s|/\.bare$||')" 2>/dev/null \
+        || basename "$(pwd)"
+}
+
+# Generate a slug from arbitrary text.
+# Lowercases, strips filler words, replaces non-alnum with hyphens,
+# truncates at 50 chars on a word boundary.
+cmd_slug() {
+    if [ $# -eq 0 ]; then
+        echo "Usage: blueprint slug <text>" >&2
+        exit 1
+    fi
+
+    # Join all args, lowercase
+    text="$(printf '%s' "$*" | tr '[:upper:]' '[:lower:]')"
+
+    # Strip filler words (bounded by spaces or start/end)
+    # Process word by word to avoid partial matches
+    result=""
+    for word in $text; do
+        case "$word" in
+            a|an|the|for|with|and|or|to|in|of|on|by|is|it|be|as|at|do)
+                continue
+                ;;
+            *)
+                if [ -n "$result" ]; then
+                    result="$result $word"
+                else
+                    result="$word"
+                fi
+                ;;
+        esac
+    done
+
+    # Replace non-alphanumeric runs with hyphens
+    result="$(printf '%s' "$result" | sed 's/[^a-z0-9][^a-z0-9]*/-/g')"
+
+    # Strip leading/trailing hyphens
+    result="$(printf '%s' "$result" | sed 's/^-//; s/-$//')"
+
+    # Truncate at 50 chars on word boundary (hyphen boundary)
+    if [ "${#result}" -gt 50 ]; then
+        result="$(printf '%s' "$result" | cut -c1-50 | sed 's/-[^-]*$//')"
+    fi
+
+    # Handle empty result (all filler words)
+    if [ -z "$result" ]; then
+        echo ""
+    else
+        printf '%s\n' "$result"
+    fi
+}
+
+# Create a new blueprint file.
+cmd_create() {
+    if [ $# -lt 2 ]; then
+        echo "Usage: blueprint create <type> <topic> [--status S] [--source SLUG] [--depth D] [--branch B]" >&2
+        exit 1
+    fi
+
+    bp_type="$1"
+    bp_topic="$2"
+    shift 2
+
+    # Defaults
+    bp_status="draft"
+    bp_source=""
+    bp_depth=""
+    bp_branch=""
+
+    # Parse optional flags
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --status)  bp_status="$2"; shift 2 ;;
+            --source)  bp_source="$2"; shift 2 ;;
+            --depth)   bp_depth="$2"; shift 2 ;;
+            --branch)  bp_branch="$2"; shift 2 ;;
+            *)
+                echo "Unknown flag: $1" >&2
+                exit 1
+                ;;
+        esac
+    done
+
+    bp_project="$(cmd_project)"
+    bp_slug="$(cmd_slug "$bp_topic")"
+    bp_epoch="$(date +%s)"
+    bp_created="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    bp_dir="$BLUEPRINT_DIR/$bp_project/$bp_type"
+    bp_file="$bp_dir/${bp_epoch}-${bp_slug}.md"
+
+    mkdir -p "$bp_dir"
+
+    # Build frontmatter
+    {
+        echo "---"
+        echo "topic: \"$bp_topic\""
+        echo "project: $(pwd)"
+        echo "created: $bp_created"
+        echo "status: $bp_status"
+        if [ -n "$bp_depth" ]; then
+            echo "depth: $bp_depth"
+        fi
+        if [ -n "$bp_branch" ]; then
+            echo "branch: $bp_branch"
+        fi
+        if [ -n "$bp_source" ]; then
+            echo "source: \"[[$bp_source]]\""
+        fi
+        echo "---"
+        echo ""
+    } > "$bp_file"
+
+    printf '%s\n' "$bp_file"
+}
+
+# Commit blueprint changes to the blueprints repo.
+cmd_commit() {
+    if [ $# -lt 2 ]; then
+        echo "Usage: blueprint commit <type> <slug>" >&2
+        exit 1
+    fi
+    commit_type="$1"
+    commit_slug="$2"
+    project="$(cmd_project)"
+
+    cd "$BLUEPRINT_DIR"
+    git add -A "$project/" 2>&1
+
+    if ! git diff --cached --quiet 2>/dev/null; then
+        git commit -m "${commit_type}(${project}): ${commit_slug}"
+        if ! git push 2>&1; then
+            if ! git pull --rebase 2>&1; then
+                echo "CONFLICT: rebase failed" >&2
+                exit 2
+            fi
+            git push 2>&1
+        fi
+    else
+        echo "nothing to commit" >&2
+    fi
+}
+
+# Update status field in a blueprint's YAML frontmatter.
+cmd_status() {
+    if [ $# -lt 2 ]; then
+        echo "Usage: blueprint status <file> <new-status>" >&2
+        exit 1
+    fi
+    status_file="$1"
+    new_status="$2"
+
+    if [ ! -f "$status_file" ]; then
+        echo "Error: file not found: $status_file" >&2
+        exit 1
+    fi
+
+    case "$new_status" in
+        draft|spec_review|spec_approved|plan_review|approved|complete) ;;
+        *)
+            echo "Error: invalid status '$new_status'. Must be one of: draft, spec_review, spec_approved, plan_review, approved, complete" >&2
+            exit 1
+            ;;
+    esac
+
+    # Replace status line only within YAML frontmatter (between first --- pair)
+    awk -v ns="$new_status" '
+        BEGIN { in_fm=0; done_fm=0 }
+        /^---$/ && !in_fm && !done_fm { in_fm=1; print; next }
+        /^---$/ && in_fm { done_fm=1; print; next }
+        in_fm && /^status: / { print "status: " ns; next }
+        { print }
+    ' "$status_file" > "${status_file}.tmp" && mv "${status_file}.tmp" "$status_file"
+}
+
+# Find blueprints matching criteria. Returns most recent match.
+cmd_find() {
+    find_project="$(cmd_project)"
+    find_types="spec,plan,review,report"
+    find_match=""
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --type)    find_types="$2"; shift 2 ;;
+            --project) find_project="$2"; shift 2 ;;
+            --match)   find_match="$2"; shift 2 ;;
+            *)
+                echo "Unknown flag: $1" >&2
+                exit 1
+                ;;
+        esac
+    done
+
+    find_base="$BLUEPRINT_DIR/$find_project"
+    find_results=""
+
+    # Save and restore IFS for comma splitting
+    old_ifs="$IFS"
+    IFS=","
+    for t in $find_types; do
+        IFS="$old_ifs"
+        t_dir="$find_base/$t"
+        if [ -d "$t_dir" ]; then
+            for f in "$t_dir"/*.md; do
+                [ -f "$f" ] || continue
+                if [ -n "$find_match" ]; then
+                    # Extract slug portion (after epoch-hyphen)
+                    fname="$(basename "$f")"
+                    slug_part="$(printf '%s' "$fname" | sed 's/^[0-9]*-//')"
+                    case "$slug_part" in
+                        *"$find_match"*) ;;
+                        *) continue ;;
+                    esac
+                fi
+                find_results="$find_results
+$f"
+            done
+        fi
+    done
+    IFS="$old_ifs"
+
+    # Remove leading blank line
+    find_results="$(printf '%s' "$find_results" | sed '/^$/d')"
+
+    if [ -z "$find_results" ]; then
+        echo "No blueprints found" >&2
+        exit 1
+    fi
+
+    # Sort by mtime (most recent first) using ls -t
+    # shellcheck disable=SC2086
+    printf '%s\n' $find_results | xargs ls -t 2>/dev/null | head -1
+}
+
+# Archive a blueprint file.
+cmd_archive() {
+    project="$(cmd_project)"
+    archive_target=""
+
+    if [ $# -ge 1 ] && [ -n "$1" ]; then
+        # Search for file matching slug across active directories
+        for d in spec plan review report; do
+            dir="$BLUEPRINT_DIR/$project/$d"
+            [ -d "$dir" ] || continue
+            for f in "$dir"/*"$1"*.md; do
+                [ -f "$f" ] || continue
+                archive_target="$f"
+                break 2
+            done
+        done
+    else
+        # Find most recent file across active directories
+        all_files=""
+        for d in spec plan review report; do
+            dir="$BLUEPRINT_DIR/$project/$d"
+            [ -d "$dir" ] || continue
+            for f in "$dir"/*.md; do
+                [ -f "$f" ] || continue
+                all_files="$all_files $f"
+            done
+        done
+        if [ -n "$all_files" ]; then
+            # shellcheck disable=SC2086
+            archive_target="$(ls -t $all_files 2>/dev/null | head -1)"
+        fi
+    fi
+
+    if [ -z "$archive_target" ] || [ ! -f "$archive_target" ]; then
+        echo "Error: no blueprint found to archive" >&2
+        exit 1
+    fi
+
+    archive_dir="$BLUEPRINT_DIR/$project/archive"
+    mkdir -p "$archive_dir"
+
+    fname="$(basename "$archive_target")"
+    mv "$archive_target" "$archive_dir/$fname"
+    echo "$archive_dir/$fname"
+
+    # Extract slug from filename for commit message
+    archive_slug="$(printf '%s' "$fname" | sed 's/^[0-9]*-//; s/\.md$//')"
+    cmd_commit "archive" "$archive_slug"
+}
+
+# Validate blueprint file structure and frontmatter.
+cmd_validate() {
+    if [ $# -eq 0 ]; then
+        echo "Usage: blueprint validate <file>" >&2
+        exit 1
+    fi
+    vf="$1"
+    errors=""
+
+    # 1. File exists
+    if [ ! -f "$vf" ]; then
+        echo "file not found: $vf"
+        exit 1
+    fi
+
+    # 2-3. Frontmatter delimiters
+    line1="$(sed -n '1p' "$vf")"
+    if [ "$line1" != "---" ]; then
+        errors="${errors}missing opening frontmatter delimiter
+"
+    fi
+
+    closing_fm=""
+    lineno=0
+    while IFS= read -r line; do
+        lineno=$((lineno + 1))
+        [ "$lineno" -le 20 ] || break
+        if [ "$lineno" -gt 1 ] && [ "$line" = "---" ]; then
+            closing_fm="yes"
+            break
+        fi
+    done < "$vf"
+    if [ -z "$closing_fm" ]; then
+        errors="${errors}missing closing frontmatter delimiter
+"
+    fi
+
+    # 4. Required fields (only check if frontmatter exists)
+    if [ "$line1" = "---" ] && [ -n "$closing_fm" ]; then
+        fm="$(awk 'NR==1 && /^---$/ { next } /^---$/ { exit } { print }' "$vf")"
+        for field in topic project created status; do
+            if ! printf '%s\n' "$fm" | grep -q "^${field}:"; then
+                errors="${errors}missing field: ${field}
+"
+            fi
+        done
+    fi
+
+    # 5. Filename pattern
+    fname="$(basename "$vf")"
+    if ! printf '%s\n' "$fname" | grep -qE '^[0-9]{10}-[a-z0-9]([a-z0-9-]*[a-z0-9])?\.md$'; then
+        errors="${errors}invalid filename: ${fname}
+"
+    fi
+
+    # 6. Under BLUEPRINT_DIR in recognized structure
+    realvf="$(cd "$(dirname "$vf")" && pwd)/$(basename "$vf")"
+    case "$realvf" in
+        "$BLUEPRINT_DIR"/*/*/*.md) ;;
+        *)
+            errors="${errors}file not under blueprint directory structure
+"
+            ;;
+    esac
+
+    if [ -n "$errors" ]; then
+        printf '%s' "$errors"
+        exit 1
+    fi
+
+    echo "ok"
+}
+
+# Add or update source link in frontmatter.
+cmd_link() {
+    if [ $# -lt 2 ]; then
+        echo "Usage: blueprint link <file> <source-slug>" >&2
+        exit 1
+    fi
+    link_file="$1"
+    source_slug="$2"
+
+    if [ ! -f "$link_file" ]; then
+        echo "Error: file not found: $link_file" >&2
+        exit 1
+    fi
+
+    # Check if source: line already exists in frontmatter
+    has_source="$(awk '
+        BEGIN { in_fm=0; done_fm=0 }
+        /^---$/ && !in_fm && !done_fm { in_fm=1; next }
+        /^---$/ && in_fm { done_fm=1; next }
+        in_fm && /^source: / { print "yes"; exit }
+    ' "$link_file")"
+
+    if [ "$has_source" = "yes" ]; then
+        # Update existing source line in frontmatter
+        awk -v ss="$source_slug" '
+            BEGIN { in_fm=0; done_fm=0 }
+            /^---$/ && !in_fm && !done_fm { in_fm=1; print; next }
+            /^---$/ && in_fm { done_fm=1; print; next }
+            in_fm && /^source: / { print "source: \"[[" ss "]]\""; next }
+            { print }
+        ' "$link_file" > "${link_file}.tmp" && mv "${link_file}.tmp" "$link_file"
+    else
+        # Add source after status line in frontmatter
+        awk -v ss="$source_slug" '
+            BEGIN { in_fm=0; done_fm=0 }
+            /^---$/ && !in_fm && !done_fm { in_fm=1; print; next }
+            /^---$/ && in_fm { done_fm=1; print; next }
+            in_fm && /^status: / { print; print "source: \"[[" ss "]]\""; next }
+            { print }
+        ' "$link_file" > "${link_file}.tmp" && mv "${link_file}.tmp" "$link_file"
+    fi
+}
+
+# Dispatch subcommands
+case "${1:-}" in
+    project)
+        shift
+        cmd_project
+        ;;
+    slug)
+        shift
+        cmd_slug "$@"
+        ;;
+    create)
+        shift
+        cmd_create "$@"
+        ;;
+    commit)
+        shift
+        cmd_commit "$@"
+        ;;
+    status)
+        shift
+        cmd_status "$@"
+        ;;
+    find)
+        shift
+        cmd_find "$@"
+        ;;
+    archive)
+        shift
+        cmd_archive "$@"
+        ;;
+    validate)
+        shift
+        cmd_validate "$@"
+        ;;
+    link)
+        shift
+        cmd_link "$@"
+        ;;
+    help|--help|-h|"")
+        usage
+        ;;
+    *)
+        echo "Unknown command: $1" >&2
+        echo "Run 'blueprint help' for usage." >&2
+        exit 1
+        ;;
+esac

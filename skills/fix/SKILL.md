@@ -15,6 +15,9 @@ Convert user feedback into structured tasks.
 
 @rules/blueprints.md — type dir: `plan/`, e.g. `plan/<epoch>-<slug>.md`.
 
+Use `blueprint create plan "<topic>"` to create plan files with
+proper frontmatter.
+
 ## Arguments
 
 - `<feedback-text>` — feedback to convert (may reference files,
@@ -34,9 +37,8 @@ branch=$(git branch --show-current)
 
 Also resolve the review source (parallel with above):
 ```bash
-branch_slug=$(echo "$branch" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g; s/-*$//')
-project=$(basename "$(git remote get-url origin 2>/dev/null | sed 's|\.git$||')" 2>/dev/null || basename "$(pwd)")
-review_file=$(ls -t ~/workspace/blueprints/$project/review/*$branch_slug*.md 2>/dev/null | head -1)
+branch_slug=$(blueprint slug "$branch")
+review_file=$(blueprint find --type review --match "$branch_slug")
 ```
 If `review_file` found, extract: `SOURCE_SLUG=$(basename "$review_file" .md)`
 
@@ -67,24 +69,16 @@ Create ONE task containing all findings:
 Then structure findings as phases and store in both plan file and
 task metadata:
 
-a. Generate a kebab-case slug from the feedback summary (lowercase,
-   strip filler words, replace non-alnum with hyphens, max 50 chars)
-b. Write plan file:
+a. Create plan file:
    ```
-   mkdir -p ~/workspace/blueprints/<project>/plan/
-   Write("~/workspace/blueprints/<project>/plan/<epoch>-<slug>.md", <frontmatter + findings>)
+   file=$(blueprint create plan "Fix: <brief-summary>" --status draft)
    ```
-   Frontmatter:
-   ```yaml
-   ---
-   topic: "Fix: <brief-summary>"
-   project: <absolute path to cwd>
-   created: <ISO 8601 timestamp>
-   status: draft
-   source: "[[<$SOURCE_SLUG>]]"   # only when review found in step 1
-   ---
+   If review found in step 1:
    ```
-c. Store in task: TaskUpdate(taskId, metadata: {design: "<phased-findings>", plan_file: "plan/<epoch>-<slug>.md"})
+   blueprint link "$file" "$SOURCE_SLUG"
+   ```
+   Write findings body into `$file` (append after frontmatter).
+b. Store in task: TaskUpdate(taskId, metadata: {design: "<phased-findings>", plan_file: "plan/$(basename $file)"})
 
 Design field format:
 ```
@@ -115,12 +109,10 @@ then features). Skip empty phases.
 
 Fires after every blueprint write or move per @rules/blueprints.md.
 ```sh
-cd ~/workspace/blueprints && \
-  git add -A <project>/ && \
-  git commit -m "fix(<project>): <slug>" && \
-  git push || (git pull --rebase && git push)
+blueprint commit plan <slug>
 ```
-If rebase fails, STOP and alert the user.
+If `blueprint commit` exits non-zero, STOP and alert the user
+with the error output.
 
 Output format:
 ```

@@ -24,6 +24,9 @@ a phased plan compatible with `/implement`.
 
 @rules/blueprints.md — type dir: `plan/`, e.g. `plan/<epoch>-pr-plan-<number>.md`.
 
+Use `blueprint create plan "<topic>"` to create plan files with
+proper frontmatter.
+
 ## Workflow
 
 ### New Session
@@ -136,16 +139,12 @@ a phased plan compatible with `/implement`.
    a. Parse subagent output into two sections:
       - `plan` — phased implementation steps (agreed items)
       - `replies` — draft replies (disagree/already-done/question)
-   b. Write plan file with frontmatter:
-      ```yaml
-      ---
-      topic: "PR #<number> feedback"
-      project: <absolute path to cwd>
-      created: <ISO 8601 timestamp>
-      status: draft
-      ---
+   b. Create plan file:
       ```
-      Followed by the full plan + replies sections.
+      file=$(blueprint create plan "PR #<number> feedback" --status draft)
+      ```
+      Write the full plan + replies sections into `$file` (append
+      after frontmatter).
    c. Store in task metadata:
       ```
       TaskUpdate(taskId, metadata: {
@@ -162,12 +161,10 @@ a phased plan compatible with `/implement`.
 
    Fires after every blueprint write or move per @rules/blueprints.md.
    ```sh
-   cd ~/workspace/blueprints && \
-     git add -A <project>/ && \
-     git commit -m "pr-plan(<project>): <slug>" && \
-     git push || (git pull --rebase && git push)
+   blueprint commit plan <slug>
    ```
-   If rebase fails, STOP and alert the user.
+   If `blueprint commit` exits non-zero, STOP and alert the user
+   with the error output.
 
 9. **Report results** (see Output Format)
 

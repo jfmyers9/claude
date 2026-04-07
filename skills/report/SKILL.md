@@ -22,7 +22,9 @@ the blueprints repo.
 
 ### 1. Derive Project
 
-Determine `<project>` per @rules/blueprints.md.
+```bash
+project=$(blueprint project)
+```
 
 ### 2. Detect Branches
 
@@ -74,14 +76,8 @@ git diff --diff-filter=D --name-only "$trunk".."$branch"
 
 ### 5. Find Source Plan (Optional)
 
-Scan for the most recent `.md` file in:
-- `~/workspace/blueprints/<project>/plan/`
-- `~/workspace/blueprints/<project>/spec/`
-
 ```bash
-ls -t ~/workspace/blueprints/<project>/plan/*.md \
-      ~/workspace/blueprints/<project>/spec/*.md \
-  2>/dev/null | head -1
+plan_file=$(blueprint find --type plan,spec)
 ```
 
 If found, extract `$SOURCE_SLUG`: `SOURCE_SLUG=$(basename "$plan_file" .md)`
@@ -91,30 +87,22 @@ Read it and extract phase titles (lines matching
 
 ### 6. Generate Slug
 
-Derive from `$branch`:
-- Strip common prefixes (`feature/`, `fix/`, etc.)
-- Convert to kebab-case
-- Remove filler words (the, a, an, and, or)
-- Truncate to max 50 chars
+```bash
+slug=$(blueprint slug "$branch")
+```
 
 ### 7. Write Report
 
-Create directory and write to
-`~/workspace/blueprints/<project>/report/<epoch>-<slug>.md`
-where `<epoch>` is current Unix seconds.
-
-**Frontmatter:**
-
-```yaml
----
-topic: "Report: <branch name or epic subject>"
-project: <absolute path to cwd>
-created: <ISO 8601 timestamp>
-status: complete
-branch: <branch name>
-source: "[[<$SOURCE_SLUG>]]"   # only when plan found in step 5
----
+Create the report file:
+```bash
+file=$(blueprint create report "Report: <branch name>" --status complete --branch "$branch")
 ```
+If source plan was found in step 5:
+```bash
+blueprint link "$file" "$SOURCE_SLUG"
+```
+
+Write the body content into `$file` (append after frontmatter).
 
 **Body sections** (in order):
 
@@ -140,13 +128,11 @@ source: "[[<$SOURCE_SLUG>]]"   # only when plan found in step 5
 Per @rules/blueprints.md:
 
 ```sh
-cd ~/workspace/blueprints && \
-  git add -A <project>/ && \
-  git commit -m "report(<project>): <slug>" && \
-  git push || (git pull --rebase && git push)
+blueprint commit report <slug>
 ```
 
-If rebase fails, **stop** and alert the user with conflict details.
+If `blueprint commit` exits non-zero, STOP and alert the user
+with the error output.
 
 ### 9. Report to User
 

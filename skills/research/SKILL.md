@@ -42,12 +42,13 @@ user approval before proceeding.
 (consumed by `/implement`) live in `archive/` and can be restored
 via `--continue`.
 
+Use `blueprint create spec "<topic>" --depth <level>` to create plan
+files with proper frontmatter. The skill writes body content into
+the returned file path.
+
 ## Slug Generation
 
-Generate a kebab-case slug from the topic: lowercase, strip filler
-words [a, an, the, for, with, and, or, to, in, of, on, by, is,
-it, be, as, at, do], replace non-alphanumeric runs with hyphens,
-max 50 chars truncated on word boundary.
+Use `$(blueprint slug "<topic>")` to generate slugs.
 
 ## Plan File Format
 
@@ -169,9 +170,13 @@ depth: <medium|high|max>
    forward to step 8 (spec presentation).
 
 7. **Store spec:**
-   - Write plan file with spec content, `status: spec_review`
+   - Create plan file:
+     ```
+     file=$(blueprint create spec "<topic>" --status spec_review --depth <level>)
+     ```
+     Write spec content body into `$file` (append after frontmatter).
    - `TaskUpdate(taskId, metadata: { spec: "<spec content>",
-     plan_file: "spec/<epoch>-<slug>.md", depth: "<level>",
+     plan_file: "spec/$(basename $file)", depth: "<level>",
      status_detail: "spec_review" })`
 
 8. **Present spec** — `Spec: t<id> — <topic>`, then Problem,
@@ -190,7 +195,7 @@ depth: <medium|high|max>
 
 10. **Approve spec:**
    `TaskUpdate(taskId, metadata: { status_detail: "spec_approved" })`
-   Update plan file status to `spec_approved`.
+   `blueprint status "$file" spec_approved`
 
 ### Plan Phase (how we're building it)
 
@@ -222,19 +227,17 @@ depth: <medium|high|max>
     - Re-present plan. Repeat until approved.
 
 15. **Approve and finalize:**
-    - Update plan file status to `approved`.
+    - `blueprint status "$file" approved`
     - `TaskUpdate(taskId, metadata: { status_detail: "approved" })`
 
     ### Commit-on-Write
 
     Fires after every blueprint write or move per @rules/blueprints.md.
     ```sh
-    cd ~/workspace/blueprints && \
-      git add -A <project>/ && \
-      git commit -m "research(<project>): <slug>" && \
-      git push || (git pull --rebase && git push)
+    blueprint commit spec <slug>
     ```
-    If rebase fails, STOP and alert the user.
+    If `blueprint commit` exits non-zero, STOP and alert the user
+    with the error output.
 
     - Report: plan file path, `Next: /implement`
 
@@ -244,10 +247,9 @@ depth: <medium|high|max>
    - If `$ARGUMENTS` matches a task ID -> `TaskGet(taskId)`
    - If `--continue` -> `TaskList()`, find first in_progress
      "Research:" task. If none found, find most recent plan file
-     in `~/workspace/blueprints/<project>/spec/` via
-     `ls -t ~/workspace/blueprints/<project>/spec/*.md | head -1`
+     via `blueprint find --type spec`
    - If no active plan found, check archive:
-     `ls -t ~/workspace/blueprints/<project>/archive/*.md | head -1`
+     `blueprint find --type archive`
      If found, copy it back to active.
      Report: "Restored archived plan: `<filename>`"
 
@@ -267,26 +269,23 @@ depth: <medium|high|max>
 
 ### Discard Plan
 
-1. Determine `<project>` per @rules/blueprints.md.
-2. If slug provided after `--discard`:
-   - Delete `~/workspace/blueprints/<project>/spec/*<slug>*.md` (try
-     with/without .md extension, partial glob match)
-3. If no slug -> delete most recent:
-   `ls -t ~/workspace/blueprints/<project>/spec/*.md | head -1`
-   Then delete it.
-4. Report: "Discarded plan: `<filename>`"
+1. If slug provided after `--discard`:
+   - Find file: `blueprint find --type spec --match <slug>`
+   - Delete the returned file.
+2. If no slug -> find most recent:
+   `blueprint find --type spec`
+   Then delete the returned file.
+3. Report: "Discarded plan: `<filename>`"
 
 
 ### Commit-on-Write
 
 Fires after every blueprint write or move per @rules/blueprints.md.
 ```sh
-cd ~/workspace/blueprints && \
-  git add -A <project>/ && \
-  git commit -m "research(<project>): <slug>" && \
-  git push || (git pull --rebase && git push)
+blueprint commit spec <slug>
 ```
-If rebase fails, STOP and alert the user.
+If `blueprint commit` exits non-zero, STOP and alert the user
+with the error output.
 
 ## Team Mode
 
