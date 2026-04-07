@@ -18,6 +18,7 @@ basename "$(git remote get-url origin 2>/dev/null | sed 's|\.git$||')" 2>/dev/nu
 ~/workspace/blueprints/<project>/review/     # code review blueprints
 ~/workspace/blueprints/<project>/report/     # execution reports
 ~/workspace/blueprints/<project>/archive/    # consumed blueprints (all types)
+~/workspace/blueprints/_concepts/            # cross-project concept notes
 ```
 
 Create on first write: `mkdir -p ~/workspace/blueprints/<project>/<type>/`
@@ -46,3 +47,31 @@ details. Do not continue the skill — blueprint data may be at risk.
 
 Archival is manual. Use `/archive` to move a blueprint to
 `archive/` when it is no longer needed in its active directory.
+
+## Linking
+
+Cross-cutting concept notes live in `~/workspace/blueprints/_concepts/`.
+
+**Litmus test:** if it's a project-scoped concern, it belongs in the
+project folder. If it's a cross-project idea, decision, pattern, or
+system — reference it with a `[[wikilink]]`.
+
+- Link format: `[[kebab-case-concept-name]]` matching concept note
+  filename without `.md` extension
+- Concept note format:
+  ```markdown
+  ---
+  aliases: [<alias>]
+  tags: [<tag>]
+  ---
+  # <Concept Name>
+
+  Short definition body.
+  ```
+- Skills do **not** auto-generate links — linking is a human activity
+  done in Obsidian
+- Concept notes are created manually when needed
+- Concept notes are evergreen references. Time-bound decisions
+  belong in project plans.
+- Commit-on-write for concepts: `git add -A _concepts/` with
+  message format `concept: <slug>`
