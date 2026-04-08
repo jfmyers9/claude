@@ -487,10 +487,6 @@ def main():
     # === LINE 2: git | 5h quota bar | weekly quota bar | vim | agent ===
     parts2 = []
 
-    gi = git_info(cwd)
-    if gi:
-        parts2.append(gi)
-
     quota = data.get("rate_limits")
 
     suffix_parts = []
