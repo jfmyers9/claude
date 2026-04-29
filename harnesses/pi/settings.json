@@ -1,5 +1,5 @@
 {
-  "defaultProvider": "anthropic",
+  "defaultProvider": "openai-codex",
   "defaultThinkingLevel": "high",
   "skills": [
     "skills"
@@ -17,5 +17,6 @@
     "provider": {
       "maxRetryDelayMs": 60000
     }
-  }
+  },
+  "defaultModel": "gpt-5.5"
 }
