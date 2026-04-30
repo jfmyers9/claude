@@ -17,3 +17,11 @@ Pi loads:
 
 Skills are available as `/skill:<name>` by default. Add Pi extensions
 later if direct aliases like `/commit` or `/submit` are desired.
+
+Long-running workflows use blueprints as the Pi work tracker:
+
+- `/skill:research` writes `spec/` blueprints
+- `/skill:implement` consumes `spec/`, `plan/`, or `review/` blueprints
+- `/skill:review` writes `review/` blueprints
+- `/skill:fix` writes `plan/` blueprints
+- `/skill:vibe` tracks pipeline state in a `plan/` blueprint

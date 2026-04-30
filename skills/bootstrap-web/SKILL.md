@@ -16,7 +16,7 @@ before scaffolding to avoid stale choices.
 - First word: project name (required, directory name under `~/src/`)
 - Remaining words: project description/purpose (optional)
 
-If no project name, ask with AskUserQuestion.
+If no project name, ask the user for it.
 
 ## Fixed Preferences
 
@@ -38,23 +38,22 @@ These are non-negotiable — do not research alternatives:
 
 ## Dev Routing
 
-Register the project in the local subdomain routing system:
-
-```
-Skill tool: bootstrap:caddy, args: "<project-name>"
-```
+Register the project in the local subdomain routing system. Use the
+local dev-routing helper if available, otherwise inspect repo/dotfiles
+for the documented routing command.
 
 This assigns a port and creates `https://<project>.localhost`. Use the
 returned port in vite.config.ts (`server.port`) and the URL in .env
 (`WEBAUTHN_ORIGIN`).
 
-If it fails because infrastructure is missing, stop and tell the user
-to set up dev routing via dotfiles first.
+If routing infrastructure is missing, stop and tell the user to set up
+dev routing via dotfiles first.
 
 ## Research Phase
 
 Before writing any files, research the current state of each evolving
-choice. Use WebSearch, context7, and current docs.
+choice. Use available web/docs tools if present; otherwise inspect
+package docs, templates, and installed CLI help.
 
 ### What to research
 
@@ -91,13 +90,13 @@ choice. Use WebSearch, context7, and current docs.
 ### Research output
 
 After researching, summarize findings as a brief decision list and
-present to the user via AskUserQuestion for any choices with multiple
-good options. For clear winners, just proceed.
+present to the user for any choices with multiple good options. For
+clear winners, just proceed.
 
 ## Design Interview
 
 After research decisions are settled, interview the user about visual
-direction using AskUserQuestion. Ask about:
+direction by asking directly. Ask about:
 
 1. **Tone/personality** — What feeling should the app convey?
    Options like: minimal/clean, bold/expressive, playful, editorial,

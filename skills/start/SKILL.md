@@ -19,7 +19,7 @@ Create a new Graphite branch.
 
 1. **Parse arguments**
    - Extract branch name from `$ARGUMENTS`
-   - If no branch name → tell user: `/start <branch-name>`, stop
+   - If no branch name → tell user: `/skill:start <branch-name>`, stop
 
 2. **Normalize branch name**
    - Prefix with `jm/` if not already prefixed
@@ -33,4 +33,4 @@ Create a new Graphite branch.
 
 5. **Confirm completion**
    - Report branch created
-   - Suggest: `/research` to plan work or `/implement` to start building
+   - Suggest: `/skill:research` to plan work or `/skill:implement` to start building

@@ -4,7 +4,7 @@ description: >
   Post-implementation execution report summarizing commits, files
   changed, and plan-vs-reality. Triggers: 'report', 'execution
   report', 'what was built'.
-allowed-tools: Bash, Read, Glob, Grep
+allowed-tools: Bash, Read, Write, Glob, Grep
 argument-hint: "[--branch <name>]"
 ---
 

@@ -1,136 +1,110 @@
 ---
 name: fix
 description: >
-  Convert user feedback on recent implementations into tasks.
-  Triggers: /fix, "fix this", "create issues from feedback"
-allowed-tools: Bash, Read, Write, Glob, Grep, TaskCreate, TaskUpdate, TaskGet
+  Convert user feedback on recent implementations into blueprint-backed
+  fix plans. Triggers: /fix, 'fix this', 'create issues from feedback'.
+allowed-tools: Bash, Read, Write, Glob, Grep
 argument-hint: "[feedback-text]"
 ---
 
 # Fix
 
-Convert user feedback into structured tasks.
+Convert feedback into a `plan/` blueprint consumable by
+`/skill:implement`.
 
-## Plan Directory
-
-@rules/blueprints.md — type dir: `plan/`, e.g. `plan/<epoch>-<slug>.md`.
-
-Use `blueprint create plan "<topic>"` to create plan files with
-proper frontmatter.
+@rules/blueprints.md and @rules/harness-compat.md apply.
 
 ## Arguments
 
-- `<feedback-text>` — feedback to convert (may reference files,
-  behaviors, or recent changes)
-- (no args) — ask user for feedback
+- `<feedback-text>` — feedback to convert
+- no args — use latest review blueprint or ask for feedback
 
 ## Workflow
 
-### 1. Gather Context (Parallel)
+### 1. Gather Context
 
-Run these in parallel to understand what was recently implemented:
+Run in parallel where possible:
+
 ```bash
 git diff --name-only HEAD~3..HEAD
 git log --oneline -5
 branch=$(git branch --show-current)
-```
-
-Also resolve the review source (parallel with above):
-```bash
 branch_slug=$(blueprint slug "$branch")
 review_file=$(blueprint find --type review --match "$branch_slug")
 ```
-If `review_file` found, extract: `SOURCE_SLUG=$(basename "$review_file" .md)`
 
-If user references specific files, read those files.
+If no feedback text was provided and a review blueprint exists, read it
+and extract actionable findings. If neither exists, ask for feedback.
+
+If feedback names files, read those files.
 
 ### 2. Analyze Feedback
 
-Break feedback into individual findings:
-- Classify each: `bug`, `task`, or `feature`
-- Set priority (P0-P4):
-  - P0: Critical bugs, blocking issues
-  - P1: Important bugs, high-priority features
-  - P2: Normal priority (default for most feedback)
-  - P3: Nice-to-have improvements
-  - P4: Low priority, future consideration
-- Group findings by type for phase structure
+Break feedback into findings. For each finding:
 
-### 3. Create Single Task with Phased Design
+- classify: `bug`, `task`, or `feature`
+- priority: P0-P4, default P2
+- file/line if known
+- concrete change requested
+- verification signal
 
-Create ONE task containing all findings:
+Group findings:
 
-- TaskCreate:
-  - subject: "Fix: <brief-summary-of-feedback>"
-  - description: "All feedback items addressed. Findings stored in task metadata design field as phased structure. Consumable by `/implement` for epic creation."
-  - metadata: {type: "task", priority: 2}
-- TaskUpdate(taskId, status: "in_progress")
+- Phase 1: Bugs
+- Phase 2: Improvements
+- Phase 3: Features
 
-Then structure findings as phases and store in both plan file and
-task metadata:
+Skip empty phases.
 
-a. Create plan file:
-   ```
-   file=$(blueprint create plan "Fix: <brief-summary>" --status draft)
-   ```
-   If review found in step 1:
-   ```
-   blueprint link "$file" "$SOURCE_SLUG"
-   ```
-   Write findings body into `$file` (append after frontmatter).
-b. Store in task: TaskUpdate(taskId, metadata: {design: "<phased-findings>", plan_file: "plan/$(basename $file)"})
+### 3. Create Fix Plan
 
-Design field format:
+Create the plan:
+
+```bash
+file=$(blueprint create plan "Fix: <brief-summary>" --status draft)
 ```
+
+If sourced from a review blueprint:
+
+```bash
+SOURCE_SLUG=$(basename "$review_file" .md)
+blueprint link "$file" "$SOURCE_SLUG"
+```
+
+Write:
+
+```markdown
 ## Feedback Analysis
 
+### Summary
+- Findings: N
+- Source: <feedback/review path>
+
 **Phase 1: Bug Fixes**
-1. Fix X in file.ts:123 — description of bug
-2. Fix Y in module.ts:45 — description of bug
+1. <file:line> — <actionable fix>
+   - Why: <reason>
+   - Verify: <check>
 
 **Phase 2: Improvements**
-3. Update Z configuration — description of improvement
-4. Add W feature — description of feature
+...
 
-Each phase groups findings by type (bugs first, then tasks,
-then features). Skip empty phases.
+**Phase 3: Features**
+...
 ```
 
-**Phase grouping rules:**
-- Phase 1: Bugs (highest priority first)
-- Phase 2: Tasks / improvements
-- Phase 3: Features / new functionality
-- Skip phases with no findings
-- Each item: actionable title with file:line when available
+Run `blueprint commit plan <slug>` after writing. If it fails, stop
+and show the error.
 
 ### 4. Report
 
-#### Commit-on-Write
-
-Fires after every blueprint write or move per @rules/blueprints.md.
-```sh
-blueprint commit plan <slug>
-```
-If `blueprint commit` exits non-zero, STOP and alert the user
-with the error output.
-
-Output format:
-```
-## Fix Task: #<id>
-
-**Findings**: N items (X bugs, Y tasks, Z features)
-
-**Plan**: `~/workspace/blueprints/<project>/plan/<epoch>-<slug>.md` — review/edit in
-`$EDITOR` before `/implement`.
-
-**Next**: `/implement` to create tasks, or edit the plan file first.
+```text
+Fix Plan: <path>
+Findings: N (X bugs, Y improvements, Z features)
+Next: /skill:implement
 ```
 
-## Style Rules
+## Rules
 
-- Keep concise — bullet points, not prose
-- No emoji
-- All findings in one task — grouped by type in design phases
-- Use specific file paths and line numbers when available
-- Classify accurately (bug vs task vs feature matters for grouping)
-- Default to P2 unless feedback indicates urgency
+- One fix plan per feedback batch.
+- Keep findings actionable and file-specific.
+- Do not create native task state.

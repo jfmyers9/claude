@@ -1,64 +1,104 @@
 ---
 name: debug
 description: >
-  Systematically diagnose and fix bugs, CI failures, and test failures.
-  Triggers: /debug, debugging issues, test failures, CI errors
-allowed-tools: Bash, Read, Glob, Grep, Edit, TaskCreate, TaskUpdate, TaskGet
-argument-hint: "[task-id|error-description]"
+  Systematically diagnose and fix bugs, CI failures, and test
+  failures. Triggers: /debug, debugging issues, test failures, CI
+  errors.
+allowed-tools: Bash, Read, Glob, Grep, Edit, Write
+argument-hint: "[blueprint-slug|error-description]"
 ---
 
 # Debug
 
-Systematically diagnose and fix bugs, CI failures, and
-test failures.
+Diagnose and fix a bug using a `plan/` blueprint as the durable work
+record.
+
+@rules/blueprints.md and @rules/harness-compat.md apply.
 
 ## Arguments
 
-- `<task-id>` — debug that specific issue
-- `<error-description>` — debug that problem
-- (no args) — check for failing tests/CI on current branch
+- `<blueprint-slug>` — continue a matching debug/fix plan
+- `<error-description>` — problem to debug
+- no args — inspect current branch/tests for failures
 
 ## Workflow
 
-### 1. Issue Setup
+### 1. Resolve or Create Plan
 
-**If task ID provided:**
-- TaskGet(taskId) to load context
-- TaskUpdate(taskId, status: "in_progress")
+- If a slug matches `blueprint find --type plan --match <slug>`, read
+  and continue it.
+- Else gather problem context from args, failing tests, CI output, or
+  recent logs.
+- Create a plan blueprint:
+  ```bash
+  file=$(blueprint create plan "Debug: <problem>" --status draft)
+  ```
 
-**If no task ID:**
-- TaskCreate:
-  - subject: "Debug: <problem>"
-  - description: "Steps to Reproduce: <observed symptoms and error output>. Acceptance Criteria: Bug is fixed and verified by passing tests."
-  - metadata: {type: "bug", priority: 1}
+### 2. Diagnose
 
-### 2. Diagnose and Fix
+Gather only relevant context:
 
-Gather context, trace to root cause, make minimal fix, verify
-with tests. Update task on success or record findings on failure.
-
-### 5. Report
-
-Output format:
+```bash
+git status -sb
+git diff --stat
+# run the failing test/check if known
 ```
+
+Trace:
+
+- reproduction steps
+- expected vs actual behavior
+- suspected files/functions
+- root cause evidence
+
+Write/update the blueprint:
+
+```markdown
 ## Problem
-- [what was wrong]
+
+## Reproduction
 
 ## Root Cause
-- [traced cause]
 
-## Fix Applied
-- [minimal changes made]
+## Fix Plan
 
-## Verification
-- [test results / CI status]
+**Phase 1: Minimal Fix**
+- Files:
+- Steps:
+- Verify:
 ```
 
-## Style Rules
+Run `blueprint commit plan <slug>` after writes.
 
-- Keep concise — bullet points, not prose
-- No emoji
-- Steps numbered and actionable
-- Prefer reading error output over guessing
-- Make minimal fixes — don't refactor surrounding code
-- Use parallel tool calls when gathering independent data
+### 3. Fix
+
+Make the smallest change that addresses the root cause. Avoid adjacent
+refactors. Verify with the failing test/check first, then related checks
+as needed.
+
+Append:
+
+```markdown
+## Debug Notes
+- Files changed:
+- Verification:
+- Remaining risks:
+```
+
+### 4. Complete
+
+If fixed and verified:
+
+```bash
+blueprint status "$file" complete
+blueprint commit plan <slug>
+```
+
+Report:
+
+```text
+Problem: <summary>
+Root Cause: <summary>
+Fix: <files>
+Verification: <commands/results>
+```

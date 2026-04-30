@@ -9,7 +9,7 @@ Context window is finite. Treat it like memory — never waste it.
 - Use `--quiet`, `--summary`, or `-s` flags when available
 - Grep for relevant lines instead of reading full output
 - If output exceeds ~30 lines, summarize before continuing
-- When passing info between agents, pre-compute a summary —
+- When passing info between workflow phases, pre-compute a summary —
   don't forward raw output
-- When spawning subagents, include only what they need and omit
-  everything else
+- When writing blueprint notes, include only what future phases need
+  and omit everything else

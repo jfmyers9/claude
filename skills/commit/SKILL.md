@@ -66,6 +66,6 @@ instructions if they want commits shaped differently.
    - Display final commit with `git log -1 --oneline`
    - If `--push`:
      - Detect Graphite trunk: `gt trunk 2>/dev/null`
-     - If Graphite detected AND current branch is NOT trunk: warn that `--push` bypasses Graphite branch tracking, suggest `/submit` instead, skip push
+     - If Graphite detected AND current branch is NOT trunk: warn that `--push` bypasses Graphite branch tracking, suggest `/skill:submit` instead, skip push
      - Otherwise: run `git push || (git pull --rebase && git push)`
      - Display push result or error

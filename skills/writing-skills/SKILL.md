@@ -10,44 +10,41 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 # Writing Skills
 
-Create skill files with proper frontmatter + imperative
-step-by-step instructions.
+Create portable Agent Skills that use blueprints for durable workflow
+state.
+
+@rules/harness-compat.md applies.
 
 ## Arguments
 
-- `<skill-name>` — name for the new skill (kebab-case)
+- `<skill-name>` — kebab-case skill name
 - `<description>` — what the skill does
 
 ## Steps
 
 ### 1. Parse Arguments
 
-Extract from `$ARGUMENTS`:
-
-- Skill name (kebab-case)
-- Brief description
-
-Ask user if either is missing.
+Extract skill name and brief description. Ask if either is missing.
 
 ### 2. Gather Requirements
 
-If unclear from description, ask:
+If unclear, ask:
 
-- Trigger phrases for description field
-- Orchestration (delegates to Task subagents) or direct
-  (edits files itself)?
-- Arguments accepted?
+- trigger phrases for `description`
+- arguments / flags
+- whether the skill creates blueprint state
+- expected output format
 
 ### 3. Reference Existing Skills
 
-Read 2-3 existing skills for current conventions:
+Read 2-3 nearby skills for conventions:
 
-```
+```bash
 ls skills/*/SKILL.md
 ```
 
-Match the frontmatter style, heading structure, and tool
-lists used in the codebase.
+Match frontmatter style, heading structure, and concise imperative
+instructions.
 
 ### 4. Create Skill File
 
@@ -55,7 +52,7 @@ lists used in the codebase.
 mkdir -p skills/{skill-name}
 ```
 
-Write `skills/{skill-name}/SKILL.md` with this structure:
+Write `skills/{skill-name}/SKILL.md`:
 
 ```markdown
 ---
@@ -63,20 +60,22 @@ name: {skill-name}
 description: >
   {What it does + when to use.}
   Triggers: '{trigger1}', '{trigger2}'.
-allowed-tools: {Tool1}, {Tool2}
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 argument-hint: "{args}"
 ---
 
 # {Skill Title}
 
-{One-line summary.}
+{One-line imperative summary.}
+
+@rules/harness-compat.md applies.
 
 ## Arguments
 
 - `<arg>` — description
 - `--flag` — description
 
-## Steps (or ## Workflow)
+## Workflow
 
 ### 1. {First Step}
 
@@ -85,58 +84,43 @@ argument-hint: "{args}"
 
 ### 5. Verify
 
-- `name` matches directory name
-- `description` uses `>` (folded scalar), not `|`
-- `description` includes trigger phrases
-- `allowed-tools` is comma-separated on one line, minimal
-  for the task
-- Title is the skill name only — no suffixes ("Workflow",
-  "Skill") or elaboration
-- One-line summary uses imperative voice ("Create...", not
-  "Creates...")
-- `## Arguments` section present when `argument-hint` exists
-- Instructions use imperative voice
-- Prose wrapped at 80 characters
+- `name` matches directory
+- name is lowercase kebab-case
+- description uses folded scalar `>` and includes triggers
+- `allowed-tools` is minimal and portable
+- title is the skill name only, no suffixes
+- `## Arguments` exists when `argument-hint` exists
+- instructions use imperative voice
+- prose wraps near 80 chars
 
-### 6. Tool Selection Reference
+### 6. Tool Selection
 
-Pick minimal tool set based on skill type:
+Use portable tools only:
 
-| Type | Tools |
+| Need | Tools |
 |------|-------|
-| Orchestration | Bash, Read, Task |
-| Direct-action | Bash, Read, Edit, Write, Glob, Grep |
-| Team | + SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet, TeamCreate, TeamDelete |
-| Plan-mode | + EnterPlanMode, ExitPlanMode |
-| Git-only | Bash |
+| inspect repo | Bash, Read, Glob, Grep |
+| edit files | Bash, Read, Edit, Write, Glob, Grep |
+| git-only | Bash |
+| blueprint workflow | Bash, Read, Write, Edit |
 
-Notes:
-- Orchestration skills use Task to spawn subagents for
-  heavy work (see research, review, implement)
-- Direct-action skills edit files themselves
-- Team tools only needed for multi-agent swarm coordination
-- Most skills also include Glob and Grep for search
+Do not add harness-native task/team/subagent tools to shared skills.
 
-## Task Integration
+## Blueprint Integration
 
-Skills that create or track work should use native Claude
-Code task tools instead of filesystem documents.
+Skills that create durable work should use blueprints.
 
-### Common Patterns
+Common patterns:
 
-- **Create a task**: `TaskCreate` with `subject`,
-  `description`, and `activeForm`
-- **Store structured data**: use `metadata` field on
-  `TaskCreate` or `TaskUpdate` for plans, findings, notes
-- **Track status**: `TaskUpdate(taskId, status)` — pending,
-  in_progress, completed
-- **Read context**: `TaskGet(taskId)` to retrieve full details
-- **List work**: `TaskList()` to see all tasks and status
+```bash
+file=$(blueprint create spec "<topic>" --status draft)
+file=$(blueprint create plan "<topic>" --status draft)
+file=$(blueprint create review "<topic>" --status draft)
+file=$(blueprint create report "<topic>" --status complete)
+blueprint link "$file" "<source-slug>"
+blueprint status "$file" complete
+blueprint commit <type> <slug>
+```
 
-### When to Integrate Tasks
-
-- Skill creates trackable work → create a task
-- Skill produces structured output → store in `metadata`
-- Skill needs to resume across sessions → use tasks as
-  state store
-- Skill is fire-and-forget (e.g., git-only) → skip tasks
+Use blueprint body sections for design, findings, notes, and resume
+state. Use frontmatter `status:` for progress.

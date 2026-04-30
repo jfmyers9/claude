@@ -1,220 +1,181 @@
 ---
 name: vibe
 description: >
-  Fully autonomous development workflow from prompt to commit.
-  Chains research → implement → review → fix → commit → submit.
-  Triggers: /vibe, "vibe this", "autonomous workflow".
-allowed-tools: Bash, Read, Glob, Skill, TaskCreate, TaskUpdate, TaskGet, TaskList
+  Fully autonomous blueprint-backed development workflow from prompt
+  to commit. Chains research → implement → review → fix → report →
+  commit → submit. Triggers: /vibe, 'vibe this', 'autonomous workflow'.
+allowed-tools: Bash, Read, Write, Glob, Grep
 argument-hint: "<prompt> [--continue] [--dry-run]"
 ---
 
 # Vibe
 
-Run the full development pipeline from a single prompt.
+Run the full development pipeline using blueprints as the only durable
+state.
 
-## Plan Directory
-
-@rules/blueprints.md. Use `blueprint find` for file discovery.
+@rules/blueprints.md and @rules/harness-compat.md apply.
 
 ## Arguments
 
-- `<prompt>` — what to build (required unless `--continue`)
-- `--continue` — resume a failed pipeline from last completed stage
-- `--dry-run` — research only, stop before implement
+- `<prompt>` — what to build, required unless `--continue`
+- `--continue` — resume latest vibe tracker
+- `--dry-run` — research only, stop before implementation
 
 ## Pipeline
 
-```
-/research → /implement → /review → fix → /report → /commit → /submit
-```
-
-Each stage verifies success before proceeding. Failures halt
-with a clear report.
-
-## Step 1: Parse Arguments
-
-Extract from `$ARGUMENTS`:
-
-- `<prompt>`: everything except flags
-- `--continue`: boolean
-- `--dry-run`: boolean
-
-If no prompt and no `--continue` → tell user:
-`/vibe <what to build>`, stop.
-
-## Step 2: Resume Check
-
-If `--continue`:
-
-1. `TaskList()` → find task with `metadata.type == "vibe"`
-   and `status == "in_progress"`
-2. If found → read `metadata.vibe_stage` to determine resume point
-3. Read `metadata.vibe_prompt` as the prompt
-4. Skip to the stage after `vibe_stage` (see Step 4)
-5. If not found → tell user no pipeline to resume, stop
-
-## Step 3: Create Pipeline Tracker
-
-```
-TaskCreate(
-  subject: "Vibe: <prompt (truncated to 60 chars)>",
-  description: "Autonomous pipeline for: <full prompt>",
-  activeForm: "Vibing: <prompt (truncated to 40 chars)>",
-  metadata: {
-    type: "vibe",
-    vibe_prompt: "<full prompt>",
-    vibe_stage: "started",
-    priority: 1
-  }
-)
-TaskUpdate(taskId, status: "in_progress")
+```text
+/skill:research --auto
+/skill:implement --no-report
+/skill:review
+/skill:fix
+/skill:implement --no-report
+/skill:report
+/skill:commit
+/skill:submit
 ```
 
-## Step 4: Execute Pipeline
+Do not use native task/team state. To invoke a stage, read that skill's
+`SKILL.md` and follow its blueprint-backed workflow inline.
 
-Run stages sequentially. After each stage succeeds, update
-`metadata.vibe_stage` via TaskUpdate before proceeding.
+## Tracker Blueprint
 
-### Stage 1: Research
+Create a `plan/` blueprint as the pipeline tracker:
 
-```
-Skill("research", args="<prompt>")
-```
-
-**Verify**: Plan file exists — check via
-`blueprint find --type spec,plan,review`.
-**Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "research" })`
-**Report**: `[1/7] Researched: plan at <path>`
-
-If `--dry-run` → stop here. Report plan file, suggest
-`/implement` or `/vibe --continue` when ready.
-
-### Stage 2: Implement
-
-```
-Skill("implement", args="--no-report")
+```bash
+tracker=$(blueprint create plan "Vibe: <prompt>" --status draft)
 ```
 
-**Verify**: `TaskList()` → all children of epic have
-`status == "completed"`.
-**Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "implement" })`
-**Report**: `[2/7] Implemented: N/N tasks completed`
+Body:
 
-If some tasks failed, report failures but continue to commit
-if any code was changed (`git diff --stat` is non-empty).
+```markdown
+## Pipeline State
 
-### Stage 3: Review
+- prompt: <full prompt>
+- stage: started
+- spec:
+- implementation:
+- review:
+- fix_plan:
+- fix_implementation:
+- report:
+- commit:
+- submit:
 
-```
-Skill("review")
-```
+## Stage Log
 
-**Verify**: Review file exists via
-`blueprint find --type review`.
-**Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "review" })`
-**Report**: `[3/7] Reviewed: findings at <path>`
-
-If review fails, log warning but continue to report (non-blocking).
-
-### Stage 4: Fix Review Findings
-
-Find the review task: `TaskList()` → find task with
-`subject` starting with "Review:" and `status == "in_progress"`.
-
-If no review task or no findings → skip, report
-`[4/7] Fix: skipped (no findings)`.
-
-If findings exist:
-1. Read `metadata.design` from the review task
-2. Create tasks from findings via `Skill("fix")`
-3. Run `Skill("implement", args="--no-report")` to fix them
-4. Complete the review task:
-   `TaskUpdate(reviewTaskId, status: "completed")`
-
-**Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "fix" })`
-**Report**: `[4/7] Fixed: N/N review findings addressed`
-
-If fix fails, log warning but continue to report (non-blocking).
-
-### Stage 5: Report
-
-```
-Skill("report")
+### started
+- <timestamp>: tracker created
 ```
 
-**Verify**: Report file exists via
-`blueprint find --type report`.
-**Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "report" })`
-**Report**: `[5/7] Report: <path>`
+After each stage, update `stage`, fill artifact paths/results, append a
+Stage Log entry, and run `blueprint commit plan <tracker-slug>`.
 
-If report fails, log warning but continue to commit (non-blocking).
+## Workflow
 
-### Stage 6: Commit
+### 1. Parse / Resume
 
-Check `git diff --stat` first. If empty → skip, report
-`[6/7] Commit: skipped (no changes)`.
+- If no prompt and no `--continue`, show:
+  `/skill:vibe <what to build>`
+- If `--continue`, find latest tracker with:
+  `blueprint find --type plan --match vibe`
+  Read `## Pipeline State` and resume after `stage`.
+- Else create a new tracker.
 
-```
-Skill("commit")
-```
+### 2. Research
 
-**Verify**: `git log -1 --oneline` shows a new commit.
-**Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "commit" })`
-**Report**: `[6/7] Committed: <commit oneline>`
+Read `skills/research/SKILL.md` and execute with:
 
-### Stage 7: Submit
-
-```
-Skill("submit")
+```text
+<prompt> --auto
 ```
 
-**Verify**: `gt ls` shows PR created/updated.
-**Update**: `TaskUpdate(trackerId, metadata: { vibe_stage: "submit" })`
-**Report**: `[7/7] Submitted: PR created/updated`
+Verify a spec blueprint exists via `blueprint find --type spec` and
+store its path in tracker `spec`. If `--dry-run`, stop here and report
+`Next: /skill:implement`.
 
-If submit fails, log warning (non-blocking) — code is committed.
+### 3. Implement
 
-## Step 5: Finalize
+Read `skills/implement/SKILL.md` and execute against the spec path with
+`--no-report`.
 
+Verify implementation notes exist or expected git changes are present.
+Store result in tracker `implementation`.
+
+### 4. Review
+
+Read `skills/review/SKILL.md` and execute on the current branch.
+
+Verify a review blueprint exists. Store path in tracker `review`.
+Review failure is non-blocking only if implementation produced changes;
+log the failure and continue to report/commit.
+
+### 5. Fix Review Findings
+
+Read the review blueprint. If it has no actionable findings, log
+`fix skipped`.
+
+If actionable findings exist:
+
+1. Read `skills/fix/SKILL.md` and create a fix plan from review
+   findings.
+2. Store fix plan path in tracker `fix_plan`.
+3. Read `skills/implement/SKILL.md` and execute the fix plan with
+   `--no-report`.
+4. Store result in tracker `fix_implementation`.
+
+Fix failure is non-blocking only if the original implementation is
+useful; log the blocker clearly.
+
+### 6. Report
+
+Read `skills/report/SKILL.md` and execute it. Store report path in the
+tracker. Report failure is non-blocking.
+
+### 7. Commit
+
+If `git diff --stat` is empty, log `commit skipped`.
+
+Otherwise read `skills/commit/SKILL.md` and execute it. Store
+`git log -1 --oneline` in tracker `commit`.
+
+### 8. Submit
+
+Read `skills/submit/SKILL.md` and execute it. Store PR/submit result in
+tracker `submit`. Submit failure is non-blocking after commit.
+
+### 9. Complete
+
+When done:
+
+```bash
+blueprint status "$tracker" complete
+blueprint commit plan <tracker-slug>
 ```
-TaskUpdate(trackerId, status: "completed")
-```
 
-Report full summary:
+Report:
 
-```
+```text
 Pipeline complete:
-[1/7] Researched: plan at <path>
-[2/7] Implemented: N/N tasks completed
-[3/7] Reviewed: findings at <path>
-[4/7] Fixed: N/N review findings addressed
-[5/7] Report: <path>
-[6/7] Committed: <commit oneline>
-[7/7] Submitted: PR created/updated
+[1/7] Research: <spec>
+[2/7] Implement: <result>
+[3/7] Review: <review>
+[4/7] Fix: <fix result>
+[5/7] Report: <report>
+[6/7] Commit: <commit>
+[7/7] Submit: <submit result>
 ```
 
 ## Error Handling
 
-If ANY stage fails:
+If a blocking stage fails:
 
-1. Do NOT update `vibe_stage` (it stays at last successful stage)
-2. Leave tracker task in_progress
-3. Report:
-   ```
-   Pipeline halted at stage N (<stage-name>).
+1. Do not advance tracker `stage`.
+2. Append the error to `## Stage Log`.
+3. Commit the tracker blueprint.
+4. Report:
+   ```text
+   Pipeline halted at <stage>.
    Error: <details>
-
-   Completed:
-   [1/7] Researched: ...
-   [2/7] Implemented: ...
-
-   Resume: `/vibe --continue`
-   Or run manually: `/<failed-skill> [args]`
+   Resume: /skill:vibe --continue
+   Manual: /skill:<stage-skill>
    ```
-
-## Stage Count
-
-- Default: 7 stages (`[N/7]`)
-- With `--dry-run`: 1 stage (`[N/1]`)
-
-Adjust the `[N/M]` denominator based on active flags.

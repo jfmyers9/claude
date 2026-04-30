@@ -1,184 +1,134 @@
 ---
 name: acceptance
 description: >
-  Validate implementation against acceptance criteria using
-  dual-agent verification. Triggers: 'accept', 'acceptance check',
-  'verify implementation', 'did it work'.
-argument-hint: "[<task-id>] [--auto]"
+  Validate implementation against acceptance criteria using a
+  blueprint-backed verifier/breaker review. Triggers: 'accept',
+  'acceptance check', 'verify implementation', 'did it work'.
+argument-hint: "[blueprint-slug] [--auto]"
 user-invocable: true
 allowed-tools:
-  - Agent
   - Bash
   - Read
   - Glob
   - Grep
-  - TaskGet
-  - TaskList
+  - Write
 ---
 
 # Acceptance
 
-Dual-agent post-implementation verification: a Verifier checks
-each criterion, a Breaker hunts for gaps. Reconcile results into
-a single verdict.
+Verify an implementation against its blueprint criteria. Store the
+verdict in a `review/` blueprint.
+
+@rules/blueprints.md and @rules/harness-compat.md apply.
 
 ## Arguments
 
-- `<task-id>` — verify a specific task's acceptance criteria
-- `--auto` — auto-fix failures (max 2 iterations)
-- *(none)* — find most recent in_progress/completed task
-
-Run after `/implement` completes — verifies the holistic outcome
-at the epic level, not individual task results.
+- `<blueprint-slug>` — spec/plan/review blueprint to verify
+- `--auto` — create a fix plan for failures
+- no args — verify the latest spec/plan blueprint
 
 ## Workflow
 
-### Step 1: Resolve Target
+### 1. Resolve Target
 
-1. If `$ARGUMENTS` contains a task ID → `TaskGet(taskId)`
-2. Else → `TaskList()`, prefer tasks where
-   `metadata.type == "epic"` (most recent first), then fall back
-   to any `in_progress` or `completed` task
-3. Extract criteria from the task description — look for
-   `## Success Criteria` (epics) or `## Acceptance Criteria`
-   (tasks), use whichever is found
-4. If neither found → ask user what to verify
-
-### Step 2: Gather Diff
-
-If target is an epic (`metadata.type == "epic"`):
+Find the target blueprint:
 
 ```bash
-# Full branch diff — captures all changes across all tasks
-diff=$(git diff $(git merge-base HEAD $(gt trunk 2>/dev/null || echo main))..HEAD)
+blueprint find --type spec,plan,review [--match <slug>]
 ```
 
-If target is a regular task:
+Read acceptance criteria from, in order:
+
+- `## Plan` phase done signals
+- `## Spec` recommendation/problem
+- `## Feedback Analysis` findings
+- `## Implementation Notes`
+
+If criteria are unclear, ask what to verify.
+
+### 2. Gather Changes
 
 ```bash
-# Try uncommitted changes first
-diff=$(git diff HEAD; git diff --cached)
-# If empty, use last commit
-[ -z "$diff" ] && diff=$(git diff HEAD~1..HEAD)
+trunk=$(gt trunk 2>/dev/null || echo main)
+git diff "$trunk"...HEAD --name-only
+git diff "$trunk"...HEAD
 ```
 
-If no diff at all → exit: "Nothing to verify — no changes found."
+If no branch diff exists, use staged/unstaged diff; if still empty,
+stop with "Nothing to verify".
 
-Build a diff summary: changed file list + key changes (truncate
-files with >200 lines of diff to first 50 + last 50 lines).
+Summarize large diffs; read full files only for specific checks.
 
-### Step 3: Verify (parallel agents)
+### 3. Verify
 
-Spawn BOTH agents in a SINGLE message for true parallelism.
+Run two passes sequentially in this session:
 
-#### Verifier
+**Verifier pass**
 
-```
-Agent(subagent_type="general-purpose", prompt=<below>)
-```
+For each criterion, mark:
 
-```
-Evaluate this implementation against acceptance criteria.
+- PASS — fully met with file/line evidence
+- PARTIAL — partly met, gap explained
+- FAIL — not met
+- N/A — not applicable
 
-## Acceptance Criteria
-<criteria from task>
+**Breaker pass**
 
-## Changes
-<diff summary — file list + key changes>
+Hunt for:
 
-For EACH criterion, evaluate:
-- PASS: criterion fully met, cite file:line evidence
-- PARTIAL: criterion partially met, explain gap
-- FAIL: criterion not met, explain why
-- N/A: criterion not applicable to these changes
+1. implied requirements
+2. edge cases
+3. integration risks
+4. technically-met-but-incomplete behavior
+5. missing negative tests
 
-Return a structured report with one entry per criterion.
-Do NOT write files.
-```
+Rate breaker findings HIGH/MEDIUM/LOW.
 
-#### Breaker
+### 4. Reconcile
 
-```
-Agent(subagent_type="general-purpose", prompt=<below>)
-```
-
-```
-You are an adversarial tester. Hunt for issues the verifier
-might miss.
-
-## Acceptance Criteria
-<criteria from task>
-
-## Changes
-<diff summary>
-
-Evaluate ALL 5 angles — provide analysis for each:
-1. Implied requirements: what the criteria assume but don't state
-2. Edge cases: boundary conditions, empty inputs, overflow
-3. Integration points: how changes interact with existing code
-4. Technically-met-but-incomplete: letter vs spirit of criteria
-5. Missing negatives: things that should NOT happen but aren't
-   tested
-
-For each finding, rate: HIGH / MEDIUM / LOW severity.
-If an angle has no findings, explain why (no lazy "none found").
-Do NOT write files.
-```
-
-### Step 4: Reconcile
-
-Collect both agent results. Apply verdict rules:
+Verdict rules:
 
 | Condition | Verdict |
 |---|---|
-| Any Verifier FAIL | **FAIL** |
-| Any Verifier PARTIAL | **PARTIAL** |
-| All PASS + any Breaker HIGH | **PARTIAL** |
-| All PASS + no Breaker HIGH | **PASS** |
+| Any verifier FAIL | FAIL |
+| Any verifier PARTIAL | PARTIAL |
+| All PASS + breaker HIGH | PARTIAL |
+| All PASS + no breaker HIGH | PASS |
 
-After computing the verdict, detect consensus findings:
+Consensus findings are verifier PARTIAL/FAIL items that overlap with a
+breaker HIGH/MEDIUM finding.
 
-- For each Verifier criterion rated PARTIAL or FAIL, check if the
-  Breaker flagged the same area as HIGH or MEDIUM severity
-- If both independently flagged the same area → tag as
-  **Consensus Finding** (highest-confidence issues)
-- Collect all consensus findings for the report (may be empty)
+### 5. Store Review
 
-### Step 5: Report and Act
+Create an acceptance review blueprint:
 
-Display verdict with summary table:
-
-```
-## Acceptance: <PASS|PARTIAL|FAIL>
-
-| Criterion | Verifier | Breaker Flags |
-|---|---|---|
-| <criterion> | PASS/PARTIAL/FAIL | HIGH/MEDIUM/LOW or — |
-
-### Consensus Findings
-(only include if overlap detected)
-
-| Criterion | Verifier Verdict | Breaker Severity | Notes |
-|---|---|---|---|
-| <criterion> | PARTIAL/FAIL | HIGH/MEDIUM | <brief description> |
-
-### Verifier Details
-<structured per-criterion results>
-
-### Breaker Findings
-<adversarial findings by angle>
+```bash
+file=$(blueprint create review "Acceptance: <target>" --status complete)
+blueprint link "$file" "<source-slug>"
 ```
 
-**On PASS**: Report success, suggest `/commit`.
+Write:
 
-**On PARTIAL or FAIL with `--auto`**:
-1. Spawn fix agent with findings (max 2 iterations)
-2. Re-run verification after fix
-3. If still failing after 2 iterations → report and stop
+```markdown
+## Acceptance Verdict
+PASS | PARTIAL | FAIL
 
-**On PARTIAL or FAIL without `--auto`**:
-Present options:
-1. **Fix** — spawn agent to address findings
-2. **Override** — accept as-is with noted caveats
-3. **Tasks** — create follow-up tasks for unresolved findings
-4. **Re-run** — re-verify after manual fixes
+## Criteria Matrix
+| Criterion | Verifier | Breaker Flags | Evidence |
+
+## Consensus Findings
+
+## Verifier Details
+
+## Breaker Findings
+```
+
+Run `blueprint commit review <slug>`.
+
+### 6. Act
+
+- PASS: suggest `/skill:commit`.
+- PARTIAL/FAIL with `--auto`: read `skills/fix/SKILL.md` and create a
+  fix plan from consensus findings.
+- PARTIAL/FAIL without `--auto`: report findings and suggest
+  `/skill:fix`.

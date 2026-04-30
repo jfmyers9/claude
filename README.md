@@ -72,12 +72,13 @@ Installed by `./install.sh claude` into `~/.claude`:
 - links `harnesses/claude/settings.json` as `settings.json`
 - links Claude statusline and hooks
 
-Claude-specific features retained:
+Claude-specific features retained outside shared skills:
 
-- native task tools (`TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`)
-- agent/team orchestration tools where available
 - Claude Code hooks and statusline protocol
 - Claude plugin settings
+
+Shared skills intentionally avoid native task/team paths and use
+blueprints for durable workflow state in every harness.
 
 ## Pi adapter
 
@@ -100,16 +101,19 @@ Direct aliases like `/commit` can be added later with a Pi extension.
 
 ## Portability status
 
-Good shared skills:
+Shared skills use blueprints for durable state and avoid native
+Task/Team orchestration paths.
 
-- `commit`, `daily`, `gt`, `start`, `submit`
-- `archive`, `refine`, `report`, `git-surgeon`, `writing-skills`
+Blueprint-backed workflow skills:
 
-Skills that still have harness-native fast paths and should treat
-blueprints as the portable fallback:
+- `research`, `implement`, `review`, `fix`, `vibe`
+- `acceptance`, `split-commit`, `debug`, `respond`, `pr-plan`,
+  `resume-work`, `report`, `archive`
 
-- `research`, `implement`, `review`, `acceptance`, `split-commit`
-- `fix`, `debug`, `respond`, `pr-plan`, `resume-work`, `vibe`
+Direct-action / utility skills:
+
+- `commit`, `daily`, `gt`, `start`, `submit`, `refine`,
+  `git-surgeon`, `writing-skills`
 
 ## Rules
 
