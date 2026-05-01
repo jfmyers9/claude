@@ -13,6 +13,15 @@ link_item() {
   echo "Linked: $dest"
 }
 
+backup_existing_file() {
+  local file="$1"
+  if [ -e "$file" ] && [ ! -L "$file" ]; then
+    local backup="$file.backup.$(date +%Y%m%d%H%M%S)"
+    cp -p "$file" "$backup"
+    echo "Backed up: $backup"
+  fi
+}
+
 install_shared_bin() {
   mkdir -p "$HOME/.local/bin"
   link_item "$SCRIPT_DIR/bin/blueprint" "$HOME/.local/bin/blueprint"
@@ -52,6 +61,20 @@ install_pi() {
   done
 }
 
+install_codex() {
+  local dir="${CODEX_CONFIG_DIR:-$HOME/.codex}"
+  local agents_dir="${CODEX_AGENTS_DIR:-$HOME/.agents}"
+  mkdir -p "$dir"
+  mkdir -p "$agents_dir"
+
+  backup_existing_file "$dir/config.toml"
+  link_item "$SCRIPT_DIR/harnesses/codex/config.toml" "$dir/config.toml"
+  link_item "$SCRIPT_DIR/AGENTS.md" "$dir/AGENTS.md"
+  link_item "$SCRIPT_DIR/rules" "$dir/rules-md"
+  link_item "$SCRIPT_DIR/skills" "$agents_dir/skills"
+  link_item "$SCRIPT_DIR/rules" "$agents_dir/rules"
+}
+
 case "$HARNESS" in
   claude)
     install_claude
@@ -61,13 +84,18 @@ case "$HARNESS" in
     install_pi
     install_shared_bin
     ;;
+  codex)
+    install_codex
+    install_shared_bin
+    ;;
   all)
     install_claude
     install_pi
+    install_codex
     install_shared_bin
     ;;
   *)
-    echo "Usage: $0 [claude|pi|all]" >&2
+    echo "Usage: $0 [claude|pi|codex|all]" >&2
     exit 1
     ;;
 esac

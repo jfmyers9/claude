@@ -2,20 +2,23 @@
 
 Harness-agnostic coding-agent workflow config with shared
 instructions, rules, skills, and adapter-specific settings for Claude
-Code and Pi.
+Code, Pi, and Codex.
 
 ## Install
 
 ```sh
 ./install.sh claude   # install Claude Code adapter
 ./install.sh pi       # install Pi adapter
-./install.sh all      # install both
+./install.sh codex    # install Codex adapter
+./install.sh all      # install all adapters
 ```
 
 Environment overrides:
 
 - `CLAUDE_CONFIG_DIR` — default `~/.claude`
 - `PI_CONFIG_DIR` — default `~/.pi/agent`
+- `CODEX_CONFIG_DIR` — default `~/.codex`
+- `CODEX_AGENTS_DIR` — default `~/.agents`
 - `BLUEPRINT_DIR` — default `~/workspace/blueprints`
 
 ## Prerequisites
@@ -25,6 +28,7 @@ Environment overrides:
 - GitHub CLI (`gh`) for PR and issue metadata
 - Python 3 for Claude statusline only
 - macOS Keychain only for Claude quota statusline enrichment
+- Codex CLI (`codex`) for the Codex adapter
 
 ## Layout
 
@@ -43,6 +47,8 @@ harnesses/
   pi/
     settings.json          # Pi settings
     extensions/            # Pi extensions
+  codex/
+    config.toml            # Codex CLI settings
 ```
 
 ## Shared config
@@ -100,6 +106,23 @@ Pi uses `/skill:<name>` commands, for example:
 ```
 
 Direct aliases like `/commit` can be added later with a Pi extension.
+
+## Codex adapter
+
+Installed by `./install.sh codex` into `~/.codex` and `~/.agents`:
+
+- links `harnesses/codex/config.toml` as `~/.codex/config.toml`
+- links `AGENTS.md` and `rules/` into `~/.codex` as reference files
+- links shared `skills/` as `$HOME/.agents/skills`
+- links shared `rules/` as `$HOME/.agents/rules`
+- installs `blueprint` to `~/.local/bin`
+
+If `~/.codex/config.toml` already exists as a real file, the Codex
+installer backs it up before linking the managed config.
+
+Codex reads repository `AGENTS.md` files automatically. Shared skills are
+installed through Codex's user skill path and can be invoked with
+`$commit`, `$submit`, `$research`, `$review`, and other skill names.
 
 ## Portability status
 

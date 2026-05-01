@@ -1,0 +1,16 @@
+model = "gpt-5.5"
+model_reasoning_effort = "high"
+personality = "pragmatic"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "cached"
+project_doc_fallback_filenames = ["CLAUDE.md"]
+
+[tui]
+notification_condition = "unfocused"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 1
+
+[projects."/Users/jim/workspace/agent"]
+trust_level = "trusted"
