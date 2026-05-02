@@ -4,7 +4,7 @@ description: >
   Senior engineer code review, filing findings in review blueprints.
   Triggers: 'review code', 'code review', 'review my changes'.
 allowed-tools: Bash, Read, Write, Glob, Grep
-argument-hint: "[file-pattern] [<branch|PR>] | --continue [slug]"
+argument-hint: "[--local] [file-pattern] [<branch|PR>] | --continue [slug]"
 ---
 
 # Review
@@ -18,6 +18,7 @@ Blueprints are the only review tracker.
 
 - `<file-pattern>` — optional changed-file filter
 - `<branch|PR>` — optional branch or PR number
+- `--local` — review staged/unstaged local changes instead of a branch
 - `--continue [slug]` — continue latest or matching review blueprint
 
 ## Workflow
@@ -28,14 +29,23 @@ Blueprints are the only review tracker.
   `gh pr view <N> --json headRefName -q .headRefName`, then review
   that branch.
 - Branch arg: checkout only if explicitly requested.
-- Empty: review current branch. If current branch is `main`/`master`,
-  stop unless files were explicitly supplied.
+- `--local`: review staged/unstaged local changes.
+- Empty: review current branch. If current branch is `main`/`master`
+  and local staged/unstaged changes exist, review those local changes.
+  If no local changes exist on `main`/`master`, stop unless files were
+  explicitly supplied.
 
 Set:
 
 ```bash
 branch=$(git branch --show-current)
 trunk=$(gt trunk 2>/dev/null || echo main)
+review_target=branch
+if [ "$branch" = "main" ] || [ "$branch" = "master" ] || [ "${LOCAL_CHANGES:-0}" = 1 ]; then
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    review_target=local
+  fi
+fi
 ```
 
 ### 2. Gather Context
@@ -43,11 +53,23 @@ trunk=$(gt trunk 2>/dev/null || echo main)
 Run targeted commands:
 
 ```bash
-git log --oneline "$trunk"..HEAD
-git diff "$trunk"...HEAD --name-only
-git diff "$trunk"...HEAD
+if [ "$review_target" = local ]; then
+  git diff --name-only
+  git diff --cached --name-only
+  git diff
+  git diff --cached
+else
+  git log --oneline "$trunk"..HEAD
+  git diff "$trunk"...HEAD --name-only
+  git diff "$trunk"...HEAD
+fi
 gh pr view --json title,body,labels,reviewDecision 2>/dev/null || true
 ```
+
+For local-change reviews, treat unstaged and staged diffs as introduced code.
+If a file has both staged and unstaged hunks, review both and identify
+which finding comes from which diff only when that distinction matters.
+Untracked files are reviewed only when explicitly named by file-pattern.
 
 Apply file-pattern filters if provided. Exclude lock files, generated
 artifacts, `dist/`, `build/`, `coverage/`, and binaries unless they are
@@ -69,7 +91,9 @@ Plan coherence:
 
 ```bash
 branch_slug=$(blueprint slug "$branch")
-plan_file=$(blueprint find --type spec,plan --match "$branch_slug")
+if [ "$review_target" != local ]; then
+  plan_file=$(blueprint find --type spec,plan --match "$branch_slug")
+fi
 ```
 
 If found, read `## Spec` and compare the diff against it.
@@ -140,7 +164,11 @@ Skip empty sections. Group duplicate findings by root cause.
 ### 6. Store Review Blueprint
 
 ```bash
-file=$(blueprint create review "Review: $branch" --status draft --branch "$branch")
+if [ "$review_target" = local ]; then
+  file=$(blueprint create review "Review: local changes" --status draft --branch "$branch")
+else
+  file=$(blueprint create review "Review: $branch" --status draft --branch "$branch")
+fi
 ```
 
 If a source plan/spec was found:
