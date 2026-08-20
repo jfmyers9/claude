@@ -188,10 +188,6 @@ Direct workflows may consume artifacts but do not require or create trackers:
 `implement`, `fix`, `debug`, `respond`, `split-commit`, `resume-work`, `vibe`,
 and `converge`.
 
-The Codex package manifest installs Ponytail automatically. Caveman `lite` is
-provided by the shared `AGENTS.md`. Use `CODEX_SKIP_PACKAGES=1` to skip external
-plugin installation, such as during an offline bootstrap.
-
 ## Rules
 
 - `rules/style.md` — simple readable code

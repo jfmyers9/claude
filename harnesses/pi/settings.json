@@ -39,9 +39,7 @@
   },
   "lastChangelogVersion": "0.84.1",
   "packages": [
-    "npm:@dreki-gg/pi-context7@0.2.0",
-    "git:github.com/DietrichGebert/ponytail@v4.8.4",
-    "git:github.com/juliusbrussee/caveman@v1.9.1"
+    "npm:@dreki-gg/pi-context7@0.2.0"
   ],
   "extensions": [
     "extensions/agents-local/index.ts",

@@ -27,14 +27,6 @@ The installer copies the mutable baseline config and links shared files:
 - `skills/` to `~/.agents/skills` for Codex discovery
 - `rules/` to `~/.agents/rules` for shared skill references
 
-The installer idempotently adds the Ponytail marketplace and plugin. Ponytail's
-hooks still require review and trust through `/hooks` after first installation.
-Set `CODEX_SKIP_PACKAGES=1` for an offline install that skips external plugins.
-
-Caveman `lite` is always enabled by `global/AGENTS.md`. The standalone Caveman
-skill installer is intentionally not run because this repository owns
-`~/.agents/skills` as a link to its tracked shared skills.
-
 If `~/.codex/config.toml` already exists as a real file, the installer preserves
 it. Codex may append local runtime state such as project trust, hook trust
 hashes, and UI notices to the installed copy; those tables are intentionally
