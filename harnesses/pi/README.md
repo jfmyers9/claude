@@ -43,6 +43,7 @@ Feature decisions from the Luan config review are tracked in
 Installed extensions:
 
 - `agents-local/` — injects untracked `AGENTS.local.md` / `CLAUDE.local.md` context from cwd ancestors; `/agents-local` lists loaded files.
+- `codex-native/compaction/` — uses OpenAI Responses native compaction for compatible OpenAI and Codex sessions, persists the opaque compacted window for replay, and falls back to Pi compaction on failure.
 - `clear.ts` — `/clear` starts a fresh session after the current turn; `ctrl+shift+l` queues it.
 - `effort.ts` — `/effort [level]` stores per-model thinking effort in the current Pi session; `effort.json` supplies defaults only.
 - `fileops/` — replaces the built-in local file workflow with `read`, `search`, `find`, `write`, and a configurable `edit` tool. Default edit mode is hashline.

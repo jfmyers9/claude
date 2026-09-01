@@ -2,6 +2,8 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 
 const COMPACT_AT_PERCENT = 85;
 const MESSAGE_TYPE = "auto-compact-resume";
+export const AUTO_COMPACT_STOP_MESSAGE =
+	"End the current response immediately. Output no text and do not call tools. Context compaction will run, then the task will resume.";
 
 export function needsCompaction(
 	content: readonly { type: string }[],
@@ -22,7 +24,8 @@ export default function autoCompactResumeExtension(pi: ExtensionAPI) {
 		if (compacting) return;
 
 		const usage = ctx.getContextUsage();
-		if (!usage || !needsCompaction(event.message.content, usage.tokens, usage.contextWindow)) {
+		const content = "content" in event.message && Array.isArray(event.message.content) ? event.message.content : [];
+		if (!usage || !needsCompaction(content, usage.tokens, usage.contextWindow)) {
 			return;
 		}
 
